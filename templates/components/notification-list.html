@@ -1,0 +1,43 @@
+<!-- Updated notification-list.html -->
+<div
+  class="flex flex-col h-full overflow-scroll rounded-[5px] border border-[var(--border-color)] bg-[var(--sec-bg-color)]"
+>
+  <div class="border-b border-[var(--border-color)] px-[20px] py-[15px]">
+    <p class="text-[20px] text-[var(--sec-text)]">Notifications</p>
+  </div>
+  {% if notifications %} {% for notification in notifications %}
+  <div
+    class="flex flex-row items-center justify-between py-[12px] px-[24px] border-y border-y-[var(--border-color)] hover:opacity-80 duration-300 transition-all"
+  >
+    <a
+      href="/admin/chat/{{ notification.room_id }}"
+      class="flex flex-col w-3/4 hover:cursor-pointer"
+    >
+      <div class="flex flex-row gap-[15px] items-center">
+        <p class="text-[16px] font-bold text-[var(--main-color)]">
+          {{ notification.title }}
+        </p>
+      </div>
+      <p class="text-[16px] text-[var(--sec-text)]">
+        {{ notification.subject }}
+      </p>
+      <p class="text-[14px] opacity-70 text-[var(--sec-text)]">
+        {{ notification.message }}
+      </p>
+    </a>
+    <div
+      class="flex justify-center items-center rounded-[6px] bg-[var(--main-color)] hover:opacity-90 hover:cursor-pointer transition-all size-[32px]"
+      hx-post="/admin/notification/{{ notification.notification_id }}/"
+      hx-trigger="click"
+      hx-swap="none"
+      hx-on::after-request=" refreshNotifcation()"
+    >
+      <i data-lucide="check"></i>
+    </div>
+  </div>
+  {% endfor %} {% else %}
+  <div class="text-center py-4 text-[var(--sec-text)] opacity-70">
+    No notifications yet
+  </div>
+  {% endif %}
+</div>

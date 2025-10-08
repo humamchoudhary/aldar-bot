@@ -1,0 +1,95 @@
+<div id="chat-{{ chat.room_id }}"
+     class="chat-row flex flex-row justify-between py-[12px] px-[24px] {% if request.path.split('/')[-1] == chat.room_id or (cur_chat and cur_chat.room_id == chat.room_id ) %}bg-[var(--sec-bg-color)]{% endif %} border-y border-y-[var(--border-color)] hover:cursor-pointer duration-300 transition-all"
+     >
+    
+<div class="hidden"
+     hx-get="/admin/chat/{{ chat.room_id }}"
+     hx-target="#chatarea"
+     hx-swap="innerHTML"
+     hx-trigger="click from:#chat-{{ chat.room_id }}"
+     hx-push-url="true"></div>
+    <div class="hidden"
+         hx-get="/admin/user/{{ chat.user_id }}/details"
+         hx-target="#userInfo"
+         hx-swap="innerHTML"
+         hx-trigger="click from:#chat-{{ chat.room_id }}"></div>
+    <div class="flex flex-col {% if chat.viewed %}opacity-60{% endif %}">
+        <div class="flex flex-row gap-[15px]">
+            <p class="text-[16px] font-bold">
+                {{ chat.username[:8] }}
+                {% if chat.username|length > 8 %}
+                    ...
+                {% endif
+                %}
+            </p>
+            {% if chat.admin_required %}
+                <div class="px-[9px] py-[3px] bg-[#56ABFF]/20 rounded-full">
+                    <p class="text-xs md:text-sm text-[#56ABFF]">
+                        <span class="md:hidden 2xl:inline">Admin Required</span>
+                        <span class="hidden md:inline 2xl:hidden">Admin...</span>
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+        <p class="text-[16px] opacity-70 text-[var(--sec-text)]">{{ chat.subject }}</p>
+        <!-- Desktop: First 20 characters -->
+        <p class="text-[16px] text-[var(--sec-text)] block">
+            {{ chat.messages[-1].sender[:6] }}
+            {% if chat.messages[-1].sender|length >
+                6 %}
+                ...
+            {% endif %}
+            : {{ chat.messages[-1].content[:15] }}
+            {% if
+                chat.messages[-1].content|length > 15 %}
+                ...
+            {% endif %}
+        </p>
+    </div>
+    <div class="flex  flex-col justify-between items-end ">
+        <span class="message-time {% if chat.viewed %}opacity-60{% endif %}"
+              data-utc="{{ chat.updated_at.isoformat() }}"
+              title="{{ chat.updated_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}">
+            {{ chat.updated_at.strftime("%d %B %Y - %H:%M") }}
+        </span>
+        
+        <!-- Three Dot Menu -->
+            
+<div class="flex flex-row gap-2">
+    {% if not chat.exported %}
+    <div 
+        onclick="event.stopPropagation();exportChat('{{ chat.room_id }}')"
+        class="flex items-center gap-3 px-2 py-2 hover:bg-[var(--border-color)] cursor-pointer transition-all duration-200 rounded-md"
+    >
+        <i data-lucide="square-arrow-out-up-right" class="text-[var(--main-color)] size-[16px]"></i>
+        <span class="text-sm text-[var(--main-color)] hidden 2xl:inline">Export To ERP</span>
+    </div>
+    {% endif %}
+    
+    {% if not chat.archived %}
+    <div 
+        onclick="event.stopPropagation(); archiveChat('{{ chat.room_id }}')"
+        class="flex items-center gap-3 px-2 py-2 hover:bg-[var(--border-color)] cursor-pointer transition-all duration-200 rounded-md"
+    >
+        <i data-lucide="archive" class="text-[var(--main-color)] size-[16px]"></i>
+        <span class="text-sm text-[var(--main-color)] hidden 2xl:inline">Archive</span>
+    </div>
+    {% endif %}
+
+    <div 
+        hx-post="/admin/chat/{{ chat.room_id }}/delete"
+        hx-target="#chat-{{ chat.room_id }}"
+        hx-swap="none"
+        hx-trigger="click"
+        hx-on::click="event.stopPropagation();"
+        onclick="event.stopPropagation()"
+        hx-confirm="Are you sure you want to delete this chat?"
+        hx-on::after-request="handleDeleteResponse(event, '{{ chat.room_id }}'); console.log('delete succ')"
+        class="flex items-center gap-3 px-2 py-2 hover:opacity-80 hover:cursor-pointer hover:bg-[var(--border-color)] duration-300 transition-all rounded-md"
+    >
+        <i data-lucide="trash-2" class="text-red-500 size-[18px]"></i>
+        <p class="text-sm font-bold text-red-500 hidden 2xl:inline">Delete</p>
+    </div>
+</div>
+    </div>
+</div>

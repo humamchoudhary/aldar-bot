@@ -1,0 +1,25 @@
+<div
+  class="flex flex-col border-2 border-[var(--border-color)] rounded-[5px] px-[30px] py-[20px] gap-4 text-[var(--white)] hover:cursor-pointer transition-all duration-200"
+  onclick="toggleQA(this)"
+>
+  <!-- Topic heading -->
+  <div class="flex flex-row w-full justify-between items-center">
+    <p class="text-[var(--main-color)] font-bold text-lg">
+      {{ group['topic'] }}
+    </p>
+    <i
+      data-lucide="plus"
+      class="toggle-icon text-[var(--main-color)] transition-transform duration-300"
+    ></i>
+  </div>
+
+  <!-- Questions list -->
+  <div class="qa-answer hidden flex flex-col gap-6 text-[var(--white)] mt-3">
+    {% for qa in group['questions'] %}
+    <div class="">
+      <p class="font-semibold">{{ qa['question'] }}</p>
+      <p class="text-sm opacity-90">{{ qa['answer'] }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>

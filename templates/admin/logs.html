@@ -1,0 +1,514 @@
+{% extends 'admin/base.html' %} {% block content %}
+<div class=" mx-8 mb-4">
+    <h1 class="mb-6 text-2xl font-bold" style="color: var(--sec-text)">
+      System Logs
+    </h1>
+    
+    <!-- Filters Section -->
+    <div class="mb-6 rounded-lg shadow p-4" style="background-color: var(--sec-bg-color); border: 1px solid var(--border-color)">
+      <h3 class="text-lg font-semibold mb-4" style="color: var(--sec-text)">
+        Filters
+      </h3>
+      <form id="filter-form" hx-get="/admin/logs/filter" hx-target="#logs-table" hx-swap="innerHTML" 
+        hx-trigger="submit, filter-change" hx-include="this" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        
+        <!-- Level Filter -->
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">Levels</label>
+          <div class="relative">
+            <div class="multi-select-header flex justify-between items-center px-3 py-2 border rounded cursor-pointer" 
+              style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)"
+              onclick="toggleDropdown('level-dropdown')">
+              <span id="level-selected">All Levels</span>
+              <svg class="w-3 h-3 transition-transform" viewBox="0 0 12 12">
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+            <div id="level-dropdown" class="multi-select-dropdown hidden absolute z-50 w-full mt-1 border rounded shadow-lg" 
+              style="background-color: var(--bg-color); border-color: var(--border-color); max-height: 200px; overflow-y: auto">
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="level" value="DEBUG" onchange="handleFilterChange(this)" class="mr-2">
+                <span>DEBUG</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="level" value="INFO" onchange="handleFilterChange(this)" class="mr-2">
+                <span>INFO</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="level" value="WARNING" onchange="handleFilterChange(this)" class="mr-2">
+                <span>WARNING</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="level" value="ERROR" onchange="handleFilterChange(this)" class="mr-2">
+                <span>ERROR</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="level" value="CRITICAL" onchange="handleFilterChange(this)" class="mr-2">
+                <span>CRITICAL</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tag Filter -->
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">Tags</label>
+          <div class="relative">
+            <div class="multi-select-header flex justify-between items-center px-3 py-2 border rounded cursor-pointer" 
+              style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)"
+              onclick="toggleDropdown('tag-dropdown')">
+              <span id="tag-selected">All Tags</span>
+              <svg class="w-3 h-3 transition-transform" viewBox="0 0 12 12">
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+            <div id="tag-dropdown" class="multi-select-dropdown hidden absolute z-50 w-full mt-1 border rounded shadow-lg" 
+              style="background-color: var(--bg-color); border-color: var(--border-color); max-height: 200px; overflow-y: auto">
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="tag" value="ACCESS" onchange="handleFilterChange(this)" class="mr-2">
+                <span>ACCESS</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="tag" value="MESSAGE" onchange="handleFilterChange(this)" class="mr-2">
+                <span>MESSAGE</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="tag" value="PING" onchange="handleFilterChange(this)" class="mr-2">
+                <span>PING</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="tag" value="LOGIN" onchange="handleFilterChange(this)" class="mr-2">
+                <span>LOGIN</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="tag" value="SYSTEM" onchange="handleFilterChange(this)" class="mr-2">
+                <span>SYSTEM</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="checkbox" name="tag" value="ADMIN" onchange="handleFilterChange(this)" class="mr-2">
+                <span>ADMIN</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Message Search -->
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">Search Message</label>
+          <input type="text" name="message_search" placeholder="Search in messages..." 
+            class="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-2" 
+            style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)">
+        </div>
+        
+        <!-- User ID Filter -->
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">User ID</label>
+          <input type="text" name="user_id" placeholder="Enter User ID" 
+            class="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-2" 
+            style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)">
+        </div>
+        
+        
+        <!-- Sort Order -->
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">Sort</label>
+          <div class="relative">
+            <div class="multi-select-header flex justify-between items-center px-3 py-2 border rounded cursor-pointer" 
+              style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)"
+              onclick="toggleDropdown('sort-dropdown')">
+              <span id="sort-selected">Newest First</span>
+              <svg class="w-3 h-3 transition-transform" viewBox="0 0 12 12">
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+            <div id="sort-dropdown" class="multi-select-dropdown hidden absolute z-50 w-full mt-1 border rounded shadow-lg" 
+              style="background-color: var(--bg-color); border-color: var(--border-color)">
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="sort" value="timestamp_desc" onchange="handleSortChange(this)" class="mr-2" checked>
+                <span>Newest First</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="sort" value="timestamp_asc" onchange="handleSortChange(this)" class="mr-2">
+                <span>Oldest First</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="sort" value="level_desc" onchange="handleSortChange(this)" class="mr-2">
+                <span>Level (High to Low)</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="sort" value="level_asc" onchange="handleSortChange(this)" class="mr-2">
+                <span>Level (Low to High)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Date Range -->
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">From Date</label>
+          <input type="datetime-local" name="start_date" 
+            class="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-2" 
+            style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)"
+            onchange="triggerFilter()">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">To Date</label>
+          <input type="datetime-local" name="end_date" 
+            class="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-2" 
+            style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)"
+            onchange="triggerFilter()">
+        </div>
+        
+        <!-- Limit -->
+        <div>
+          <label class="block text-sm font-medium mb-2" style="color: var(--sec-text)">Limit</label>
+          <div class="relative">
+            <div class="multi-select-header flex justify-between items-center px-3 py-2 border rounded cursor-pointer" 
+              style="background-color: var(--bg-color); border-color: var(--border-color); color: var(--sec-text)"
+              onclick="toggleDropdown('limit-dropdown')">
+              <span id="limit-selected">100 logs</span>
+              <svg class="w-3 h-3 transition-transform" viewBox="0 0 12 12">
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+            <div id="limit-dropdown" class="multi-select-dropdown hidden absolute z-50 w-full mt-1 border rounded shadow-lg" 
+              style="background-color: var(--bg-color); border-color: var(--border-color)">
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="limit" value="50" onchange="handleLimitChange(this)" class="mr-2">
+                <span>50 logs</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="limit" value="100" onchange="handleLimitChange(this)" class="mr-2" checked>
+                <span>100 logs</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="limit" value="200" onchange="handleLimitChange(this)" class="mr-2">
+                <span>200 logs</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="limit" value="500" onchange="handleLimitChange(this)" class="mr-2">
+                <span>500 logs</span>
+              </label>
+              <label class="flex items-center px-3 py-2 cursor-pointer hover:bg-opacity-80" style="color: var(--sec-text)">
+                <input type="radio" name="limit" value="" onchange="handleLimitChange(this)" class="mr-2">
+                <span>All</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Clear Filters Button -->
+        <div class="flex items-end">
+          <button type="button" onclick="clearFilters()" 
+            class="w-full px-4 py-2 rounded text-sm font-medium transition-colors" 
+            style="background-color: var(--main-color); color: white">
+            Clear Filters
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Active Filters Display -->
+    <div id="active-filters" class="mb-4"></div>
+    
+    <!-- Log Details Container -->
+    <div id="log-details" class="mb-6"></div>
+    
+    <!-- Logs Table Container -->
+    <div id="logs-table" class="rounded-lg shadow overflow-hidden" 
+      style="background-color: var(--sec-bg-color); border: 1px solid var(--border-color)">
+      {% include 'admin/logs_table.html' %}
+    </div>
+</div>
+
+<script>
+  // Global variables
+  let debounceTimer;
+
+  // Multi-select dropdown functionality
+  function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    const isOpen = !dropdown.classList.contains('hidden');
+
+    // Close all dropdowns
+    document.querySelectorAll('.multi-select-dropdown').forEach((d) => {
+      d.classList.add('hidden');
+    });
+
+    // Rotate arrow for all dropdowns
+    document.querySelectorAll('.multi-select-header svg').forEach(svg => {
+      svg.style.transform = 'rotate(0deg)';
+    });
+
+    // Open the clicked one if it wasn't open
+    if (!isOpen) {
+      dropdown.classList.remove('hidden');
+      // Rotate arrow for opened dropdown
+      const header = dropdown.previousElementSibling;
+      const arrow = header.querySelector('svg');
+      if (arrow) {
+        arrow.style.transform = 'rotate(180deg)';
+      }
+    }
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.relative')) {
+      document.querySelectorAll('.multi-select-dropdown').forEach((d) => {
+        d.classList.add('hidden');
+      });
+      // Reset all arrow rotations
+      document.querySelectorAll('.multi-select-header svg').forEach(svg => {
+        svg.style.transform = 'rotate(0deg)';
+      });
+    }
+  });
+
+  // Update selected text for multi-select
+  function updateSelectedText(selectType) {
+    const checkboxes = document.querySelectorAll(`input[name="${selectType}"]:checked`);
+    const selectedSpan = document.getElementById(`${selectType}-selected`);
+
+    if (checkboxes.length === 0) {
+      selectedSpan.textContent = selectType === 'level' ? 'All Levels' : 'All Tags';
+    } else if (checkboxes.length === 1) {
+      selectedSpan.textContent = checkboxes[0].value;
+    } else {
+      selectedSpan.textContent = `${checkboxes.length} selected`;
+    }
+  }
+
+  // Handle filter changes for checkboxes
+  function handleFilterChange(checkbox) {
+    updateSelectedText(checkbox.name);
+    triggerFilter();
+  }
+
+  // Handle sort changes
+  function handleSortChange(radio) {
+    const selectedSpan = document.getElementById('sort-selected');
+    const labels = {
+      'timestamp_desc': 'Newest First',
+      'timestamp_asc': 'Oldest First',  
+      'level_desc': 'Level (High to Low)',
+      'level_asc': 'Level (Low to High)'
+    };
+    selectedSpan.textContent = labels[radio.value] || radio.value;
+    triggerFilter();
+  }
+
+  // Handle limit changes
+  function handleLimitChange(radio) {
+    const selectedSpan = document.getElementById('limit-selected');
+    const labels = {
+      '50': '50 logs',
+      '100': '100 logs',
+      '200': '200 logs', 
+      '500': '500 logs',
+      '': 'All'
+    };
+    selectedSpan.textContent = labels[radio.value] || radio.value;
+    triggerFilter();
+  }
+
+  // Trigger filter with HTMX
+  function triggerFilter() {
+    const form = document.getElementById('filter-form');
+    htmx.trigger(form, 'filter-change');
+    displayActiveFilters();
+  }
+
+  // Display active filters
+  function displayActiveFilters() {
+    const form = document.getElementById('filter-form');
+    const formData = new FormData(form);
+    const activeFilters = [];
+
+    // Check levels
+    const levels = formData.getAll('level');
+    if (levels.length > 0) {
+      activeFilters.push(`Levels: ${levels.join(', ')}`);
+    }
+
+    // Check tags
+    const tags = formData.getAll('tag');
+    if (tags.length > 0) {
+      activeFilters.push(`Tags: ${tags.join(', ')}`);
+    }
+
+    // Check other filters
+    const messageSearch = formData.get('message_search');
+    if (messageSearch) {
+      activeFilters.push(`Message: "${messageSearch}"`);
+    }
+
+    const userId = formData.get('user_id');
+    if (userId) {
+      activeFilters.push(`User ID: ${userId}`);
+    }
+
+
+    const startDate = formData.get('start_date');
+    const endDate = formData.get('end_date');
+    if (startDate || endDate) {
+      const dateRange = `${startDate || '...'} to ${endDate || '...'}`;
+      activeFilters.push(`Date: ${dateRange}`);
+    }
+
+    // Display active filters
+    const activeFiltersDiv = document.getElementById('active-filters');
+    if (activeFilters.length > 0) {
+      activeFiltersDiv.innerHTML = `
+        <div class="p-3 rounded-lg" style="background-color: var(--bg-color); border: 1px solid var(--border-color);">
+          <span class="text-sm font-medium" style="color: var(--sec-text);">Active Filters: </span>
+          ${activeFilters.map(filter => `<span class="inline-block px-2 py-1 rounded text-xs mr-2 mb-1" style="background-color: var(--main-color); color: white">${filter}</span>`).join('')}
+        </div>
+      `;
+    } else {
+      activeFiltersDiv.innerHTML = '';
+    }
+  }
+
+  // Clear all filters
+  function clearFilters() {
+    const form = document.getElementById('filter-form');
+
+    // Reset form inputs
+    form.reset();
+
+    // Uncheck all checkboxes
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+    });
+
+    // Reset radio buttons to defaults
+    document.querySelector('input[name="sort"][value="timestamp_desc"]').checked = true;
+    document.querySelector('input[name="limit"][value="100"]').checked = true;
+
+    // Reset multi-select displays
+    document.getElementById('level-selected').textContent = 'All Levels';
+    document.getElementById('tag-selected').textContent = 'All Tags';
+    document.getElementById('sort-selected').textContent = 'Newest First';
+    document.getElementById('limit-selected').textContent = '100 logs';
+
+    // Clear active filters display
+    document.getElementById('active-filters').innerHTML = '';
+
+    // Trigger filter refresh
+    triggerFilter();
+  }
+
+  // Auto-submit form on input changes with debounce
+  document.addEventListener('input', function(e) {
+    if (e.target.matches('input[name="message_search"], input[name="user_id"]')) {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        triggerFilter();
+      }, 500);
+    }
+  });
+
+  // Handle row clicks
+  document.addEventListener('click', function(e) {
+    const row = e.target.closest('.log-row');
+    if (row && !e.target.closest('button')) {
+      const logId = row.dataset.logId;
+      if (logId) {
+        htmx.ajax('GET', `/admin/log/${logId}`, {
+          target: '#log-details',
+          swap: 'innerHTML'
+        });
+      }
+    }
+  });
+
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+
+ //setTimeout(() => {
+   // location.reload();
+  //}, 10000); 
+
+    const logId = "{{ selected_log.log_id | default('null') }}";
+    if (logId && logId !== 'null') {
+      htmx.ajax('GET', `/admin/log/${logId}`, {
+        target: '#log-details',
+        swap: 'innerHTML'
+      });
+    }
+
+    // Initial filter display
+    displayActiveFilters();
+
+    // Preserve filter state on page load
+    preserveFilterState();
+  });
+
+  // Preserve filter state
+  function preserveFilterState() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Restore levels
+    const levels = urlParams.getAll('level');
+    levels.forEach(level => {
+      const checkbox = document.querySelector(`input[name="level"][value="${level}"]`);
+      if (checkbox) checkbox.checked = true;
+    });
+    if (levels.length > 0) updateSelectedText('level');
+
+    // Restore tags
+    const tags = urlParams.getAll('tag');
+    tags.forEach(tag => {
+      const checkbox = document.querySelector(`input[name="tag"][value="${tag}"]`);
+      if (checkbox) checkbox.checked = true;
+    });
+    if (tags.length > 0) updateSelectedText('tag');
+
+    // Restore other fields
+    ['message_search', 'user_id', 'start_date', 'end_date'].forEach(field => {
+      const value = urlParams.get(field);
+      if (value) {
+        const input = document.querySelector(`[name="${field}"]`);
+        if (input) input.value = value;
+      }
+    });
+
+    // Restore sort
+    const sort = urlParams.get('sort');
+    if (sort) {
+      const radio = document.querySelector(`input[name="sort"][value="${sort}"]`);
+      if (radio) {
+        radio.checked = true;
+        handleSortChange(radio);
+      }
+    }
+
+    // Restore limit
+    const limit = urlParams.get('limit');
+    if (limit !== null) {
+      const radio = document.querySelector(`input[name="limit"][value="${limit}"]`);
+      if (radio) {
+        radio.checked = true;
+        handleLimitChange(radio);
+      }
+    }
+  }
+
+  // Handle HTMX events
+  document.addEventListener('htmx:afterSettle', function(evt) {
+    if (evt.detail.pathInfo.requestPath.startsWith('/admin/log/')) {
+      history.replaceState(null, '', evt.detail.pathInfo.requestPath);
+    }
+  });
+
+  // Prevent form submission on Enter key in input fields
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.matches('input')) {
+      e.preventDefault();
+      triggerFilter();
+    }
+  });
+</script>
+{% endblock %}

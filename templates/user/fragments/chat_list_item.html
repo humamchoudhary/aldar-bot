@@ -1,0 +1,8 @@
+<li class="group__item">
+  <a
+    href="/chat/{{chat.chat_id}}"
+    class="fn__chat_link {{'active' if request.path.split('/')[-1] == chat }}"
+  >
+    <p class="text text-clip">{{chat.subject}}</p>
+  </a>
+</li>

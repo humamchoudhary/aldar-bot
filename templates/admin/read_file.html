@@ -1,0 +1,63 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+{% if file %}
+<style>
+  .container {
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  .image-container {
+    max-width: 100%;
+    overflow: auto;
+  }
+  .image-container img {
+    max-width: 100%;
+    height: auto;
+  }
+  .button-container {
+    margin-top: 20px;
+  }
+  .delete-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .delete-btn:hover {
+    background-color: #c82333;
+  }
+</style>
+<div class="container">
+    {% set filename =  '.'.join(file.filename.split('/')[-1].split('.')[:-1])  %}
+    {% if '.' in filename %}
+
+    <a target="_blank" href="https://{{filename}}">{{ filename }}</a>
+  {% else %}
+  <!-- <h2>{{ file.filename.split('/')[-1] }}</h2> -->
+  <h2>{{filename}}</h2>
+  {% endif %}
+  
+  <div class="button-container">
+    <form method="POST" action="{{ url_for('admin.delete_file', file_name=file.filename.split('/')[-1]) }}" onsubmit="return confirm('Are you sure you want to delete this file?');">
+      <button type="submit" class="delete-btn">Delete File</button>
+    </form>
+  </div>
+  {% set file_ext = file.filename.split('.')[-1].lower() %}
+  {% if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] %}
+    <div class="image-container">
+      <img src="{{ url_for('admin.serve_file', file_name=file.filename.split('/')[-1]) }}" alt="Image Preview">
+    </div>
+  {% elif file_readable %}
+    <pre class='w-full text-wrap'>{{ file.content }}</pre>
+  {% else %}
+    <p>File is not readable</p>
+  {% endif %}
+
+</div>
+{% else %}
+<p>File does not exist.</p>
+{% endif %}
+{% endblock %}

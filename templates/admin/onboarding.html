@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en" class="overflow-x-hidden p-0 m-0">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Onboarding - GoGlobe</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      .step-indicator {
+        transition: all 0.3s ease;
+      }
+
+      .step-indicator.active {
+        background: var(--main-color);
+        color: white;
+      }
+
+      .step-indicator.completed {
+        background: #10b981;
+        color: white;
+      }
+
+      .slide-enter {
+        opacity: 0;
+        transform: translateX(50px);
+      }
+
+      .slide-enter-active {
+        opacity: 1;
+        transform: translateX(0);
+        transition: all 0.3s ease;
+      }
+
+      .slide-exit {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .slide-exit-active {
+        opacity: 0;
+        transform: translateX(-50px);
+        transition: all 0.3s ease;
+      }
+
+      .password-input-wrapper {
+        position: relative;
+      }
+
+      .password-actions {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .password-btn {
+        background: transparent;
+        border: none;
+        color: var(--sec-text);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .password-btn:hover {
+        color: var(--main-color);
+        background: rgba(255, 88, 0, 0.1);
+      }
+
+      .password-btn:active {
+        transform: scale(0.95);
+      }
+
+      .generate-btn {
+        font-size: 12px;
+        padding: 4px 8px;
+        background: rgba(255, 88, 0, 0.1);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--main-color);
+      }
+
+      .generate-btn:hover {
+        background: rgba(255, 88, 0, 0.2);
+      }
+    </style>
+    <link rel="stylesheet" href="/static/css/global.css" />
+  </head>
+  <body class="m-0 bg-[var(--bg-color)] min-h-screen">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="w-full max-w-2xl">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+          <div
+            class="w-16 h-16 bg-[var(--main-color)] rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <svg
+              class="w-8 h-8 text-[var(--white)]"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z"
+              />
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold text-[var(--white)] mb-2">
+            Welcome to GoGlobe Admin
+          </h1>
+          <p class="text-[var(--sec-text)]">Let's set up your admin account</p>
+        </div>
+        <!-- Progress Indicator -->
+        <div class="flex justify-center mb-8">
+          <div class="flex items-center space-x-4">
+            <div
+              class="step-indicator active w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 border-[var(--border-color)]"
+            >
+              1
+            </div>
+            <div class="w-12 h-0.5 bg-[var(--border-color)]"></div>
+            <div
+              class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 border-[var(--border-color)] text-[var(--sec-text)]"
+            >
+              2
+            </div>
+            <div class="w-12 h-0.5 bg-[var(--border-color)]"></div>
+            <div
+              class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 border-[var(--border-color)] text-[var(--sec-text)]"
+            >
+              3
+            </div>
+          </div>
+        </div>
+        <!-- Form Container -->
+        <div
+          class="bg-[var(--sec-bg-color)] rounded-lg p-8 border border-[var(--border-color)] shadow-xl"
+        >
+          <!-- Error Message -->
+          <div
+            id="error-message"
+            class="hidden bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded mb-6"
+          >
+            <span class="text-sm"></span>
+          </div>
+          <!-- Step 1: Basic Information -->
+          <div id="step-1" class="step-content">
+            <h2 class="text-xl font-semibold text-[var(--white)] mb-6">
+              Basic Information
+            </h2>
+            <div class="flex flex-col gap-6">
+              <div>
+                <label
+                  class="block text-sm font-medium text-[var(--white)] mb-2"
+                  >Username *</label
+                >
+                <input
+                  type="text"
+                  id="username"
+                  class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-[var(--white)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-colors duration-200"
+                  placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-medium text-[var(--white)] mb-2"
+                  >Email *</label
+                >
+                <input
+                  type="email"
+                  id="email"
+                  class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-[var(--white)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-colors duration-200"
+                  placeholder="Enter email"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-medium text-[var(--white)] mb-2"
+                  >Phone</label
+                >
+                <input
+                  type="tel"
+                  id="phone"
+                  class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-[var(--white)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-colors duration-200"
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+          </div>
+          <!-- Step 2: Security Settings -->
+          <div id="step-2" class="step-content hidden">
+            <h2 class="text-xl font-semibold text-[var(--white)] mb-6">
+              Security Settings
+            </h2>
+            <div class="space-y-6">
+              <div>
+                <label
+                  class="block text-sm font-medium text-[var(--white)] mb-2"
+                  >Password *</label
+                >
+                <div class="password-input-wrapper">
+                  <input
+                    type="password"
+                    id="password"
+                    class="w-full px-4 py-3 pr-24 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-[var(--white)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-colors duration-200"
+                    placeholder="Enter password"
+                  />
+                  <div class="password-actions">
+                    <button
+                      type="button"
+                      id="generate-password"
+                      class="password-btn generate-btn"
+                      title="Generate password"
+                    >
+                      Generate
+                    </button>
+                    <button
+                      type="button"
+                      id="toggle-password"
+                      class="password-btn"
+                      title="Toggle password visibility"
+                    >
+                      <svg
+                        id="eye-closed"
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M14.12 14.12l1.415 1.415M14.12 14.12L9.878 9.878m4.242 4.242L16.536 16.536"
+                        />
+                      </svg>
+                      <svg
+                        id="eye-open"
+                        class="w-4 h-4 hidden"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-medium text-[var(--white)] mb-2"
+                  >Confirm Password *</label
+                >
+                <div class="password-input-wrapper">
+                  <input
+                    type="password"
+                    id="confirm-password"
+                    class="w-full px-4 py-3 pr-12 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-[var(--white)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-colors duration-200"
+                    placeholder="Confirm password"
+                  />
+                  <div class="password-actions">
+                    <button
+                      type="button"
+                      id="toggle-confirm-password"
+                      class="password-btn"
+                      title="Toggle password visibility"
+                    >
+                      <svg
+                        id="eye-closed-confirm"
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M14.12 14.12l1.415 1.415M14.12 14.12L9.878 9.878m4.242 4.242L16.536 16.536"
+                        />
+                      </svg>
+                      <svg
+                        id="eye-open-confirm"
+                        class="w-4 h-4 hidden"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-[var(--bg-color)] p-4 rounded-lg">
+                <p class="text-sm text-[var(--sec-text)] mb-2">
+                  Password Requirements:
+                </p>
+                <ul class="text-xs text-gray-400 space-y-1">
+                  <li>• At least 8 characters long</li>
+                  <li>• Contains uppercase and lowercase letters</li>
+                  <li>• Contains at least one number</li>
+                  <li>• Contains at least one special character</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <!-- Step 3: Review & Confirm -->
+          <div id="step-3" class="step-content hidden">
+            <h2 class="text-xl font-semibold text-[var(--white)] mb-6">
+              Review & Confirm
+            </h2>
+            <div class="space-y-4">
+              <div class="bg-[var(--bg-color)] p-4 rounded-lg">
+                <h3 class="text-lg font-medium text-[var(--white)] mb-3">
+                  Account Summary
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-[var(--sec-text)]">Username:</span>
+                    <span class="text-[var(--white)] ml-2" id="review-username"
+                      >-</span
+                    >
+                  </div>
+                  <div>
+                    <span class="text-[var(--sec-text)]">Email:</span>
+                    <span class="text-[var(--white)] ml-2" id="review-email"
+                      >-</span
+                    >
+                  </div>
+                  <div>
+                    <span class="text-[var(--sec-text)]">Phone:</span>
+                    <span class="text-[var(--white)] ml-2" id="review-phone"
+                      >-</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div
+                class="flex items-center cursor-pointer"
+                id="terms-container"
+              >
+                <input type="checkbox" id="terms-agree" class="sr-only" />
+                <div
+                  id="checkbox-visual"
+                  class="w-5 h-5 border-2 border-[var(--border-color)] rounded flex items-center justify-center transition-all duration-200"
+                >
+                  <svg
+                    id="checkbox-checkmark"
+                    class="w-3 h-3 text-[var(--white)] hidden"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <span class="ml-2 text-sm text-[var(--white)]"
+                  >I agree to the terms and conditions</span
+                >
+              </div>
+            </div>
+          </div>
+          <!-- Navigation Buttons -->
+          <div class="flex justify-between mt-8">
+            <button
+              id="prev-btn"
+              class="px-6 py-3 border border-[var(--border-color)] text-[var(--sec-text)] rounded-lg hover:bg-[var(--bg-color)] transition-colors duration-200 hidden"
+            >
+              Previous
+            </button>
+            <div class="flex-1"></div>
+            <button
+              id="next-btn"
+              class="px-6 py-3 bg-[var(--main-color)] text-[var(--white)] rounded-lg hover:opacity-90 transition-opacity duration-200"
+            >
+              Next
+            </button>
+            <button
+              id="submit-btn"
+              class="px-6 py-3 bg-[var(--main-color)] text-[var(--white)] rounded-lg hover:opacity-90 transition-opacity duration-200 hidden"
+            >
+              Create Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      let currentStep = 1;
+      const totalSteps = 3;
+      const formData = {};
+
+      // Initialize
+      document.addEventListener("DOMContentLoaded", function () {
+        updateStepIndicators();
+        setupEventListeners();
+      });
+
+      function setupEventListeners() {
+        document.getElementById("next-btn").addEventListener("click", nextStep);
+        document.getElementById("prev-btn").addEventListener("click", prevStep);
+        document
+          .getElementById("submit-btn")
+          .addEventListener("click", submitForm);
+
+        // Password generation
+        document
+          .getElementById("generate-password")
+          .addEventListener("click", generatePassword);
+
+        // Password visibility toggles
+        document
+          .getElementById("toggle-password")
+          .addEventListener("click", () => {
+            togglePasswordVisibility("password", "eye-closed", "eye-open");
+          });
+
+        document
+          .getElementById("toggle-confirm-password")
+          .addEventListener("click", () => {
+            togglePasswordVisibility(
+              "confirm-password",
+              "eye-closed-confirm",
+              "eye-open-confirm",
+            );
+          });
+
+        // Fixed checkbox functionality
+        const termsContainer = document.getElementById("terms-container");
+        const termsCheckbox = document.getElementById("terms-agree");
+        const checkboxVisual = document.getElementById("checkbox-visual");
+        const checkboxCheckmark = document.getElementById("checkbox-checkmark");
+
+        termsContainer.addEventListener("click", function () {
+          termsCheckbox.checked = !termsCheckbox.checked;
+          if (termsCheckbox.checked) {
+            checkboxVisual.classList.add(
+              "bg-[var(--main-color)]",
+              "border-[var(--main-color)]",
+            );
+            checkboxCheckmark.classList.remove("hidden");
+          } else {
+            checkboxVisual.classList.remove(
+              "bg-[var(--main-color)]",
+              "border-[var(--main-color)]",
+            );
+            checkboxCheckmark.classList.add("hidden");
+          }
+        });
+      }
+
+      function generatePassword() {
+        const length = 12;
+        const lowercase = "abcdefghijklmnopqrstuvwxyz";
+        const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const numbers = "0123456789";
+        const symbols = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+        // Ensure at least one character from each category
+        let password = "";
+        password += lowercase[Math.floor(Math.random() * lowercase.length)];
+        password += uppercase[Math.floor(Math.random() * uppercase.length)];
+        password += numbers[Math.floor(Math.random() * numbers.length)];
+        password += symbols[Math.floor(Math.random() * symbols.length)];
+
+        // Fill the remaining length with random characters from all categories
+        const allChars = lowercase + uppercase + numbers + symbols;
+        for (let i = password.length; i < length; i++) {
+          password += allChars[Math.floor(Math.random() * allChars.length)];
+        }
+
+        // Shuffle the password to avoid predictable patterns
+        password = password
+          .split("")
+          .sort(() => Math.random() - 0.5)
+          .join("");
+
+        // Set the generated password
+        const passwordInput = document.getElementById("password");
+        const confirmPasswordInput =
+          document.getElementById("confirm-password");
+
+        passwordInput.value = password;
+        confirmPasswordInput.value = password;
+
+        // Show a brief animation or feedback
+        const generateBtn = document.getElementById("generate-password");
+        const originalText = generateBtn.textContent;
+        generateBtn.textContent = "✓";
+        generateBtn.style.color = "#10b981";
+
+        setTimeout(() => {
+          generateBtn.textContent = originalText;
+          generateBtn.style.color = "";
+        }, 1000);
+      }
+
+      function togglePasswordVisibility(inputId, eyeClosedId, eyeOpenId) {
+        const input = document.getElementById(inputId);
+        const eyeClosed = document.getElementById(eyeClosedId);
+        const eyeOpen = document.getElementById(eyeOpenId);
+
+        if (input.type === "password") {
+          input.type = "text";
+          eyeClosed.classList.add("hidden");
+          eyeOpen.classList.remove("hidden");
+        } else {
+          input.type = "password";
+          eyeClosed.classList.remove("hidden");
+          eyeOpen.classList.add("hidden");
+        }
+      }
+
+      function nextStep() {
+        if (validateCurrentStep()) {
+          saveCurrentStepData();
+          if (currentStep < totalSteps) {
+            currentStep++;
+            updateStep();
+          }
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 1) {
+          currentStep--;
+          updateStep();
+        }
+      }
+
+      function updateStep() {
+        // Hide all steps
+        document.querySelectorAll(".step-content").forEach((step) => {
+          step.classList.add("hidden");
+        });
+        // Show current step
+        document
+          .getElementById(`step-${currentStep}`)
+          .classList.remove("hidden");
+        // Update indicators
+        updateStepIndicators();
+        // Update buttons
+        updateButtons();
+        // Update review section if on step 3
+        if (currentStep === 3) {
+          updateReviewSection();
+        }
+      }
+
+      function updateStepIndicators() {
+        document
+          .querySelectorAll(".step-indicator")
+          .forEach((indicator, index) => {
+            const stepNumber = index + 1;
+            indicator.classList.remove("active", "completed");
+            if (stepNumber < currentStep) {
+              indicator.classList.add("completed");
+            } else if (stepNumber === currentStep) {
+              indicator.classList.add("active");
+            }
+          });
+      }
+
+      function updateButtons() {
+        const prevBtn = document.getElementById("prev-btn");
+        const nextBtn = document.getElementById("next-btn");
+        const submitBtn = document.getElementById("submit-btn");
+        prevBtn.classList.toggle("hidden", currentStep === 1);
+        nextBtn.classList.toggle("hidden", currentStep === totalSteps);
+        submitBtn.classList.toggle("hidden", currentStep !== totalSteps);
+      }
+
+      function validateCurrentStep() {
+        switch (currentStep) {
+          case 1:
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("email").value.trim();
+            if (!username || !email) {
+              showError("Please fill in all required fields");
+              return false;
+            }
+            if (!isValidEmail(email)) {
+              showError("Please enter a valid email address");
+              return false;
+            }
+            break;
+          case 2:
+            const password = document.getElementById("password").value;
+            const confirmPassword =
+              document.getElementById("confirm-password").value;
+            if (!password || !confirmPassword) {
+              showError("Please fill in all password fields");
+              return false;
+            }
+            if (password !== confirmPassword) {
+              showError("Passwords do not match");
+              return false;
+            }
+            if (!isValidPassword(password)) {
+              showError("Password does not meet requirements");
+              return false;
+            }
+            break;
+          case 3:
+            if (!document.getElementById("terms-agree").checked) {
+              showError("Please agree to the terms and conditions");
+              return false;
+            }
+            break;
+        }
+        hideError();
+        return true;
+      }
+
+      function saveCurrentStepData() {
+        switch (currentStep) {
+          case 1:
+            formData.username = document
+              .getElementById("username")
+              .value.trim();
+            formData.email = document.getElementById("email").value.trim();
+            formData.phone = document.getElementById("phone").value.trim();
+            break;
+          case 2:
+            formData.password = document.getElementById("password").value;
+            break;
+        }
+      }
+
+      function updateReviewSection() {
+        document.getElementById("review-username").textContent =
+          formData.username || "-";
+        document.getElementById("review-email").textContent =
+          formData.email || "-";
+        document.getElementById("review-phone").textContent =
+          formData.phone || "Not provided";
+      }
+
+      async function submitForm() {
+        if (!validateCurrentStep()) return;
+        const submitBtn = document.getElementById("submit-btn");
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--white)] inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+</path>
+</svg>
+Creating Account...
+`;
+        try {
+          // Prepare data for submission
+          const submitData = {
+            username: formData.username,
+            email: formData.email,
+            phone: formData.phone || null,
+            password: formData.password,
+            terms_agreed: document.getElementById("terms-agree").checked,
+            created_at: new Date().toISOString(),
+          };
+          // Send POST request
+          const response = await fetch("/admin/onboarding", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(submitData),
+          });
+          const result = await response.json();
+          if (response.ok) {
+            // Success
+            showSuccess("Account created successfully!");
+            // Optionally redirect after success
+            setTimeout(() => {
+              window.location.href = "/admin/dashboard"; // or wherever you want to redirect
+            }, 800);
+          } else {
+            // Handle server errors
+            showError(
+              result.message || "Failed to create account. Please try again.",
+            );
+          }
+        } catch (error) {
+          console.error("Error submitting form:", error);
+          showError(
+            "Network error. Please check your connection and try again.",
+          );
+        } finally {
+          // Reset button
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = "Create Account";
+        }
+      }
+
+      function showError(message) {
+        const errorMessage = document.getElementById("error-message");
+        const errorText = errorMessage.querySelector("span");
+        errorText.textContent = message;
+        errorMessage.classList.remove("hidden");
+        setTimeout(() => {
+          errorMessage.classList.add("hidden");
+        }, 5000);
+      }
+
+      function showSuccess(message) {
+        // You can create a success message element similar to error message
+        // or use the existing error message with different styling
+        const errorMessage = document.getElementById("error-message");
+        const errorText = errorMessage.querySelector("span");
+        // Change styling to success
+        errorMessage.className =
+          "bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded mb-6";
+        errorText.textContent = message;
+        errorMessage.classList.remove("hidden");
+        setTimeout(() => {
+          errorMessage.classList.add("hidden");
+          // Reset back to error styling
+          errorMessage.className =
+            "hidden bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded mb-6";
+        }, 5000);
+      }
+
+      function hideError() {
+        document.getElementById("error-message").classList.add("hidden");
+      }
+
+      function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
+
+      function isValidPassword(password) {
+        return (
+          password.length >= 8 &&
+          /[A-Z]/.test(password) &&
+          /[a-z]/.test(password) &&
+          /\d/.test(password) &&
+          /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        );
+      }
+    </script>
+  </body>
+</html>

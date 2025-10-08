@@ -1,0 +1,72 @@
+    {% set file_ext = file.split('.')[-1].lower() %}
+    <div class="group relative bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl overflow-hidden hover:border-[var(--main-color)] hover:shadow-lg transition-all duration-200">
+      
+      <!-- Delete Button -->
+      <button class="absolute top-3 right-3 z-20 p-2 bg-red-500 hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-lg"
+              onclick="deleteFile('{{ file }}')" 
+              title="Delete file">
+        <i data-lucide="trash-2" class="w-4 h-4 text-[var(--white)]"></i>
+      </button>
+
+      <!-- File Content -->
+      <a href="{{ url_for('admin.file_page', file_name=file) }}" class="block">
+        <!-- File Preview -->
+        {% if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] %}
+        <div class="aspect-square overflow-hidden bg-[var(--sec-bg-color)]">
+          <img src="{{ url_for('admin.serve_file', file_name=file) }}" 
+               alt="{{ file }}" 
+               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+               loading="lazy" />
+        </div>
+        {% else %}
+        <div class="aspect-square flex items-center justify-center bg-[var(--sec-bg-color)]">
+          {% if file_ext == 'pdf' %}
+          <div class="w-16 h-16 bg-red-500 rounded-xl flex items-center justify-center shadow-lg">
+            <i data-lucide="file-text" class="w-8 h-8 text-[var(--white)]"></i>
+          </div>
+          {% elif file_ext in ['doc', 'docx'] %}
+          <div class="w-16 h-16 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+            <i data-lucide="file-text" class="w-8 h-8 text-[var(--white)]"></i>
+          </div>
+          {% elif file_ext in ['xls', 'xlsx', 'csv'] %}
+          <div class="w-16 h-16 bg-green-500 rounded-xl flex items-center justify-center shadow-lg">
+            <i data-lucide="table" class="w-8 h-8 text-[var(--white)]"></i>
+          </div>
+          {% elif file_ext in ['txt', 'md'] %}
+          <div class="w-16 h-16 bg-gray-500 rounded-xl flex items-center justify-center shadow-lg">
+            <i data-lucide="file-text" class="w-8 h-8 text-[var(--white)]"></i>
+          </div>
+          {% elif file_ext == 'json' %}
+          <div class="w-16 h-16 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+            <i data-lucide="braces" class="w-8 h-8 text-[var(--white)]"></i>
+          </div>
+          {% elif file_ext in ['html', 'htm'] %}
+          <div class="w-16 h-16 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+            <i data-lucide="code" class="w-8 h-8 text-[var(--white)]"></i>
+          </div>
+          {% else %}
+          <div class="w-16 h-16 bg-gray-500 rounded-xl flex items-center justify-center shadow-lg">
+            <i data-lucide="file" class="w-8 h-8 text-[var(--white)]"></i>
+          </div>
+          {% endif %}
+          
+          <!-- File Extension Badge -->
+        </div>
+        {% endif %}
+
+        <!-- File Info -->
+        <div class="p-4">
+          <h3 class="font-medium text-[var(--white)] truncate mb-2 group-hover:text-[var(--main-color)] transition-colors" title="{{ file }}">
+            {{ file }}
+          </h3>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-[var(--sec-text)] bg-[var(--border-color)] px-2 py-1 rounded-full">
+              {{ file_ext.upper() }}
+            </span>
+            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+              <i data-lucide="eye" class="w-4 h-4 text-[var(--sec-text)]"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>

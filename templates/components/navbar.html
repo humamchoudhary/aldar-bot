@@ -1,0 +1,41 @@
+<div
+  id="navbar-bg"
+  class="absolute w-screen h-screen bg-black opacity-0 hidden right-0 top-0 z-10 transition-opacity duration-300"
+  onclick="toggleMenu()"
+></div>
+<div
+  class="h-screen fixed -right-[250px] md:left-0 top-[80px] w-[250px] min-w-[250px] bg-[var(--sec-bg-color)] flex flex-col gap-[16px] px-[30px] py-[40px] border-r border-[var(--border-color)] z-10 transition-all duration-300 rounded-l-md md:rounded-[0px]"
+  id="navbar"
+>
+  {% if nav_items %} {% for nav_item in nav_items %} {% if not nav_item.role or
+  nav_item.role == session.get('role') %} {% include "components/nav_item.html"
+  %} {% endif %} {% endfor %} {% endif %}
+</div>
+<script>
+  function toggleMenu() {
+    const navbar = document.getElementById("navbar");
+    const backdrop = document.getElementById("navbar-bg");
+
+    if (!navbar || !backdrop) return;
+
+    const isOpen = navbar.classList.contains("right-0");
+
+    if (isOpen) {
+      navbar.classList.remove("right-0");
+      navbar.classList.add("-right-[250px]");
+
+      backdrop.classList.add("opacity-0");
+      setTimeout(() => {
+        backdrop.classList.add("hidden");
+        backdrop.classList.remove("opacity-0");
+      }, 300); // match the transition duration
+    } else {
+      navbar.classList.remove("-right-[250px]");
+      navbar.classList.add("right-0");
+
+      backdrop.classList.remove("hidden");
+      backdrop.offsetHeight; // trigger reflow
+      backdrop.classList.add("opacity-50");
+    }
+  }
+</script>

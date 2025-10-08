@@ -1,0 +1,120 @@
+<div
+  id="logo-dropzone-{{ logo_type }}"
+  class="norm flex flex-col gap-3 justify-center items-center transition-all cursor-pointer p-4"
+  onclick="document.getElementById('{{ logo_type }}-logo').click()"
+>
+  <input
+    id="{{ logo_type }}-logo"
+    type="file"
+    accept="image/*"
+    class="hidden"
+  />
+  {% if not logo %}
+  <i data-lucide="upload" class="size-8"></i>
+  <p class="text-center text-sm">Upload {{ logo_type }} logo</p>
+  <p class="text-xs opacity-70">PNG, JPG or SVG recommended</p>
+  <button
+    class="mt-3 border px-4 py-2 rounded-lg transition-colors text-sm"
+    style="border-color: var(--border-color);
+                       color: var(--sec-text);
+                       hover:background-color: var(--main-color);
+                       hover:color: white"
+  >
+    Select File
+  </button>
+  {% else %}
+  <img src="{{ logo }}" class="max-w-full h-24 object-contain" />
+  <button
+    class="mt-3 border px-4 py-2 rounded-lg transition-colors text-sm"
+    style="border-color: var(--border-color);
+                       color: var(--sec-text);
+                       hover:background-color: var(--main-color);
+                       hover:color: white"
+  >
+    Change Logo
+  </button>
+  {% endif %}
+</div>
+<script>
+    document
+        .getElementById("{{logo_type}}-logo")
+        .addEventListener("change", function (e) {
+            uploadFile{{logo_type}}();
+        });
+
+    const logoDropzone{{logo_type}} = document.getElementById("logo-dropzone-{{logo_type}}");
+
+    [("dragenter", "dragover", "dragleave", "drop")].forEach((eventName) => {
+       logoDropzone{{logo_type}}.addEventListener(eventName, preventDefaults, false);
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+     logoDropzone{{logo_type}}.addEventListener(
+        eventName,
+        () => highlight(logoDropzone{{logo_type}}),
+        false,
+    );
+  });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+     logoDropzone{{logo_type}}.addEventListener(
+        eventName,
+        () => unhighlight(logoDropzone{{logo_type}}),
+        false,
+    );
+  });
+
+   logoDropzone{{logo_type}}.addEventListener("drop", (e) => handleDrop(e, "large"), false);
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function highlight(element) {
+        element.classList.add("highlight");
+
+        element.classList.remove("norm");
+    }
+
+    function unhighlight(element) {
+        element.classList.remove("highlight");
+
+        element.classList.add("norm");
+    }
+
+    function handleDrop(e, type) {
+        const dt = e.dataTransfer;
+        const file = dt.files[0];
+        handleFile(file, type);
+    }
+
+    // function handleFileUpload(e, type) {
+    //     const file = e.target.files[0];
+    //     handleFile(file, type);
+    // }
+
+    function uploadFile{{logo_type}}() {
+            let formData = new FormData();
+            let fileInput = document.getElementById("{{logo_type}}-logo");
+
+            if (fileInput.files.length === 0) {
+                alert("Please select a file.");
+                return;
+            }
+
+            formData.append("file", fileInput.files[0]);
+
+    fetch("/admin/update-logo/{%if logo_type == 'large'%}logo{%else%}logo-desktop-mini{% endif %}.svg", {
+                method: "POST",
+                body: formData
+            })
+        .then(response =>  location.reload())
+
+            .catch(error => console.error("Error:", error));
+        }
+    function removeLogo(type) {
+        settings[type + "Logo"] = "";
+        renderLogoSection();
+    }
+</script>

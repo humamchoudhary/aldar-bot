@@ -1,0 +1,497 @@
+{% extends 'admin/base.html' %}
+{% block header %}
+{{super()}}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% endblock %}
+
+{% set title = "Chats" %} 
+{% block content %}
+<style>
+.active-chats{
+    background-color:var(--sec-bg-color);
+    color:var(--main-color);
+    border-radius:5px;
+    border:1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .active-chats{
+        display:none;
+    }
+}
+           
+.message a{
+    color:var(--main-color)
+}
+
+.chat-list-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.chat-list-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-list-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-list-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 3px;
+}
+</style>
+
+<div class="flex flex-col w-full h-full items-center justify-center">
+    <div class="flex flex-row w-full min-h-[80vh]">
+        <div class="flex flex-col gap-[25px] w-full h-[93vh] overflow-y-scroll chat-list-scroll">
+            <div class="flex flex-row gap-[32px] items-start justify-between mx-[24px] mt-[24px]">
+                <p class="text-[18px] md:text-[26px] text-[var(--sec-text)]">Chats</p>
+                
+<div class="relative" id="chat-dropdown">
+    <button 
+        id="dropdown-button"
+        class="flex items-center justify-between px-[18px] py-[8px] bg-[var(--sec-bg-color)] border border-[var(--border-color)] rounded-md text-[14px] font-bold hover:cursor-pointer min-w-[150px]"
+        onclick="toggleDropdown()"
+    >
+        <span id="selected-option">All Chats <span id="selected-count">({{ chat_counts.all or chats|length }})</span></span>
+        <svg class="w-4 h-4 ml-2 transition-transform duration-200" id="dropdown-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+    </button>
+    
+    <div 
+        id="dropdown-menu"
+        class="absolute top-full left-0 mt-1 w-max bg-[var(--sec-bg-color)] border border-[var(--border-color)] rounded-md shadow-lg z-50 hidden"
+    >
+        <div 
+            hx-get="/admin/chats/all?page=0"
+            hx-target="#chat_list_container"
+            hx-trigger="click"
+            hx-on:click="selectOption(this, 'All Chats', '{{ chat_counts.all or chats|length }}')"
+            hx-indicator="#loading-indicator"
+            class="dropdown-option px-[18px] py-[8px] text-[14px] hover:bg-[var(--border-color)] cursor-pointer flex flex-row gap-2 flex-nowrap justify-between"
+            data-value="all"
+        >
+            All Chats <span class="float-right">({{ chat_counts.all or chats|length }})</span>
+        </div>
+        
+        <div 
+            hx-get="/admin/chats/active?page=0"
+            hx-target="#chat_list_container"
+            hx-trigger="click"
+            hx-on:click="selectOption(this, 'Admin Chats', '{{ chat_counts.active or chats|selectattr("admin_required", "equalto", true)|list|length }}')"
+            hx-indicator="#loading-indicator"
+            class="dropdown-option px-[18px] py-[8px] text-[14px] hover:bg-[var(--border-color)] cursor-pointer flex flex-row gap-2 flex-nowrap justify-between"
+            data-value="active"
+        >
+            Admin Chats <span class="float-right">({{ chat_counts.active or chats|selectattr('admin_required', 'equalto', true)|list|length }})</span>
+        </div>
+        
+        <div 
+            hx-get="/admin/chats/exported?page=0"
+            hx-target="#chat_list_container"
+            hx-trigger="click"
+            hx-on:click="selectOption(this, 'Exported Chats', '{{ chat_counts.exported or chats|selectattr("exported", "equalto", true)|list|length }}')"
+            hx-indicator="#loading-indicator"
+            class="dropdown-option px-[18px] py-[8px] text-[14px] hover:bg-[var(--border-color)] cursor-pointer flex flex-row gap-2 flex-nowrap justify-between"
+            data-value="exported"
+        >
+            Exported Chats <span class="float-right">({{ chat_counts.exported or chats|selectattr('exported', 'equalto', true)|list|length }})</span>
+        </div>
+        
+
+<!--    
+    <div 
+    hx-get="/admin/chats/archived?page=0"
+    hx-target="#chat_list_container"
+    hx-trigger="click"
+    hx-on:click="selectOption(this, 'Archived Chats', '{{ chat_counts.archived or 0 }}')"
+    hx-indicator="#loading-indicator"
+    class="dropdown-option px-[18px] py-[8px] text-[14px] hover:bg-[var(--border-color)] cursor-pointer flex flex-row gap-2 flex-nowrap justify-between"
+    data-value="archived"
+    >
+    Archived Chats <span class="float-right">({{ chat_counts.archived or 0 }})</span>
+    </div>
+-->
+    </div>
+</div>
+            </div>
+            
+            
+            <div class="flex flex-col" id="chat_list_container">
+                {% include 'components/chat-list.html' %}
+            </div>
+        </div>
+        
+        <div id="chatarea" class="w-max h-[90vh] md:h-[93vh]" class="flex">
+            {% if chat %}
+                {% set active_chat = chat %}
+                {% include 'components/chat-area.html' %}
+            {% endif %}
+        </div>
+        
+        <div id="userInfo" class="w-min h-full border-l border-[var(--border-color)] hidden md:flex">
+            {% include 'components/chat-user-info.html' %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDropdown() {
+    const dropdownMenu = document.getElementById('dropdown-menu');
+    const dropdownIcon = document.getElementById('dropdown-icon');
+    
+    if (dropdownMenu.classList.contains('hidden')) {
+        dropdownMenu.classList.remove('hidden');
+        dropdownIcon.style.transform = 'rotate(180deg)';
+    } else {
+        dropdownMenu.classList.add('hidden');
+        dropdownIcon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function selectOption(element, optionText, count) {
+    const selectedOption = document.getElementById('selected-option');
+    selectedOption.innerHTML = `${optionText} <span id="selected-count">(${count})</span>`;
+    
+    // Close dropdown
+    document.getElementById('dropdown-menu').classList.add('hidden');
+    document.getElementById('dropdown-icon').style.transform = 'rotate(0deg)';
+    
+    // Reset scroll position when switching options
+    const chatListContainer = document.getElementById('chat_list_container');
+    if (chatListContainer) {
+        chatListContainer.scrollTop = 0;
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('chat-dropdown');
+    if (!dropdown.contains(event.target)) {
+        document.getElementById('dropdown-menu').classList.add('hidden');
+        document.getElementById('dropdown-icon').style.transform = 'rotate(0deg)';
+    }
+});
+
+// Update the updateChatCounts function to include archived chats
+function updateChatCounts() {
+    fetch('/admin/chat-counts')
+        .then(response => response.json())
+        .then(data => {
+            // Update the selected option count
+            const selectedCount = document.getElementById('selected-count');
+            const selectedOption = document.getElementById('selected-option').textContent;
+            
+            if (selectedOption.includes('All Chats')) {
+                selectedCount.textContent = `(${data.all})`;
+            } else if (selectedOption.includes('Admin Chats')) {
+                selectedCount.textContent = `(${data.active})`;
+            } else if (selectedOption.includes('Exported Chats')) {
+                selectedCount.textContent = `(${data.exported})`;
+            } else if (selectedOption.includes('Archived Chats')) {
+                selectedCount.textContent = `(${data.archived || 0})`;
+            }
+            
+            // Update all dropdown option counts
+            const dropdownOptions = document.querySelectorAll('.dropdown-option');
+            dropdownOptions.forEach(option => {
+                const value = option.getAttribute('data-value');
+                const countSpan = option.querySelector('span');
+                if (countSpan) {
+                    switch(value) {
+                        case 'all':
+                            countSpan.textContent = `(${data.all})`;
+                            break;
+                        case 'active':
+                            countSpan.textContent = `(${data.active})`;
+                            break;
+                        case 'exported':
+                            countSpan.textContent = `(${data.exported})`;
+                            break;
+                        case 'archived':
+                            countSpan.textContent = `(${data.archived || 0})`;
+                            break;
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error updating chat counts:', error));
+}
+
+function fixAllLinks(element) {
+    const links = element.querySelectorAll('a');
+    links.forEach(link => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+        let href = link.getAttribute('href');
+        if (href && !/^https?:\/\//i.test(href)) {
+            link.setAttribute('href', 'https://' + href);
+        }
+    });
+}
+
+window.addEventListener("DOMContentLoaded", function () {
+    const textarea = document.getElementById("message");
+    if (textarea) textarea.value = "";
+
+    document.querySelectorAll('.md-content').forEach(el => {
+        const content = marked.parse(marked.parse(el.dataset.content));
+        el.innerHTML = content;
+        fixAllLinks(el);
+    });
+
+    const socket = io();
+
+    socket.on("new_message", function (data) {
+        // Refresh chat list and update counts
+        htmx.ajax('GET', '/admin/chats_list/', '#chat_list_container');
+        updateChatCounts();
+    });
+
+    socket.on("admin_required", function (data) {
+        htmx.ajax('GET', '/admin/chats_list/', '#chat_list_container');
+        updateChatCounts();
+    });
+
+    const messageArea = document.getElementById('messageArea');
+    if (messageArea) {
+
+messageArea.scrollTop = messageArea.scrollHeight ;    }
+});
+
+function updateChatCounts() {
+    // Update chat counts via AJAX
+    fetch('/admin/chat-counts')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('all-count').textContent = `(${data.all})`;
+            document.getElementById('active-count').textContent = `(${data.active})`;
+            document.getElementById('exported-count').textContent = `(${data.exported})`;
+        })
+        .catch(error => console.error('Error updating chat counts:', error));
+}
+
+document.body.addEventListener('htmx:afterSwap', (event) => {
+    const textarea = document.getElementById("message");
+    if (textarea) textarea.value = "";
+    
+    if (!event.detail.isOOBSwap && window.lucide) {
+        lucide.createIcons();
+    }
+    
+    const url = event.detail.pathInfo.requestPath;
+    if (url.startsWith("/admin/chat/")) {
+        const roomId = url.split("/").splice(-1)[0];
+        const socket = io();
+
+        socket.on("connect", function () {
+            console.log('connect');
+            socket.emit("admin_join", { room: roomId });
+        });
+
+        socket.on("new_message", function (data) {
+            htmx.ajax('GET', '/admin/chats_list/', '#chat_list_container');
+            updateChatCounts();
+        });
+
+        socket.on("admin_required", function (data) {
+            htmx.ajax('GET', '/admin/chats_list/', '#chat_list_container');
+            updateChatCounts();
+        });
+    }
+
+    const messageArea = document.getElementById('messageArea');
+    if (messageArea) {
+        messageArea.scrollTo({
+            top: messageArea.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+
+    document.querySelectorAll('.md-content').forEach(el => {
+        const content = marked.parse(marked.parse(el.dataset.content));
+        el.innerHTML = content;
+        fixAllLinks(el);
+    });
+});
+
+  document.body.addEventListener("htmx:afterSwap", function (evt) {
+    if (evt.detail.target.id === "chatarea") {
+      // Remove highlight class from all chat rows
+      document.querySelectorAll(".chat-row").forEach(el => {
+        el.classList.remove("bg-[var(--sec-bg-color)]");
+      });
+
+      // Get the new room ID from URL (last part of /admin/chat/<room_id>)
+      const roomId = window.location.pathname.split("/").pop();
+        
+      const activeRow = document.getElementById("chat-" + roomId);
+      if (activeRow) {
+        activeRow.classList.add("bg-[var(--sec-bg-color)]");
+      }
+    }
+  });
+
+
+// Chat menu functionality
+function toggleChatMenu(roomId) {
+    const menu = document.getElementById(`chat-menu-${roomId}`);
+    const allMenus = document.querySelectorAll('[id^="chat-menu-"]');
+    
+    // Close all other menus
+    allMenus.forEach(m => {
+        if (m.id !== `chat-menu-${roomId}`) {
+            m.classList.add('hidden');
+        }
+    });
+    
+    // Toggle current menu
+    menu.classList.toggle('hidden');
+}
+
+function closeChatMenu(roomId) {
+    const menu = document.getElementById(`chat-menu-${roomId}`);
+    menu.classList.add('hidden');
+}
+
+// Close all menus when clicking outside
+document.addEventListener('click', function(event) {
+    const allMenus = document.querySelectorAll('[id^="chat-menu-"]');
+    const allButtons = document.querySelectorAll('[id^="menu-button-"]');
+    
+    let clickedOnMenu = false;
+    allMenus.forEach(menu => {
+        if (menu.contains(event.target)) {
+            clickedOnMenu = true;
+        }
+    });
+    
+    let clickedOnButton = false;
+    allButtons.forEach(button => {
+        if (button.contains(event.target)) {
+            clickedOnButton = true;
+        }
+    });
+    
+    if (!clickedOnMenu && !clickedOnButton) {
+        allMenus.forEach(menu => {
+            menu.classList.add('hidden');
+        });
+    }
+});
+
+// Archive chat function
+async function archiveChat(roomId) {
+    try {
+        const response = await fetch(`/admin/chat/${roomId}/archive`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            // Update chat counts
+            updateChatCounts();
+            
+            // Remove chat from current view or update its status
+            const chatElement = document.getElementById(`chat-${roomId}`);
+            if (chatElement) {
+                // You might want to remove it from the current view depending on the filter
+                chatElement.remove();
+            }
+        } else {
+            const errorText = await response.text();
+            alert(`Archive failed: ${errorText}`);
+        }
+    } catch (error) {
+        console.error('Archive error:', error);
+        alert(`Archive failed: ${error.message}`);
+    }
+}
+
+async function exportChat(roomId) {
+    try {
+        console.log('Starting export for room:', roomId);
+        
+        const response = await fetch(`/admin/chat/${roomId}/export`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        console.log('Export response status:', response.status);
+        
+        if (response.ok) {
+            if (response.status == 202){
+
+            const errorText = await response.text();
+ customAlert(`Export status updated but not exported: \n${errorText}`);            }
+
+            //console.log('Export successful');
+            // Update chat counts
+            updateChatCounts();
+
+            
+            // Remove export button from the chat item
+            const exportBtn = document.querySelector(`#chat-${roomId} div[onclick*="exportChat"]`);
+            if (exportBtn) {
+                exportBtn.remove();
+            }
+        } else {
+            console.error('Export failed with status:', response.status);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            customAlert(`Export failed.\n${errorText}`);
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        customAlert(`Export failed.\n${error.message}`);
+    }
+}
+
+
+function handleDeleteResponse(event, roomId) {
+    const status = event.detail.xhr.status;
+    console.log(status)
+
+    const chatItem = document.getElementById(`chat-${roomId}`);
+    if (chatItem) {
+        chatItem.remove();
+    }
+
+
+    // Update chat counts
+    updateChatCounts();
+
+ if (window.location.pathname.includes(`/chat/${roomId}`)) {
+     const chatArea = document.getElementById(`chatarea-${roomId}`)
+     const userInfo = document.getElementById(`userInfo`)
+     if (chatArea){
+chatArea.remove()
+         userInfo.innerHTML = `{% include 'components/chat-user-info.html' %}     `
+
+history.pushState({}, '', '/admin/chats');
+     }
+        }
+
+if (status === 203) {
+        const url = event.detail.xhr.responseText.trim();
+        console.log(url)
+
+history.pushState({}, '', url);
+    htmx.ajax('GET', url, {
+            target: '#chatarea',
+            swap: 'innerHTML',
+        });
+    }
+}
+
+
+</script>
+
+{% endblock %}

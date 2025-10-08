@@ -1,0 +1,241 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+<div class=" px-6 py-8">
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+      <div class="flex-1">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="p-2 bg-[var(--border-color)] rounded-lg">
+            <i data-lucide="hard-drive" class="w-6 h-6 text-[var(--main-color)]"></i>
+          </div>
+          <h1 class="text-3xl font-bold text-[var(--text-color)]">Google Drive Files</h1>
+        </div>
+        <p class="text-[var(--sec-text)] text-lg">
+          Manage and download files from your connected Google account
+        </p>
+      </div>
+      
+      <!-- Action Bar -->
+      <div class="flex items-center gap-3">
+        <div id="selection-info" class="hidden bg-[var(--border-color)] px-4 py-2 rounded-lg">
+          <span class="text-sm text-[var(--sec-text)]">
+            <span id="selected-count">0</span> files selected
+          </span>
+        </div>
+        <button id="download-selected" class="hidden bg-[var(--sec-bg-color)] hover:bg-[var(--main-color)] flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all " onclick="downloadSelected()">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          Download Selected
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  {% if not files %}
+  <!-- Empty State -->
+  <div class="text-center py-16">
+    <div class="max-w-md mx-auto">
+      <div class="w-20 h-20 mx-auto mb-6 bg-[var(--border-color)] rounded-full flex items-center justify-center">
+        <i data-lucide="folder-x" class="w-10 h-10 text-[var(--sec-text)]"></i>
+      </div>
+      <h3 class="text-xl font-semibold text-[var(--text-color)] mb-2">No Files Found</h3>
+      <p class="text-[var(--sec-text)]">
+        No files found in selected folders or no folder selected.<br>
+        Try selecting different folders or check your Google Drive connection.
+      </p>
+    </div>
+  </div>
+  {% else %} 
+  
+  <form id="download-form" action="{{ url_for('admin.download_google_files') }}" method="POST">
+    {% for folder_name, folder_data in files.items() %}
+    <div class="bg-[var(--bg-color)] rounded-xl border border-[var(--border-color)] overflow-hidden mb-6 shadow-sm hover:shadow-md transition-shadow">
+      <!-- Folder Header -->
+      <div class="bg-[var(--bg-color)] border-b border-[var(--border-color)] p-6">
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-4 cursor-pointer group">
+            <div class="relative">
+              <input type="checkbox" class="folder-checkbox w-5 h-5 rounded border-2 border-[var(--border-color)] text-[var(--main-color)] focus:ring-[var(--main-color)] focus:ring-2" 
+                     data-folder-id="{{ folder_data.id }}" 
+                     onchange="toggleFolderSelection('{{ folder_data.id }}', this.checked)">
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-[var(--border-color)] rounded-lg group-hover:bg-[var(--main-color)] group-hover:text-[var(--white)] transition-colors">
+                <i data-lucide="folder" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h2 class="text-xl font-semibold text-[var(--text-color)] group-hover:text-[var(--main-color)] transition-colors">
+                  {{ folder_name }}
+                </h2>
+                <p class="text-sm text-[var(--sec-text)]">
+                  ID: {{ folder_data.id }}
+                </p>
+              </div>
+            </div>
+          </label>
+          
+          <div class="flex items-center gap-2">
+            {% if folder_data.files %}
+            <span class="bg-[var(--border-color)] text-[var(--sec-text)] px-3 py-1 rounded-full text-sm font-medium">
+              {{ folder_data.files|length }} files
+            </span>
+            {% endif %}
+            <button type="button" class="p-2 hover:bg-[var(--border-color)] rounded-lg transition-colors" onclick="toggleFolderExpansion('{{ folder_data.id }}')">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-[var(--sec-text)] folder-chevron" id="chevron-{{ folder_data.id }}"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Folder Content -->
+      <div class="folder-content" id="folder-{{ folder_data.id }}">
+        {% if not folder_data.files %}
+        <div class="p-8 text-center">
+          <div class="w-12 h-12 mx-auto mb-4 bg-[var(--border-color)] rounded-full flex items-center justify-center">
+            <i data-lucide="file-x" class="w-6 h-6 text-[var(--sec-text)]"></i>
+          </div>
+          <p class="text-[var(--sec-text)]">This folder is empty</p>
+        </div>
+        {% else %}
+        <div class="p-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {% for file in folder_data.files %} 
+            {% set file_name = file.name %} 
+            {% set mime = file.mimeType %} 
+            {% set file_ext = file_name.split('.')[-1].lower() %}
+            
+            <div class="group relative bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl overflow-hidden hover:border-[var(--main-color)] hover:shadow-lg transition-all duration-200 cursor-pointer" onclick="toggleFileSelection('{{ file.id }}')">
+              <!-- Selection Checkbox -->
+              <div class="absolute top-3 left-3 z-20">
+                <input type="checkbox" name="file_ids" value="{{ file.id }}" 
+                       class="file-checkbox w-5 h-5 rounded border-2 border-[var(--white)] bg-[var(--white)]/90 backdrop-blur-sm text-[var(--main-color)] focus:ring-[var(--main-color)] focus:ring-2 shadow-lg" 
+                       data-folder-id="{{ folder_data.id }}"
+                       onchange="updateSelectionCount()" onclick="event.stopPropagation()">
+              </div>
+              
+              <!-- View Link -->
+              <a href="{{ url_for('admin.view_google_file', file_id=file.id) }}" class="absolute top-3 right-3 z-20 p-2 bg-black/50 hover:bg-black/70 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" target="_blank" onclick="event.stopPropagation()" title="Open file">
+                <i data-lucide="external-link" class="w-4 h-4 text-[var(--white)]"></i>
+              </a>
+              
+              <!-- File Preview -->
+              <div class="block">
+                <div class="aspect-square bg-gradient-to-br from-[var(--border-color)] to-[var(--bg-color)] flex items-center justify-center relative overflow-hidden">
+                  {% if mime.startswith('image/') %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="image" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% elif mime.startswith('video/') %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="play" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% elif mime.startswith('audio/') %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="music" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% elif 'pdf' in mime %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="file-text" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% elif 'document' in mime or 'word' in mime %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="file-text" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% elif 'spreadsheet' in mime or 'excel' in mime %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="table" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% elif 'presentation' in mime or 'powerpoint' in mime %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="presentation" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% else %}
+                  <div class="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i data-lucide="file" class="w-8 h-8 text-[var(--white)]"></i>
+                  </div>
+                  {% endif %}
+                  
+                  <!-- File type badge -->
+                </div>
+                
+                <!-- File Info -->
+                <div class="p-4">
+                  <h3 class="font-medium text-[var(--text-color)] truncate mb-2 group-hover:text-[var(--main-color)] transition-colors">
+                    {{ file_name }}
+                  </h3>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-[var(--sec-text)] bg-[var(--border-color)] px-2 py-1 rounded-full">
+                      {{ mime.split('/')[-1].upper() }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </form>
+  {% endif %}
+</div>
+
+<script>
+  function toggleFileSelection(fileId) {
+    const checkbox = document.querySelector(`input[value="${fileId}"]`);
+    checkbox.checked = !checkbox.checked;
+    updateSelectionCount();
+  }
+
+  function updateSelectionCount() {
+    const selectedCount = document.querySelectorAll('.file-checkbox:checked').length;
+    document.getElementById('selected-count').textContent = selectedCount;
+    
+    const downloadBtn = document.getElementById('download-selected');
+    const selectionInfo = document.getElementById('selection-info');
+    
+    if (selectedCount > 0) {
+      downloadBtn.classList.remove('hidden');
+      selectionInfo.classList.remove('hidden');
+    } else {
+      downloadBtn.classList.add('hidden');
+      selectionInfo.classList.add('hidden');
+    }
+  }
+
+  function toggleFolderSelection(folderId, isChecked) {
+    const folderFiles = document.querySelectorAll(`.file-checkbox[data-folder-id="${folderId}"]`);
+    folderFiles.forEach(checkbox => {
+      checkbox.checked = isChecked;
+    });
+    updateSelectionCount();
+  }
+
+  function toggleFolderExpansion(folderId) {
+    const content = document.getElementById('folder-' + folderId);
+    const chevron = document.getElementById('chevron-' + folderId);
+    
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      chevron.style.transform = 'rotate(0deg)';
+    } else {
+      content.style.display = 'none';
+      chevron.style.transform = 'rotate(-90deg)';
+    }
+  }
+
+  function downloadSelected() {
+    document.getElementById('download-form').submit();
+  }
+
+  // Initialize folder states
+  document.addEventListener('DOMContentLoaded', function() {
+    // All folders start expanded
+    document.querySelectorAll('.folder-content').forEach(content => {
+      content.style.display = 'block';
+    });
+  });
+</script>
+{% endblock %}

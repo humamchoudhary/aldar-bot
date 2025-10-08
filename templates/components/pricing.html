@@ -1,0 +1,416 @@
+<style>
+  .gradient-bg {
+    background: linear-gradient(
+      135deg,
+      var(--gradient-start) 0%,
+      var(--gradient-end) 100%
+    );
+  }
+
+  .pricing-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+  }
+
+  .pricing-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  .popular-card {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+  }
+
+  .popular-card:hover {
+    transform: scale(1.05) translateY(-2px);
+  }
+
+  .feature-check {
+    color: #10b981;
+  }
+
+  .feature-cross {
+    color: #ef4444;
+  }
+
+  @media (max-width: 768px) {
+    .popular-card {
+      transform: none;
+    }
+    .popular-card:hover {
+      transform: translateY(-8px);
+    }
+  }
+</style>
+<div class="flex flex-col w-full items-center pt-10 px-4 pb-10">
+  <div class="text-center">
+    <h1 class="text-4xl md:text-5xl font-bold text-[var(--main-color)] mb-4">
+      GO CHAT Bot Pricing
+    </h1>
+    <p class="text-xl text-[var(--sec-text)] opacity-80">
+      Choose the perfect plan for your business needs. Per user investment model
+      with flexible scaling options.
+    </p>
+    <div
+      class="mt-8 inline-flex items-center bg-orange-100 text-orange-800 px-4 py-2 rounded-full"
+    >
+      <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fill-rule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+          clip-rule="evenodd"
+        ></path>
+      </svg>
+      Driven by Your Success. Since 2005.
+    </div>
+  </div>
+  <!-- Pricing Cards Section -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Start Plan -->
+      <div
+        class="pricing-card bg-[var(--sec-bg-color)] rounded-2xl shadow-lg overflow-hidden"
+      >
+        <div class="p-8 flex flex-col justify-between h-full">
+          <div class="text-center mb-8">
+            <h3 class="text-2xl font-bold text-[var(--main-color)] mb-2">
+              Start
+            </h3>
+            <p class="text-[var(--sec-text)] opacity-80 mb-4">
+              Internal use (file search, automation)
+            </p>
+            <div class="mb-4">
+              <span class="text-4xl font-bold text-[var(--main-color)]"
+                >AED 25</span
+              >
+              <span class="text-[var(--sec-text)] opacity-80">/user/month</span>
+            </div>
+            <div class="text-sm text-[var(--sec-text)] opacity-70">
+              <p>Minimum: AED 650/month (up to 30 users)</p>
+              <p>One-time setup: AED 4,000</p>
+            </div>
+          </div>
+          <div class="space-y-4 mb-8">
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]"
+                >File search capabilities</span
+              >
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Process automation</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Up to 30 users</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Basic support</span>
+            </div>
+          </div>
+          <button
+            onclick="window.location.href='/admin/contact';"
+            class="w-full bg-[var(--main-color)] hover:cursor-pointer hover:bg-[var(--main-color)] text-[var(--white)] font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+          >
+            Get Started
+          </button>
+        </div>
+      </div>
+      <!-- Grow Plan -->
+      <div
+        class="pricing-card popular-card bg-[var(--sec-bg-color)] rounded-2xl shadow-xl overflow-hidden relative"
+      >
+        <div class="absolute top-0 left-0 right-0 bg-[var(--main-color)] py-2">
+          <p class="text-center text-[var(--white)] font-semibold text-sm">
+            MOST POPULAR
+          </p>
+        </div>
+        <div class="p-8 flex flex-col justify-between h-full">
+          <div class="text-center mb-8">
+            <h3 class="text-2xl font-bold text-[var(--main-color)] mb-2">
+              Grow
+            </h3>
+            <p class="text-[var(--sec-text)] opacity-80 mb-4">
+              Customer support (FAQ bot + handoff)
+            </p>
+            <div class="mb-4">
+              <span class="text-4xl font-bold text-[var(--main-color)]"
+                >AED 35</span
+              >
+              <span class="text-[var(--sec-text)] opacity-80">/user/month</span>
+            </div>
+            <div class="text-sm text-[var(--sec-text)] opacity-70">
+              <p>Minimum: AED 950/month (up to 30 users)</p>
+              <p>One-time setup: AED 5,500</p>
+            </div>
+          </div>
+          <div class="space-y-4 mb-8">
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Everything in Start</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">FAQ bot functionality</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Human handoff support</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Priority support</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Up to 30 users</span>
+            </div>
+          </div>
+          <button
+            onclick="window.location.href='/admin/contact';"
+            class="w-full bg-[var(--main-color)] hover:cursor-pointer hover:opacity-90 text-[var(--white)] font-semibold py-3 px-6 rounded-lg transition-opacity duration-200"
+          >
+            Choose Grow
+          </button>
+        </div>
+      </div>
+      <!-- Lead Plan -->
+      <div
+        class="pricing-card bg-[var(--sec-bg-color)] rounded-2xl shadow-lg overflow-hidden"
+      >
+        <div class="p-8 flex flex-col justify-between h-full">
+          <div class="text-center mb-8">
+            <h3 class="text-2xl font-bold text-[var(--main-color)] mb-2">
+              Lead
+            </h3>
+            <p class="text-[var(--sec-text)] opacity-80 mb-4 text-wrap">
+              Full bot suite + GPT fallback, analytics, multilingual
+            </p>
+            <div class="mb-4">
+              <span class="text-4xl font-bold text-[var(--main-color)]"
+                >AED 55</span
+              >
+              <span class="text-[var(--sec-text)] opacity-80">/user/month</span>
+            </div>
+            <div class="text-sm text-[var(--sec-text)] opacity-70">
+              <p>Minimum: AED 1,750/month (up to 35 users)</p>
+              <p>One-time setup: AED 8,500</p>
+            </div>
+          </div>
+          <div class="space-y-4 mb-8">
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Everything in Grow</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]"
+                >GPT fallback integration</span
+              >
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Advanced analytics</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Multilingual support</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Up to 35 users</span>
+            </div>
+            <div class="flex items-center">
+              <svg
+                class="w-5 h-5 feature-check mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              <span class="text-[var(--sec-text)]">Premium support</span>
+            </div>
+          </div>
+          <button
+            onclick="window.location.href='/admin/contact';"
+            class="w-full bg-[var(--main-color)] hover:cursor-pointer hover:bg-[var(--main-color)] text-[var(--white)] font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+          >
+            Go Lead
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% include 'components/faq-frag.html' %}
+<script>
+  function updateSubType(type) {
+    const monthlyBtn = document.getElementById("monthly");
+    const yearlyBtn = document.getElementById("yearly");
+    const yearlyPrices = document.querySelectorAll(".yearly-price");
+    const monthlyPrices = document.querySelectorAll(".monthly-price");
+
+    if (type === "monthly") {
+      monthlyBtn.classList.add("active");
+      yearlyBtn.classList.remove("active");
+
+      // Show monthly prices, hide yearly
+      yearlyPrices.forEach((el) => el.classList.add("hidden"));
+      monthlyPrices.forEach((el) => el.classList.remove("hidden"));
+    } else {
+      yearlyBtn.classList.add("active");
+      monthlyBtn.classList.remove("active");
+
+      // Show yearly prices, hide monthly
+      monthlyPrices.forEach((el) => el.classList.add("hidden"));
+      yearlyPrices.forEach((el) => el.classList.remove("hidden"));
+    }
+  }
+</script>

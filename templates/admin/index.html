@@ -1,0 +1,349 @@
+{% extends 'admin/base.html' %} 
+{% set title = "Admin Dashboard" %} 
+{% block header %}
+{{super()}}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+
+{% endblock %}
+
+
+{% block content %}
+
+
+
+ <style>
+    .custom-select {
+      border-bottom: 1px solid var(--main-color);
+      color:var(--main-color);
+      padding: 8px 32px 8px 4px;
+      font-size: 16px;
+      background-size: 16px 16px;
+      cursor: pointer;
+      font-weight:700;
+    }
+  </style>
+  <div class="flex flex-col w-full h-full items-center justify-center">
+    <div class="flex flex-row w-full min-h-[95vh]">
+        <div class="border-r border-[var(--border-color)] flex flex-col gap-[25px] w-full">
+        <p class="text-[26px] text-[var(--sec-text)] mx-[24px] mt-[24px]">Statistics</p>
+        <div class="flex flex-col md:flex-row gap-[35px]  mx-[24px]">
+            <div class="p-[16px] bg-[var(--sec-bg-color)] rounded-md flex flex-row items-center justify-center gap-2 rounded-md w-max md:w-min text-nowrap">
+                <p class="text-[28px] border-r border-[var(--border-color)] pr-[9px]">{{data['all-time']['totalChats'] | sum }}</p>
+                <p class="text-[16px] text-[var(--sec-text)] pl-[9px]">Total Chats</p>
+            </div>
+            <div class="p-[16px] bg-[var(--sec-bg-color)] rounded-md flex flex-row items-center justify-center gap-2 rounded-md w-max md:w-min text-nowrap">
+                <p class="text-[28px] border-r border-[var(--border-color)] pr-[9px]">{{ data['today']['totalChats'] | sum }}</p>
+                <p class="text-[16px] text-[var(--sec-text)] pl-[9px]">New Chats Today</p>
+            </div>
+            <div class="p-[16px] bg-[var(--sec-bg-color)] rounded-md flex flex-row items-center justify-center gap-2 rounded-md w-max md:w-min text-nowrap">
+                <p class="text-[28px] border-r border-[var(--border-color)] pr-[9px]">{{ data['this-month']['totalChats'] | sum }}</p>
+                <p class="text-[16px] text-[var(--sec-text)] pl-[9px]">New Chats This Month</p>
+            </div>
+        </div>
+        <div class="flex-col bg-[var(--sec-bg-color)] min-w-[980px] h-[440px] rounded-md mx-[24px]  px-[20px] py-[30px] hidden md:flex">
+            <div class="flex flex-row justify-between items-center mb-[20px]">
+                  <select class="custom-select" onchange="handleSelectChange(this)">
+                      <option default value="today">Today</option>
+                      <option value="this-week">This Week</option>
+
+                     <option value="this-month">This Month</option>
+                     <option value="this-year">This Year</option>
+                  </select>
+
+            <div id="custom-legend" class="flex gap-4 mb-4">
+              <!-- Populated dynamically -->
+            </div>
+            </div>
+            <div class="flex-1">
+                <canvas id="chatChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        
+        <p class="text-[26px] text-[var(--sec-text)]  mx-[24px]">Latest Chats</p>
+        <div class="flex flex-col" id="chat_list_container">
+            {% for chat in chats[:5] %}
+            <a href="/admin/chat/{{chat.room_id}}">
+            {% include 'components/chat-item.html' %}
+            </a>
+            {% endfor %}
+            {% if chats|length > 5 %}
+            <div class="flex items-center justify-center py-4">
+                <a href="/admin/chats/" class="bg-[var(--main-color)] rounded-md px-6 py-2 hover:opacity-90 hover:cursor-pointer transition-all duration-300">More Chats
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        </div>
+        <div class="hidden md:flex min-w-[640px] p-[84px]">
+            <div class="w-[350px] flex flex-col gap-[32px]">
+                <img src="/static/img/logo.svg" class="w-[200px] logo" />
+            <p class="text-wrap text-[16px] leading-[24px] text-[var(--sec-text)]">
+We're building market-leading features that will give you greater control over your generations.
+            </p>
+            <div class="w-full h-[2px] bg-[var(--border-color)]"></div>
+            {% if session.get('role') =="superadmin" %}
+            <div class="flex flex-row gap-2 items-center">
+                <div class="rounded-full size-[12px] bg-green-400"></div>
+                <p class="text-[var(--sec-text)]">{{online_users}} Online</p>
+            </div>
+
+            <!-- <div class="flex flex-row gap-2 items-center"> -->
+            <!--     <div class="rounded-full size-[12px] bg-[var(--sec-text)]"></div> -->
+            <!--     <p class="text-[var(--sec-text)]">{{all_users}} Members</p> -->
+            <!-- </div> -->
+            {% endif %}
+            </div>
+            </div>
+    </div>
+</div>
+
+<script>
+let chartInstance = null;
+
+// Chart data for different time periods
+const chartData = {
+    'this-year': {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+
+
+        totalChats:{{data['this-year']['totalChats'] | safe}},
+        adminRequired:{{data['this-year']['adminRequired'] | safe }},
+        title: 'Monthly Chat Statistics - This Year'
+    },
+    'today': {
+        labels: [
+  "00:00", "01:00", "02:00", "03:00", "04:00",
+  "05:00", "06:00", "07:00", "08:00", "09:00",
+  "10:00", "11:00", "12:00", "13:00", "14:00",
+  "15:00", "16:00", "17:00", "18:00", "19:00",
+  "20:00", "21:00", "22:00", "23:00"
+],
+        totalChats:{{data['today']['totalChats'] | safe}},
+        adminRequired:{{data['today']['adminRequired'] | safe }},
+        title: 'Hourly Chat Statistics - Today'
+    },
+
+'this-month': {
+    labels: [
+        {% for i in range(1, 32) %} '{{ i }}'{% if not loop.last %}, {% endif %}{% endfor %}
+    ],  // Assumes max 31 days
+    totalChats: {{ data['this-month']['totalChats'] | safe }},
+    adminRequired: {{ data['this-month']['adminRequired'] | safe }},
+    title: 'Daily Chat Statistics - This Month'
+},    'this-week': {
+        labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        totalChats:{{data['this-week']['totalChats'] | safe}},
+        adminRequired:{{data['this-week']['adminRequired'] | safe }},
+        title: 'Daily Chat Statistics - This Week'
+    },
+};
+
+// Function to detect current theme (matches your theme system)
+function getCurrentTheme() {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+}
+
+// Theme-aware color scheme
+function getThemeColors() {
+    const theme = getCurrentTheme();
+    
+    if (theme === 'dark') {
+        return {
+            textColor: 'rgba(255, 255, 255, 0.8)',
+            gridColor: 'rgba(255, 255, 255, 0.1)',
+            tooltipBg: 'rgba(0, 0, 0, 0.9)',
+            tooltipText: '#ffffff',
+            chartColors: {
+                primary: '#3B82F6',      // Blue for chats
+                secondary: '#10B981',    // Green for admin requests
+                primaryLight: '#60A5FA',
+                secondaryLight: '#34D399'
+            }
+        };
+    } else {
+        return {
+            textColor: 'rgba(0, 0, 0, 0.8)',
+            gridColor: 'rgba(0, 0, 0, 0.1)',
+            tooltipBg: 'rgba(0, 0, 0, 0.8)',
+            tooltipText: '#ffffff',
+            chartColors: {
+                primary: '#1D4ED8',      // Darker blue for chats
+                secondary: '#059669',    // Darker green for admin requests
+                primaryLight: '#3B82F6',
+                secondaryLight: '#10B981'
+            }
+        };
+    }
+}
+
+function renderCustomLegend(chart) {
+    const legendContainer = document.getElementById('custom-legend');
+    legendContainer.innerHTML = ''; // Clear previous items
+
+    chart.data.datasets.forEach((dataset, index) => {
+        const legendItem = document.createElement('div');
+        legendItem.className = 'flex flex-row gap-2 items-center gap-[10px] cursor-pointer select-none px-3 py-1 rounded-md text-sm font-medium bg-[var(--sec-bg-color)] text-[var(--sec-text)] hover:opacity-80';
+        
+        legendItem.innerHTML = ` <div class="flex h-[1px] w-[30px]" style="background-color: ${dataset.borderColor}" ></div> <p>${dataset.label}</p>`;
+        legendItem.dataset.index = index;
+
+        legendItem.onclick = () => {
+            const meta = chart.getDatasetMeta(index);
+            // Toggle visibility
+            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+            chart.update();
+            // Optionally style legend item based on visibility
+            legendItem.style.opacity = meta.hidden ? '0.5' : '1';
+        };
+
+        legendContainer.appendChild(legendItem);
+    });
+}
+
+
+
+function createChart(period) {
+    const ctx = document.getElementById('chatChart').getContext('2d');
+    const data = chartData[period];
+    const themeColors = getThemeColors();
+    
+    // Destroy existing chart if it exists
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+    
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Chats',
+                data: data.totalChats,
+                borderColor: themeColors.chartColors.primary,
+                backgroundColor: themeColors.chartColors.primary,
+                borderWidth: 3,
+                fill: false,
+                tension: 0.2,
+                pointBackgroundColor: themeColors.chartColors.primary,
+                pointBorderColor: themeColors.chartColors.primary,
+                pointBorderWidth: 1,
+                pointRadius: 5,
+                pointHoverRadius: 6
+            }, {
+                label: 'Admin Requests',
+                data: data.adminRequired,
+                borderColor: themeColors.chartColors.secondary,
+                backgroundColor: themeColors.chartColors.secondary,
+                borderWidth: 3,
+                fill: false,
+                tension: 0.2,
+                pointBackgroundColor: themeColors.chartColors.secondary,
+                pointBorderColor: themeColors.chartColors.secondary,
+                pointBorderWidth: 1,
+                pointRadius: 5,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10
+                }
+            },
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true,
+                        fontColor: themeColors.textColor,
+                        fontSize: 12
+                    },
+                    gridLines: {
+                        display: false, // ⛔ hide horizontal grid lines
+                        drawBorder: false
+                    }
+                }],
+                xAxes: [{
+                    ticks: {
+                        fontColor: themeColors.textColor,
+                        fontSize: 12
+                    },
+                    gridLines: {
+                        color: themeColors.gridColor,
+                        drawBorder: false,
+                        display: true // ✅ keep vertical lines
+                    }
+                }]
+            },
+            legend: {
+                display: false,
+                //position: 'top',
+               // labels: {
+                 //   fontColor: 'rgba(255, 255, 255, 0.8)',
+                 //  fontSize: 13,
+                //    padding: 20,
+               //     usePointStyle: true
+                //}
+            },
+            tooltips: {
+                backgroundColor: themeColors.tooltipBg,
+                titleFontColor: themeColors.tooltipText,
+                bodyFontColor: themeColors.tooltipText,
+                borderWidth: 1,
+                borderColor: themeColors.gridColor,
+                cornerRadius: 8,
+                displayColors: true,
+                mode: 'index',
+                intersect: false
+            }
+        }
+    });
+
+    renderCustomLegend(chartInstance);
+}
+
+function handleSelectChange(select) {
+    console.log("Selected:", select.value);
+    createChart(select.value);
+}
+
+// Function to update chart theme
+function updateChartTheme() {
+    if (chartInstance) {
+        const currentSelect = document.querySelector('.custom-select');
+        const currentPeriod = currentSelect ? currentSelect.value : 'today';
+        createChart(currentPeriod);
+    }
+}
+
+// Listen for theme changes (integrates with your toggleTheme function)
+function observeThemeChanges() {
+    // Watch for class changes on html element (matches your theme system)
+    const observer = new MutationObserver(() => {
+        updateChartTheme();
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+    });
+    
+    // Also listen for system theme changes as fallback
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        // Only update if no saved theme (matches your logic)
+        if (!localStorage.getItem('theme')) {
+            updateChartTheme();
+        }
+    });
+}
+
+// Initialize chart on page load
+document.addEventListener('DOMContentLoaded', function() {
+    createChart('today');
+    observeThemeChanges();
+});
+</script>
+{% endblock %}

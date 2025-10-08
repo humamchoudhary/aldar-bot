@@ -1,0 +1,18 @@
+<div
+  class="message flex w-full items-center w-full relative border border-[var(--border-color)] rounded-[5px] p-[16px] {% if message.sender != username and message.sender.lower() != 'bot' and message.sender.lower() != 'system' %}bg-[var(--sec-bg-color)]{% endif %}"
+>
+  <div
+    class="absolute -top-3 left-[30px] px-[15px] py-[4px] rounded-full {% if message.sender ==username %}bg-[var(--white)] text-[var(--bg-color)]{% elif message.sender.lower() =='bot' or message.sender.lower() == 'system' %}bg-[var(--sec-bg-color)]{% else %}bg-[#0095FF]{% endif %}"
+  >
+    <p class="text-[11px] uppercase">
+      {% if message.sender == username %} You {% else %} {{ message.sender }} {%
+      endif %}
+    </p>
+  </div>
+  <div
+    class="md-content text-[16px] text-[var(--sec-text)] leading-[22px] text-wrap"
+    data-content="{{ message.content }}"
+  >
+    {{ message.content }}
+  </div>
+</div>

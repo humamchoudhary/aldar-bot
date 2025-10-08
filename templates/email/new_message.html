@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Message Response</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 650px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+      }
+
+      .email-container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        border: 1px solid #d0d7de;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #001523 0%, #001f33 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")
+          repeat;
+        opacity: 0.3;
+      }
+
+      .header-content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .header .subtitle {
+        font-size: 16px;
+        opacity: 0.9;
+        margin: 0;
+      }
+
+      .icon {
+        background: rgba(255, 255, 255, 0.2);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 24px;
+      }
+
+      .content {
+        padding: 40px 30px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 24px;
+        color: #2d3748;
+      }
+
+      .status-card {
+        background: linear-gradient(135deg, #e6fffa 0%, #f0fff4 100%);
+        border: 2px solid #68d391;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+        text-align: center;
+      }
+
+      .status-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+
+      .status-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #22543d;
+        margin-bottom: 8px;
+      }
+
+      .status-message {
+        color: #2f855a;
+        font-size: 14px;
+      }
+
+      .user-info {
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+      }
+
+      .user-info h3 {
+        color: #4a5568;
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .info-label {
+        font-size: 12px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .info-value {
+        font-weight: 500;
+        color: #2d3748;
+        font-size: 14px;
+      }
+
+      .conversation-preview {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 24px 0;
+      }
+
+      .conversation-preview h4 {
+        color: #4a5568;
+        margin: 0 0 16px 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .message-item {
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        border-left: 4px solid #e2e8f0;
+      }
+
+      .message-item.user {
+        background: #f7fafc;
+        border-left-color: #667eea;
+      }
+
+      .message-item.bot {
+        background: #f0fff4;
+        border-left-color: #68d391;
+      }
+
+      .message-sender {
+        font-weight: 600;
+        color: #4a5568;
+        font-size: 12px;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+      }
+
+      .message-content {
+        color: #2d3748;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .message-time {
+        color: #a0aec0;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+
+      .footer {
+        background: #f7fafc;
+        padding: 24px 30px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .footer p {
+        margin: 0;
+        color: #718096;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 600px) {
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+        .content,
+        .header {
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <div class="header-content">
+          <div class="icon">🤖</div>
+          <h1>Message Processed</h1>
+          <p class="subtitle">Your chatbot has responded to a user inquiry</p>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="greeting">Hello Ana,</div>
+
+        <a
+          href="{{ settings['backend_url'] }}/admin/chat/{{ chat.room_id }}"
+          class="cta-button"
+        >
+          Start Live Chat Now
+        </a>
+
+        <div class="status-card">
+          <div class="status-icon">✅</div>
+          <div class="status-title">Response Sent Successfully</div>
+          <div class="status-message">
+            Your chatbot has automatically responded to {{ user.name }}'s
+            message. No further action is required.
+          </div>
+        </div>
+
+        <div class="user-info">
+          <h3>User Details</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Name</span>
+              <span class="info-value">{{ user.name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ user.email }}</span>
+            </div>
+            {% if user.phone %}
+            <div class="info-item">
+              <span class="info-label">Phone</span>
+              <span class="info-value">{{ user.phone }}</span>
+            </div>
+            {% endif %} {% if user.designation %}
+            <div class="info-item">
+              <span class="info-label">Designation</span>
+              <span class="info-value">{{ user.designation }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+              <span class="info-label">Location</span>
+              <span class="info-value"
+                >{{ user.city }}, {{ user.country }}</span
+              >
+            </div>
+            <div class="info-item">
+              <span class="info-label">Session ID</span>
+              <span class="info-value">{{ chat.room_id }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="conversation-preview">
+          <h4>Recent Conversation</h4>
+          {% for message in chat.messages[-4:] %}
+          <div
+            class="message-item {{ 'user' if message.sender == 'user' else 'bot' }}"
+          >
+            <div class="message-sender">
+              {{ 'Chatbot' if message.sender == 'bot' else 'User' }}
+            </div>
+            <div class="message-content">{{ message.content }}</div>
+            <div class="message-time">
+              {{ message.timestamp.strftime('%H:%M') if message.timestamp else
+              'Just now' }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>
+          This is an automated notification from your chatbot system.<br />
+          Chat ID: {{ chat.room_id }}
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

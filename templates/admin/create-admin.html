@@ -1,0 +1,501 @@
+{% extends 'admin/base.html' %} {% block content %}
+<div class="bg-[var(--bg-color)] text-[var(--white)] min-h-screen p-6">
+  <div class="max-w-5xl mx-auto">
+    <!-- Header with enhanced styling -->
+    <div class="mb-12 text-center">
+      <div
+        class="inline-flex items-center justify-center w-16 h-16 bg-[var(--main-color)]/10 rounded-full mb-4"
+      >
+        <i data-lucide="user-cog" class="text-[var(--main-color)]"></i>
+      </div>
+      <h1 class="text-4xl font-bold text-[var(--main-color)] mb-3">
+        Create New Admin
+      </h1>
+      <p class="text-[var(--sec-text)] text-[14px]">
+        Configure administrator access by filling in the required information
+        below.
+        <br />
+        New admins will receive email notifications upon account creation.
+      </p>
+    </div>
+    <!-- Messages Container -->
+    <div class="mb-8 space-y-4">
+      <!-- Success Message -->
+      <div
+        id="success-message"
+        class="hidden bg-[var(--main-color)]/10 border-l-4 border-[var(--main-color)] text-[var(--main-color)] px-6 py-4 rounded-r-lg shadow-lg"
+      >
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="font-medium">Admin account created successfully!</span>
+        </div>
+      </div>
+      <!-- Error Message -->
+      <div
+        id="error-message"
+        class="hidden bg-[var(--sec-text)]/10 border-l-4 border-[var(--sec-text)] text-[var(--sec-text)] px-6 py-4 rounded-r-lg shadow-lg"
+      >
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="font-medium"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Form Card with enhanced design -->
+    <div
+      class="bg-[var(--sec-bg-color)] rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden"
+    >
+      <!-- Form Header -->
+      <div
+        class="bg-gradient-to-r from-[var(--main-color)]/5 to-[var(--main-color)]/10 px-8 py-6 border-b border-[var(--border-color)]"
+      >
+        <h2
+          class="text-xl font-semibold text-[var(--main-color)] flex items-center"
+        >
+          <svg
+            class="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            ></path>
+          </svg>
+          Administrator Information
+        </h2>
+        <p class="text-[var(--sec-text)] text-sm mt-1">
+          All fields marked with * are required
+        </p>
+      </div>
+      <!-- Form Content -->
+      <div class="p-8">
+        <form
+          id="admin-form"
+          hx-post="/admin/create-admin"
+          hx-trigger="submit"
+          hx-target="#form-response"
+          hx-swap="innerHTML"
+          hx-indicator="#loading-spinner"
+          class="space-y-8"
+        >
+          <!-- Loading Spinner -->
+          <div id="loading-spinner" class="htmx-indicator">
+            <div class="flex items-center justify-center py-8">
+              <div class="relative">
+                <div
+                  class="animate-spin rounded-full h-10 w-10 border-4 border-[var(--border-color)] border-t-[var(--main-color)] animate-pulse"
+                ></div>
+              </div>
+              <span class="ml-4 text-[var(--sec-text)] font-medium"
+                >Creating administrator account...</span
+              >
+            </div>
+          </div>
+          <!-- Form Response Target -->
+          <div id="form-response"></div>
+          <!-- Basic Information Section -->
+          <div class="space-y-6">
+            <div class="flex items-center mb-6">
+              <div
+                class="w-8 h-8 bg-[var(--main-color)]/10 rounded-full flex items-center justify-center mr-3"
+              >
+                <span class="text-[var(--main-color)] font-bold text-sm"
+                  >1</span
+                >
+              </div>
+              <h3 class="text-lg font-semibold text-[var(--main-color)]">
+                Basic Information
+              </h3>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <!-- Username -->
+              <div class="space-y-2">
+                <label
+                  for="username"
+                  class="block text-sm font-semibold text-[var(--white)]"
+                  >Username *</label
+                >
+                <div class="relative">
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                    placeholder="Enter username"
+                    class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-all duration-200 text-[var(--white)] placeholder-[var(--sec-text)]"
+                  />
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
+                  >
+                    <svg
+                      class="w-4 h-4 text-[var(--sec-text)]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      ></path>
+                    </svg>
+                  </div>
+                </div>
+                <p class="text-xs text-[var(--sec-text)]">
+                  Choose a unique username for the administrator
+                </p>
+              </div>
+              <!-- Email -->
+              <div class="space-y-2">
+                <label
+                  for="email"
+                  class="block text-sm font-semibold text-[var(--white)]"
+                  >Email Address *</label
+                >
+                <div class="relative">
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    placeholder="admin@example.com"
+                    class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-all duration-200 text-[var(--white)] placeholder-[var(--sec-text)]"
+                  />
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
+                  >
+                    <svg
+                      class="w-4 h-4 text-[var(--sec-text)]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                      ></path>
+                    </svg>
+                  </div>
+                </div>
+                <p class="text-xs text-[var(--sec-text)]">
+                  Email will be used for notifications and account recovery
+                </p>
+              </div>
+            </div>
+            <!-- Password -->
+            <div class="space-y-2">
+              <label
+                for="password"
+                class="block text-sm font-semibold text-[var(--white)]"
+                >Password *</label
+              >
+              <div class="relative">
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  required
+                  placeholder="Create a secure password"
+                  class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-all duration-200 text-[var(--white)] placeholder-[var(--sec-text)]"
+                />
+                <div
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
+                >
+                  <svg
+                    class="w-4 h-4 text-[var(--sec-text)]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-xs text-[var(--sec-text)]">
+                Password should be at least 8 characters long and contain mixed
+                case letters, numbers, and symbols
+              </p>
+            </div>
+          </div>
+          <!-- Account Settings Section -->
+          <!-- <div class="space-y-6 pt-8 border-t border-[var(--border-color)]"> -->
+          <!--   <div class="flex items-center mb-6"> -->
+          <!--     <div -->
+          <!--       class="w-8 h-8 bg-[var(--main-color)]/10 rounded-full flex items-center justify-center mr-3" -->
+          <!--     > -->
+          <!--       <span class="text-[var(--main-color)] font-bold text-sm" -->
+          <!--         >2</span -->
+          <!--       > -->
+          <!--     </div> -->
+          <!--     <h3 class="text-lg font-semibold text-[var(--main-color)]"> -->
+          <!--       Account Settings -->
+          <!--     </h3> -->
+          <!--   </div> -->
+          <!--   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"> -->
+          <!--     <!-- Role Selection -->
+          <!--     <div class="space-y-2"> -->
+          <!--       <label for="role" class="block text-sm font-semibold text-[var(--white)]" -->
+          <!--         >Administrator Role *</label -->
+          <!--       > -->
+          <!--       <div class="relative"> -->
+          <!--         <select -->
+          <!--           id="role" -->
+          <!--           name="role" -->
+          <!--           required -->
+          <!--           class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-all duration-200 text-[var(--white)] appearance-none cursor-pointer" -->
+          <!--         > -->
+          <!--           <option value="" class="text-[var(--sec-text)]"> -->
+          <!--             Choose access level -->
+          <!--           </option> -->
+          <!--           <option value="admin" class="text-[var(--white)]"> -->
+          <!--             Standard Admin -->
+          <!--           </option> -->
+          <!--           <option value="superadmin" class="text-[var(--white)]"> -->
+          <!--             Super Administrator -->
+          <!--           </option> -->
+          <!--         </select> -->
+          <!--         <div -->
+          <!--           class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none" -->
+          <!--         > -->
+          <!--           <svg -->
+          <!--             class="w-4 h-4 text-[var(--sec-text)]" -->
+          <!--             fill="none" -->
+          <!--             stroke="currentColor" -->
+          <!--             viewBox="0 0 24 24" -->
+          <!--           > -->
+          <!--             <path -->
+          <!--               stroke-linecap="round" -->
+          <!--               stroke-linejoin="round" -->
+          <!--               stroke-width="2" -->
+          <!--               d="M19 9l-7 7-7-7" -->
+          <!--             ></path> -->
+          <!--           </svg> -->
+          <!--         </div> -->
+          <!--       </div> -->
+          <!--       <p class="text-xs text-[var(--sec-text)]"> -->
+          <!--         Super Admin has full system access, Standard Admin has limited -->
+          <!--         permissions -->
+          <!--       </p> -->
+          <!--     </div> -->
+          <!--     <!-- Status Selection -->
+          <!--     <div class="space-y-2"> -->
+          <!--       <label -->
+          <!--         for="status" -->
+          <!--         class="block text-sm font-semibold text-[var(--white)]" -->
+          <!--         >Account Status *</label -->
+          <!--       > -->
+          <!--       <div class="relative"> -->
+          <!--         <select -->
+          <!--           id="status" -->
+          <!--           name="status" -->
+          <!--           required -->
+          <!--           class="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg focus:ring-2 focus:ring-[var(--main-color)] focus:border-[var(--main-color)] transition-all duration-200 text-[var(--white)] appearance-none cursor-pointer" -->
+          <!--         > -->
+          <!--           <option value="active" class="text-[var(--white)]">Active</option> -->
+          <!--           <option value="inactive" class="text-[var(--white)]"> -->
+          <!--             Inactive -->
+          <!--           </option> -->
+          <!--           <option value="suspended" class="text-[var(--white)]"> -->
+          <!--             Suspended -->
+          <!--           </option> -->
+          <!--         </select> -->
+          <!--         <div -->
+          <!--           class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none" -->
+          <!--         > -->
+          <!--           <svg -->
+          <!--             class="w-4 h-4 text-[var(--sec-text)]" -->
+          <!--             fill="none" -->
+          <!--             stroke="currentColor" -->
+          <!--             viewBox="0 0 24 24" -->
+          <!--           > -->
+          <!--             <path -->
+          <!--               stroke-linecap="round" -->
+          <!--               stroke-linejoin="round" -->
+          <!--               stroke-width="2" -->
+          <!--               d="M19 9l-7 7-7-7" -->
+          <!--             ></path> -->
+          <!--           </svg> -->
+          <!--         </div> -->
+          <!--       </div> -->
+          <!--       <p class="text-xs text-[var(--sec-text)]"> -->
+          <!--         Set the initial status for this administrator account -->
+          <!--       </p> -->
+          <!--     </div> -->
+          <!--   </div> -->
+          <!-- </div> -->
+          <!-- Form Actions -->
+          <div
+            class="flex justify-end space-x-4 pt-8 border-t border-[var(--border-color)]"
+          >
+            <button
+              type="button"
+              onclick="document.getElementById('admin-form').reset()"
+              class="px-8 py-3 bg-[var(--sec-bg-color)] border border-[var(--border-color)] rounded-lg text-[var(--sec-text)] hover:bg-[var(--border-color)] transition-all duration-200 font-medium"
+            >
+              Reset Form
+            </button>
+            <button
+              type="submit"
+              class="px-8 py-3 bg-[var(--main-color)] rounded-lg text-[var(--white)] hover:bg-[var(--main-color)]/90 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <span class="flex items-center">
+                <svg
+                  class="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  ></path>
+                </svg>
+                Create Administrator
+              </span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.addEventListener("htmx:responseError", function (evt) {
+    const errorDiv = document.getElementById("error-message");
+    const errorSpan = errorDiv.querySelector("span");
+    const successDiv = document.getElementById("success-message");
+
+    // Hide success message
+    successDiv.classList.add("hidden");
+
+    // Show error message
+    let errorText = "An error occurred while creating the admin account.";
+
+    if (evt.detail.xhr.response) {
+      try {
+        const response = JSON.parse(evt.detail.xhr.response);
+        errorText = response.message || response.error || errorText;
+      } catch (e) {
+        errorText = evt.detail.xhr.response || errorText;
+      }
+    }
+
+    errorSpan.textContent = errorText;
+    errorDiv.classList.remove("hidden");
+
+    // Scroll to error message with smooth animation
+    errorDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Add shake animation to error message
+    errorDiv.style.animation = "shake 0.5s ease-in-out";
+    setTimeout(() => {
+      errorDiv.style.animation = "";
+    }, 500);
+  });
+
+  document.body.addEventListener("htmx:afterRequest", function (evt) {
+      console.log(evt)
+    if (evt.detail.xhr.status === 200 && evt.detail.pathInfo.finalRequestPath === '/admin/create-admin') {
+      const successDiv = document.getElementById("success-message");
+      const errorDiv = document.getElementById("error-message");
+      const form = document.getElementById("admin-form");
+
+      // Hide error message
+      errorDiv.classList.add("hidden");
+
+      // Show success message
+      successDiv.classList.remove("hidden");
+
+      // Reset form
+      form.reset();
+
+      // Scroll to success message
+      successDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Add fade-in animation to success message
+      successDiv.style.animation = "fadeIn 0.5s ease-in-out";
+
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        successDiv.style.animation = "fadeOut 0.5s ease-in-out";
+        setTimeout(() => {
+          successDiv.classList.add("hidden");
+          successDiv.style.animation = "";
+        }, 500);
+      }, 5000);
+    }
+  });
+</script>
+<style>
+  .htmx-indicator {
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .htmx-request.htmx-indicator {
+    display: flex;
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(5px);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
+</style>
+{% endblock %}

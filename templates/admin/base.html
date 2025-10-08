@@ -1,0 +1,775 @@
+{% extends 'base.html' %} 
+{% block header %}
+
+<script>
+  const savedTheme = localStorage.getItem('theme');
+  const defaultTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.classList = defaultTheme;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+<script>
+        if (!("Notification" in window)) {
+        }else if (Notification.permission !== "denied") {
+          Notification.requestPermission()
+        }
+
+</script>
+
+
+
+<style>
+
+/* Notification menu animations */
+#notification-menu {
+    transition: all 0.3s ease;
+}
+
+#notification-popup {
+    transition: all 0.3s ease;
+    transform: translateY(20px);
+    opacity: 0;
+}
+
+#notification-popup.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Notification list styling */
+#notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#notification-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#notification-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+#notification-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Custom Alert Styles */
+#custom-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+#custom-alert-container {
+    background: var(--sec-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    min-width: 320px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: alertSlideIn 0.3s ease-out;
+}
+
+@keyframes alertSlideIn {
+    from {
+        transform: translateY(-20px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+#custom-alert-header {
+    padding: 20px 20px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#custom-alert-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--main-color);
+}
+
+#custom-alert-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+#custom-alert-message {
+    padding: 15px 20px 25px 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--sec-text);
+    word-wrap: break-word;
+    text-wrap:wrap;
+}
+
+#custom-alert-actions {
+    padding: 0 20px 20px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.alert-button {
+    padding: 8px 16px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background: var(--main-color);
+    color: var(--white);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.alert-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.alert-button:active {
+    transform: translateY(0);
+}
+</style>
+
+{% endblock %}
+{% block header_items %}
+<div class="flex flex-row justify-between items-center w-full px-[10px] md:px-[20px] ">
+    <div class="flex flex-row gap-4">
+        <div id="open-search" class="size-[40px] flex items-center justify-center rounded-[5px] bg-[var(--main-color)] hover:opacity-80 hover:cursor-pointer duration-300 transition-all">
+            <i data-lucide="search" class="text-white size-[22px]"></i></div>
+
+<div id="open-notifications" class="size-[40px] flex items-center justify-center rounded-[5px] bg-[var(--main-color)] hover:opacity-80 hover:cursor-pointer duration-300 transition-all relative">
+            <i data-lucide="bell" class="text-white size-[22px]"></i>
+            <div id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hidden">0</div>
+        </div>
+
+<div onclick="toggleTheme()" id="themeToggle"
+     class="size-[40px] flex items-center justify-center rounded-[5px] bg-[var(--main-color)] hover:opacity-80 hover:cursor-pointer duration-300 transition-all">
+  <i id="themeIcon" data-lucide="sun" class="text-white size-[22px]"></i>
+</div>
+    </div>
+    <div id="search-menu" style="display: none;" class="z-200 absolute items-center flex-col w-screen h-screen overflow-hidden left-0 top-0 pt-[150px]">
+        <div id="close-search" class=" bg-black/60 absolute w-screen h-screen top-0 right-0"></div>
+        <div class="z-250 flex flex-col gap-[30px] w-[calc(100vw-25px)]  md:w-[680px] items-center">
+            <form
+                hx-post="/admin/search/"
+                hx-swap="innerHTML"
+                hx-trigger="submit" 
+                hx-target="#search-result"
+                class="relative w-full">
+
+                <input name="search-q" class="outline-none border border-[var(--border-color)] h-[50px] focus:border-[var(--main-color)] text-[16px] bg-[var(--white)] rounded-[5px] w-full  px-[13px] py-[16px] text-[var(--bg-color)]" placeholder="Search..." required />
+
+                <button type="submit" class="absolute top-[5px] right-[5px] size-[40px] flex items-center justify-center rounded-[5px] bg-[var(--main-color)]  hover:opacity-80 hover:cursor-pointer duration-300 transition-all">
+                    <i data-lucide="search" class="text-[var(--white)] size-[22px]"></i>
+                </button>
+
+            </form>
+           <div id="search-result" class="w-full max-h-[500px] ">
+           </div>
+
+        </div>
+    </div>
+
+
+    <!-- Updated notification menu in base.html -->
+    <div id="notification-menu" style="display: none;" class="z-200 absolute items-center flex-col w-screen h-screen overflow-hidden left-0 top-0 pt-[150px]">
+      <div id="close-notifications" class="bg-black/60 absolute w-screen h-screen top-0 right-0"></div>
+      <div class="z-250 flex flex-col gap-[30px] w-[calc(100vw-25px)] md:w-[680px] items-center">
+        <div class="w-full rounded-[5px] border border-[var(--border-color)] bg-[var(--sec-bg-color)]">
+          <div id="notification-list" class="max-h-[500px] overflow-y-auto"
+               hx-get="/admin/notifications/"
+               hx-trigger="load">
+            <div class="text-center py-4 text-[var(--sec-text)] opacity-70">Loading notifications...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="flex flex-row gap-4 md:hidden" onclick="toggleMenu()">
+        <div class="px-5"> <i data-lucide="menu"></i></div>
+    </div>
+</div>
+
+<!-- Notification Popup (will be shown temporarily) -->
+<div id="notification-popup" class="fixed top-4 left-1/2 transform -translate-x-1/2 w-[400px] bg-[var(--sec-bg-color)] rounded-[5px] shadow-lg p-4 z-[1000] border border-[var(--border-color)] hidden">
+  <div class="flex justify-between items-start gap-[15px]">
+    <div class="flex flex-col gap-[5px]">
+      <div class="flex flex-row gap-[10px] items-center">
+        <h3 id="popup-title" class="text-[16px] font-bold text-[var(--main-color)]"></h3>
+        <div class="px-[6px] py-[1px] bg-red-500/20 rounded-full">
+          <p class="text-xs text-red-500">New</p>
+        </div>
+      </div>
+      <p id="popup-message" class="text-[14px] text-[var(--sec-text)] opacity-80"></p>
+    </div>
+    <button onclick="dismissPopup()" class="text-[var(--sec-text)] opacity-50 hover:opacity-100 transition-all">
+      <i data-lucide="x" class="size-4"></i>
+    </button>
+  </div>
+</div>
+
+
+
+<!-- Custom Alert Overlay -->
+<!-- Custom Alert Overlay -->
+<div id="custom-alert-overlay">
+    <div id="custom-alert-container">
+        <div id="custom-alert-header">
+            <i id="custom-alert-icon" data-lucide="info"></i>
+            <span id="custom-alert-title">Alert</span>
+        </div>
+        <p id="custom-alert-message"></p>
+        <div id="custom-alert-actions">
+            <!-- Buttons will be dynamically created -->
+        </div>
+    </div>
+</div>
+
+
+<script>
+// Notification handling
+let unreadNotifications = 0;
+const notificationBadge = document.getElementById('notification-badge');
+const notificationList = document.getElementById('notification-list');
+const notificationMenu = document.getElementById('notification-menu');
+const openNotifications = document.getElementById('open-notifications');
+const closeNotifications = document.getElementById('close-notifications');
+const notificationPopup = document.getElementById('notification-popup');
+const popupTitle = document.getElementById('popup-title');
+const popupMessage = document.getElementById('popup-message');
+
+// Toggle notification menu
+openNotifications?.addEventListener('click', () => {
+    if (notificationMenu) {
+        notificationMenu.style.display = 'flex';
+        // Refresh notifications when opening
+htmx.ajax('GET', '/admin/notifications/', '#notification-list') 
+        markNotificationsAsRead();
+    }
+});
+
+closeNotifications?.addEventListener('click', () => {
+    if (notificationMenu) {
+        notificationMenu.style.display = 'none';
+    }
+});
+
+function markNotificationsAsRead() {
+    unreadNotifications = 0;
+    updateBadge();
+    // You could also send an AJAX request to mark notifications as read in the backend
+}
+
+function updateBadge() {
+    if (unreadNotifications > 0) {
+        notificationBadge.textContent = unreadNotifications;
+        notificationBadge.classList.remove('hidden');
+    } else {
+        notificationBadge.classList.add('hidden');
+    }
+}
+
+function addNotification(title, message) {
+    unreadNotifications++;
+    updateBadge();
+    
+    // Add to notification list
+htmx.ajax('GET', '/admin/notifications/', '#notification-list') 
+
+}
+
+function refreshNotifcation() {
+    unreadNotifications--;
+    updateBadge();
+    
+    // Add to notification list
+htmx.ajax('GET', '/admin/notifications/', '#notification-list') 
+
+}
+
+function showPopupNotification(title, message) {
+    popupTitle.textContent = title;
+    popupMessage.textContent = message;
+
+    notificationPopup.classList.remove('hidden');
+
+    // Show and animate in
+    setTimeout(() => {
+        notificationPopup.classList.add('show');
+    }, 10);
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(dismissPopup, 5000);
+}
+
+function dismissPopup() {
+    // Animate out
+    notificationPopup.classList.remove('show');
+
+    // Hide after animation
+    setTimeout(() => {
+        notificationPopup.classList.add('hidden');
+    }, 300);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const socket = io();
+
+      socket.on("connect", function () {
+          console.log('connect')
+        socket.emit("admin_join", { room: 'admin' });
+
+      });
+
+
+
+    socket.on("new_message_admin", function (data) {
+        console.log(data)
+        const notificationTitle = `New Message from ${data['sender']}`;
+        const notificationMessage = data['content'];
+        console.log(data)
+        
+        // Add to notification list
+        addNotification(notificationTitle, notificationMessage);
+        
+        // Show popup notification
+        showPopupNotification(notificationTitle, notificationMessage);
+        
+        // Browser notification (optional)
+        if (Notification.permission === "granted") {
+            new Notification(notificationTitle, {
+                body: `Message: ${notificationMessage}`,
+              icon: "/static/img/logo-desktop-mini.svg",
+            });
+        } else {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    new Notification(notificationTitle, {
+                body: `Message: ${notificationMessage}`,
+              icon: "/static/img/logo-desktop-mini.svg",
+                    });
+                }
+            });
+        }
+    });
+
+socket.on("new_message", function (data) {
+    htmx.ajax('GET', '/admin/chats_list/', '#chat_list_container') 
+    const currentPath = window.location.pathname;
+    const lastPathSegment = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+    console.log(data)
+    console.log(currentPath)
+    console.log(lastPathSegment)
+    if (lastPathSegment === data['room_id']) {
+        console.log('req')
+        // Use setTimeout to ensure HTMX is ready
+        setTimeout(() => {
+            htmx.ajax('GET', `/admin/chat/${data['room_id']}`, {
+                target:'#chatarea',
+                swap:"innerHTML"
+            });
+        }, 100);
+    }
+});
+
+
+
+
+      socket.on("admin_required", function (data) {
+
+        htmx.ajax('GET', '/admin/chats_list/', '#chat_list_container') 
+      });
+
+
+
+
+    socket.on("admin_required", function (data) {
+        const notificationTitle = "Admin Required";
+        const notificationMessage = `A Chat room requires admin attention`;
+        
+        // Add to notification list
+        addNotification(notificationTitle, notificationMessage);
+        
+        // Show popup notification
+        showPopupNotification(notificationTitle, notificationMessage);
+        
+        // Browser notification (optional)
+        if (Notification.permission === "granted") {
+            new Notification(notificationTitle, {
+                body: notificationMessage,
+              icon: "/static/img/logo-desktop-mini.svg",
+            });
+        } else {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    new Notification(notificationTitle, {
+                        body: notificationMessage,
+              icon: "/static/img/logo-desktop-mini.svg",
+                    });
+                }
+            });
+        }
+    });
+});
+</script>
+
+
+
+<!--   Search Script   -->
+<script>
+
+document.addEventListener('DOMContentLoaded', () => {
+    const openSearch = document.getElementById('open-search');
+    const closeSearch = document.getElementById('close-search');
+    const searchMenu = document.getElementById('search-menu');
+
+
+
+
+    if (searchMenu) {
+        // Start hidden
+        searchMenu.style.display = 'none';
+     }
+
+    openSearch?.addEventListener('click', () => {
+        if (searchMenu) {
+            searchMenu.style.display = 'flex';
+        }
+    });
+
+    closeSearch?.addEventListener('click', () => {
+        if (searchMenu) {
+            searchMenu.style.display = 'none';
+        }
+    });
+});
+
+  document.body.addEventListener("htmx:afterSwap", () => {
+      lucide.createIcons();
+
+  });
+
+</script>
+{% endblock %}
+
+{% block navbar %}
+
+{% set nav_items = [  { "name":
+"Home", "link": "/admin/", "icon": "house" },
+{ "name":
+"Chats", "link": "/admin/chats/", "icon": "message-square","role":"admin" },
+{ "name":
+"Logs", "link": "/admin/logs/", "icon": "logs" },
+{ "name":
+"Create Admin", "link": "/admin/create-admin", "icon": "user-plus","role":"superadmin" },
+{ "name":
+"Files", "link": "/admin/files/", "icon": "file","role":"admin" },
+{ "name":
+"Pricings", "link": "/admin/pricing/", "icon": "dollar-sign","role":"admin" },
+{ "name":
+"FAQ", "link": "/admin/faq/", "icon": "circle-help","role":"admin" },
+
+{ "name":
+"Contact Us", "link": "/admin/contact/", "icon": "mail","role":"admin" },
+{ "name":
+"Settings", "link": "/admin/settings", "icon": "settings" },
+{ "name":
+"Logout", "link": "/admin/logout", "icon": "log-out" },
+]
+
+%} 
+
+
+ {% include 'components/navbar.html' %}{% endblock %}
+
+
+ {% block scripts %}
+
+<script>
+function formatLocalTime(date) {
+  const now = new Date();
+
+  // Calculate the start of today and yesterday in local time
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  // If the message was from today
+  if (date >= today) {
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    return `${Math.floor(seconds / 3600)}h ago`;
+  }
+
+  // If the message was from yesterday
+  if (date >= yesterday) {
+    return 'Yesterday';
+  }
+
+  // Older messages - return formatted date
+  return date.toLocaleString(navigator.language, {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: 'numeric',
+    month: 'short'
+  });
+}
+
+// Function to process all time elements
+
+// Run on initial page load
+window.addEventListener('DOMContentLoaded', function() {
+
+    const messageArea = document.getElementById('messageArea');
+    if (messageArea) {
+        messageArea.scrollTo({
+            top: messageArea.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+
+    //  processMessageTimes();
+});
+
+
+// Run after HTMX swaps
+document.body.addEventListener('htmx:afterSwap', function(event) {
+  // Only process for non-out-of-band swaps
+  if (!event.detail.isOOBSwap) {
+  //  processMessageTimes();
+  }
+
+    const messageArea = document.getElementById('messageArea');
+    if (messageArea) {
+        messageArea.scrollTo({
+            top: messageArea.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+
+
+});
+
+// Also run after HTMX content is added to the page
+document.body.addEventListener('htmx:afterSettle', function(event) {
+  //processMessageTimes();
+
+    const messageArea = document.getElementById('messageArea');
+    if (messageArea) {
+        messageArea.scrollTo({
+            top: messageArea.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+
+
+});
+
+
+</script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  function setThemeIcon(theme) {
+    const icon = document.getElementById('themeIcon');
+    icon.setAttribute('data-lucide', theme === 'dark' ? 'moon' : 'sun');
+    lucide.createIcons(); // Re-render Lucide icon
+
+    // Update logo based on theme
+    const logos = document.querySelectorAll('img.logo');
+      console.log(logos)
+
+logos.forEach(logo => {
+    if (logo) {
+        logo.src = theme === 'dark'
+            ? '/static/img/logo-dark.svg'
+            : '/static/img/logo-light.svg';
+    }
+});    
+  }
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const newTheme = html.classList.contains('dark') ? 'light' : 'dark';
+    html.classList.remove('light', 'dark');
+    html.classList.add(newTheme);
+    localStorage.setItem('theme', newTheme);
+    setThemeIcon(newTheme);
+  }
+
+  // On page load
+
+window.addEventListener('DOMContentLoaded', function() {
+  const savedTheme = localStorage.getItem('theme');
+  const defaultTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.classList = defaultTheme;
+  setThemeIcon(defaultTheme);
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+
+
+<script>
+// Custom Alert Function
+function customAlert(message, title = 'Alert', icon = 'info') {
+    const overlay = document.getElementById('custom-alert-overlay');
+    const messageEl = document.getElementById('custom-alert-message');
+    const titleEl = document.getElementById('custom-alert-title');
+    const iconEl = document.getElementById('custom-alert-icon');
+    const actionsEl = document.getElementById('custom-alert-actions');
+    
+    // Set content
+    messageEl.textContent = message;
+    titleEl.textContent = title;
+    iconEl.setAttribute('data-lucide', icon);
+    
+    // Create OK button (reset the actions area)
+    actionsEl.innerHTML = `
+        <button id="custom-alert-ok" class="alert-button">OK</button>
+    `;
+    
+    // Show overlay
+    overlay.style.display = 'flex';
+    
+    // Recreate icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    // Handle OK button
+    document.getElementById('custom-alert-ok').onclick = () => {
+        overlay.style.display = 'none';
+    };
+    
+    // Handle overlay click
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            overlay.style.display = 'none';
+        }
+    };
+    
+    // Handle ESC key
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            overlay.style.display = 'none';
+            document.removeEventListener('keydown', handleEsc);
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
+}
+
+// Override native alert
+window.alert = customAlert;
+
+// Enhanced Custom Alert with Confirm support
+function customConfirm(message, title = 'Confirm', icon = 'alert-triangle') {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('custom-alert-overlay');
+        const messageEl = document.getElementById('custom-alert-message');
+        const titleEl = document.getElementById('custom-alert-title');
+        const iconEl = document.getElementById('custom-alert-icon');
+        const actionsEl = document.getElementById('custom-alert-actions');
+        
+        // Set content
+        messageEl.textContent = message;
+        titleEl.textContent = title;
+        iconEl.setAttribute('data-lucide', icon);
+        
+        // Create confirm buttons
+        actionsEl.innerHTML = `
+            <button id="custom-alert-cancel" class="alert-button secondary">Cancel</button>
+            <button id="custom-alert-confirm" class="alert-button">Confirm</button>
+        `;
+        
+        // Show overlay
+        overlay.style.display = 'flex';
+        
+        // Recreate icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // Clean up function
+        const cleanup = () => {
+            overlay.style.display = 'none';
+            overlay.onclick = null;
+            document.removeEventListener('keydown', handleEsc);
+        };
+        
+        // Handle buttons
+        const cancelBtn = document.getElementById('custom-alert-cancel');
+        const confirmBtn = document.getElementById('custom-alert-confirm');
+        
+        cancelBtn.onclick = (e) => {
+            e.stopPropagation();
+            cleanup();
+            resolve(false);
+        };
+        
+        confirmBtn.onclick = (e) => {
+            e.stopPropagation();
+            cleanup();
+            resolve(true);
+        };
+        
+        // Handle overlay click
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                cleanup();
+                resolve(false);
+            }
+        };
+        
+        // Handle ESC key
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                resolve(false);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+    });
+}
+
+window.confirm = customConfirm;
+
+// Override HTMX confirm to use custom alert
+document.body.addEventListener('htmx:confirm', function(evt) {
+    if (!evt.defaultPrevented) {
+        evt.preventDefault(); // Prevent default confirm
+        if (evt.detail.question) {
+            customConfirm(evt.detail.question || 'Are you sure?', 'Confirm Action', 'alert-triangle')
+                .then((confirmed) => {
+                    if (confirmed) {
+                        evt.detail.issueRequest(true); // Pass true to skip confirmation
+                    }
+                });
+        } else {
+            evt.detail.issueRequest(true); // Pass true to skip confirmation
+        }
+    }
+});
+</script>
+ {% endblock %}

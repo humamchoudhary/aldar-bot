@@ -1,0 +1,18 @@
+{% extends 'base.html' %} 
+
+
+
+{% block navbar %}
+
+{% set nav_items = [ { "name":
+"Home", "link": "/", "icon": "house" },
+
+{ "name":
+"Pricings", "link": "/pricing", "icon": "dollar-sign" },
+
+{ "name":
+"FAQ", "link": "/faq", "icon": "circle-help" },
+] %} 
+
+
+ {% include 'components/navbar.html' %}{% endblock %}

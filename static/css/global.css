@@ -1,0 +1,63 @@
+/* :root { */
+/* --sec-bg-color: #001f33; */
+/* --main-color: #ff5800; */
+/* --bg-color: #001523; */
+/* --border-color: #253239; */
+/* --font-family: "NeueHaas", sans-serif; */
+/* --sec-text: #c0bcca; */
+/* } */
+
+:root {
+  --sec-bg-color: #f0f4f8; /* Secondary background: soft light gray-blue */
+  --main-color: #ff5800; /* Keep accent color the same */
+  --bg-color: #ffffff; /* Primary background: white */
+  --border-color: #d0d7de; /* Light border */
+  /* --border-color: #25323922; */
+  --sec-text: #333244; /* Darker text for readability */
+
+  --font-family: "NeueHaas", sans-serif;
+  --white: #000;
+}
+
+.dark {
+  --sec-bg-color: #001f33;
+  --main-color: #ff5800;
+  --bg-color: #001523;
+  --border-color: #253239;
+  --sec-text: #c0bcca;
+  --font-family: "NeueHaas", sans-serif;
+  --white: #fff;
+}
+
+html {
+  overflow-x: hidden;
+  padding: 0px;
+  margin: 0px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent; /* Background color of the scrollbar */
+}
+
+*:after,
+*:before,
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: var(--white);
+  font-family: var(--font-family);
+  overflow-x: hidden;
+
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  p,
+  h1,
+  h2,
+  h3 {
+    text-wrap: wrap;
+  }
+}

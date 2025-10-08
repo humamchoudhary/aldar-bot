@@ -1,0 +1,12 @@
+<div
+  class="relative flex flex-col bg-[var(--sec-bg-color)] items-start border border-[var(--border-color)] w-[600px] px-[18px] py-[12px] shadow-md shadow-[var(--main-color)] rounded-[5px]"
+>
+  <p class="text-wrap text-[var(--main-color)] font-bold">
+    {% if notification.admin_required %} Assistant required: {% else %} New
+    Chat: {% endif %} {{ notification.username }}
+  </p>
+  <p class="text-wrap text-[var(--sec-text)] text-[14px]">
+    {{ notification.subject }}
+  </p>
+  <i class="absolute top-3 right-3 size-4" data-lucide="x"></i>
+</div>

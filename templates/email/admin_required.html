@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Assistance Required</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 650px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f8fafc;
+      }
+
+      .email-container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M20 20c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8 8 3.6 8 8zm0-20v20h20V0H20z'/%3E%3C/g%3E%3C/svg%3E")
+          repeat;
+        opacity: 0.2;
+      }
+
+      .header-content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .header .subtitle {
+        font-size: 16px;
+        opacity: 0.9;
+        margin: 0;
+      }
+
+      .icon {
+        background: rgba(255, 255, 255, 0.2);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 24px;
+      }
+
+      .priority-badge {
+        display: inline-block;
+        background: #fed7d7;
+        color: #c53030;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 12px;
+        border: 2px solid #feb2b2;
+      }
+
+      .content {
+        padding: 40px 30px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 24px;
+        color: #2d3748;
+      }
+
+      .alert-message {
+        background: linear-gradient(135deg, #fed7d7 0%, #fbb6ce 100%);
+        border: 2px solid #f56565;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+        text-align: center;
+      }
+
+      .alert-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+
+      .alert-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #742a2a;
+        margin-bottom: 8px;
+      }
+
+      .alert-description {
+        color: #c53030;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        color: white;
+        text-decoration: none;
+        padding: 16px 32px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+        transition: all 0.2s ease;
+        text-align: center;
+        display: block;
+        max-width: 250px;
+        margin: 24px auto;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(245, 101, 101, 0.4);
+        text-decoration: none;
+        color: white;
+      }
+
+      .user-info {
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+      }
+
+      .user-info h3 {
+        color: #4a5568;
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .info-label {
+        font-size: 12px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .info-value {
+        font-weight: 500;
+        color: #2d3748;
+        font-size: 14px;
+      }
+
+      .conversation-section {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 24px 0;
+      }
+
+      .conversation-section h4 {
+        color: #4a5568;
+        margin: 0 0 16px 0;
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .last-message {
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        border: 2px solid #feb2b2;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      .message-item {
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        border-left: 4px solid #e2e8f0;
+      }
+
+      .message-item.user {
+        background: #f7fafc;
+        border-left-color: #667eea;
+      }
+
+      .message-item.bot {
+        background: #f0fff4;
+        border-left-color: #68d391;
+      }
+
+      .message-sender {
+        font-weight: 600;
+        color: #4a5568;
+        font-size: 12px;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+      }
+
+      .message-content {
+        color: #2d3748;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .message-time {
+        color: #a0aec0;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+
+      .urgency-info {
+        background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%);
+        border: 1px solid #f6ad55;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 16px 0;
+        font-size: 13px;
+        color: #9c4221;
+      }
+
+      .footer {
+        background: #f7fafc;
+        padding: 24px 30px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .footer p {
+        margin: 0;
+        color: #718096;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 600px) {
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+        .content,
+        .header {
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        .cta-button {
+          padding: 14px 24px;
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <div class="header-content">
+          <div class="icon">🚨</div>
+          <h1>Urgent: Admin Required</h1>
+          <p class="subtitle">A user is requesting live assistance</p>
+          <span class="priority-badge">High Priority</span>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="greeting">Hi Ana,</div>
+
+        <div class="alert-message">
+          <div class="alert-icon">⚡</div>
+          <div class="alert-title">Immediate Action Required</div>
+          <div class="alert-description">
+            <strong>{{ user.name }}</strong> has requested live chat assistance
+            and is currently waiting for your response.
+          </div>
+        </div>
+
+        <a
+          href="{{ settings['backend_url'] }}/admin/chat/{{ chat.room_id }}"
+          class="cta-button"
+        >
+          Start Live Chat Now
+        </a>
+
+        <div class="urgency-info">
+          <strong>⏰ Response Time:</strong> User has been waiting since {{
+          chat.created_at.strftime('%H:%M') if chat.created_at else 'just now'
+          }}. Quick response improves customer satisfaction.
+        </div>
+
+        <div class="user-info">
+          <h3>👤 User Information</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Full Name</span>
+              <span class="info-value">{{ user.name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email Address</span>
+              <span class="info-value">{{ user.email }}</span>
+            </div>
+            {% if user.phone %}
+            <div class="info-item">
+              <span class="info-label">Phone Number</span>
+              <span class="info-value">{{ user.phone }}</span>
+            </div>
+            {% endif %} {% if user.designation %}
+            <div class="info-item">
+              <span class="info-label">Job Title</span>
+              <span class="info-value">{{ user.designation }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+              <span class="info-label">Location</span>
+              <span class="info-value"
+                >🌍 {{ user.city }}, {{ user.country }}</span
+              >
+            </div>
+            <div class="info-item">
+              <span class="info-label">IP Address</span>
+              <span class="info-value">{{ user.ip }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="conversation-section">
+          <h4>💬 Current Conversation</h4>
+
+          {% if chat.messages %}
+          <div class="last-message">
+            <div class="message-sender">Latest Request</div>
+            <div class="message-content">{{ chat.messages[-1].content }}</div>
+            <div class="message-time">
+              {{ chat.messages[-1].timestamp.strftime('%H:%M:%S') if
+              chat.messages[-1].timestamp else 'Just sent' }}
+            </div>
+          </div>
+
+          {% if chat.messages|length > 1 %}
+          <h5 style="color: #718096; font-size: 14px; margin: 16px 0 8px 0">
+            Previous Messages:
+          </h5>
+          {% for message in chat.messages[-5:-1] %}
+          <div
+            class="message-item {{ 'user' if message.sender == 'user' else 'bot' }}"
+          >
+            <div class="message-sender">
+              {{ 'Chatbot' if message.sender == 'bot' else 'User' }}
+            </div>
+            <div class="message-content">{{ message.content }}</div>
+            <div class="message-time">
+              {{ message.timestamp.strftime('%H:%M') if message.timestamp else
+              'Recent' }}
+            </div>
+          </div>
+          {% endfor %} {% endif %} {% else %}
+          <div class="message-item">
+            <div class="message-content">
+              No previous messages - This is a new conversation request.
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div
+          style="
+            text-align: center;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin: 20px 0;
+          "
+        >
+          <p style="color: #4a5568; margin: 0; font-weight: 500">
+            💡 <strong>Tip:</strong> Click the button above to join the
+            conversation immediately. The user will be notified when you
+            connect.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>
+          <strong>Urgent Notification</strong> - Admin assistance required<br />
+          Chat ID: {{ chat.room_id }}<br />
+          This message was sent because {{ user.name }} requested live support.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

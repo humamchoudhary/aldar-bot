@@ -1,0 +1,130 @@
+<div class="flex flex-col w-full items-center pt-10 px-10 md:px-[250px] pb-10">
+  <div class="flex flex-col gap-1 text-center items-center">
+    <h1 class="text-[40px]">Frequently Asked Questions</h1>
+    <p class="text-[18px]">
+      Many support queries and technical questions will already be answered
+    </p>
+  </div>
+  <div class="flex flex-col gap-[12px] mt-12 w-full max-w-6xl text-wrap">
+    {% set qas = [ { "topic": "Chatbot - Setup & Management", "questions": [ {
+    "question": "How quickly can I get my chatbot up and running?", "answer":
+    "Your chatbot can be ready in 5 to 15 business days. We take care of
+    everything from setup to integration, so you can focus on seeing results."
+    }, { "question": "How long does the initial setup take?", "answer": "The
+    setup typically takes between 5 to 10 working days, depending on the
+    complexity and the extent of integration required." }, { "question": "Do I
+    need to be tech-savvy to manage the chatbot?", "answer": "No technical
+    knowledge is required. We handle all the management, updates, and
+    optimizations. You can easily make updates through our user-friendly
+    dashboard or let us know what changes you'd like." }, { "question": "Is
+    hosting included in the service?", "answer": "Yes, all our plans include
+    secure hosting and access to future upgrades at no additional cost." } ] },
+    { "topic": "Chatbot - Features & Customization", "questions": [ {
+    "question": "Can customers tell they're interacting with a bot?", "answer":
+    "You decide! The chatbot can be clearly identified as a bot or designed to
+    feel like a natural part of the conversation. Either way, your customers
+    will enjoy quick and convenient interactions." }, { "question": "Does the
+    chatbot support multiple languages?", "answer": "Yes, our chatbots can
+    interact in various languages, including English and Arabic, using natural
+    and localized phrasing." }, { "question": "Can the chatbot access our
+    internal files and folders?", "answer": "Yes, it can securely access both
+    local and cloud-based files with appropriate security filters." }, {
+    "question": "What AI models are available for use?", "answer": "You can
+    choose from several AI models like GPT, Gemini, Claude, or Deepseek,
+    depending on your plan." } ] }, { "topic": "Chatbot - Integrations & Tools",
+    "questions": [ { "question": "Is the chatbot compatible with our current
+    tools like CRM or WhatsApp?", "answer": "Absolutely! Our chatbots integrate
+    with major platforms like WhatsApp, Messenger, Shopify, HubSpot, and more.
+    We can also connect via API if needed." } ] }, { "topic": "Chatbot - Human
+    Support & Escalation", "questions": [ { "question": "What happens if a
+    customer needs to speak with a human?", "answer": "The chatbot can smoothly
+    transfer the conversation to a live agent, create a support ticket, or
+    arrange a callback, ensuring a seamless experience." }, { "question": "What
+    if the chatbot doesn't know an answer?", "answer": "If the chatbot is
+    unsure, it will either escalate the query to a more advanced AI model or
+    transfer it to a human agent, based on your settings." } ] }, { "topic":
+    "Chatbot - Security & Performance", "questions": [ { "question": "How secure
+    is the chatbot?", "answer": "Security is a top priority. We comply with
+    GDPR, HIPAA, and ISO standards, and you have full control over access
+    levels, data privacy, and retention policies." }, { "question": "Is there a
+    dashboard for tracking performance?", "answer": "Yes, we provide a dashboard
+    with insights into chat history, usage statistics, and performance metrics,
+    tailored to your plan." } ] }, { "topic": "Pricing & Subscription",
+    "questions": [ { "question": "What does the monthly fee include?", "answer":
+    "It covers hosting, SSL security, updates, small monthly edits, and full
+    support — everything you need to keep your website running smoothly." }, {
+    "question": "Is there a setup fee, and why?", "answer": "Yes, a small setup
+    fee applies for Starter plans. It covers the work of preparing your website,
+    connecting hosting, SSL, and making it ready to launch." }, { "question":
+    "Why do I need to pay 3 months upfront?", "answer": "Because it ensures your
+    website is built and launched properly. After the first 3 months, you can
+    continue month by month." }, { "question": "Can I cancel anytime? What
+    happens after I cancel?", "answer": "Yes, you can cancel after 3 months.
+    Your website will remain online until the end of the paid period, after
+    which it will be turned off. Any remaining days are non-refundable to reduce
+    administrative hassle." } ] }, { "topic": "Features & Flexibility",
+    "questions": [ { "question": "Can I change the design, colors, and logo?",
+    "answer": "Yes — all templates are just samples. We replace everything with
+    your brand colors, logo, and style." }, { "question": "Are these templates
+    limited to certain industries?", "answer": "No — they can be used for any
+    business: shops, services, restaurants, schools, or companies." }, {
+    "question": "How many pages or products can I add later?", "answer": "You
+    can add as many as you like. Extra pages or products are available as
+    add-ons. Extra search or revisions, an hourly small charge." }, {
+    "question": "Can I upgrade from Corporate to E-Commerce later?", "answer":
+    "Yes, you can start simple and upgrade anytime to a full online store." } ]
+    }, { "topic": "Content & Updates", "questions": [ { "question": "Who
+    provides the content and images?", "answer": "You can send us your text and
+    photos. If you don’t have them, we can help with writing and stock images,
+    and we will share them once. Revisions are charged hourly with a small fee."
+    }, { "question": "What if I need more content edits per month?", "answer":
+    "Your plan includes a set amount. If you need more, you can buy extra hours
+    anytime." }, { "question": "Do you offer content writing or stock images?",
+    "answer": "Yes, we do. You can order content writing or a pack of
+    professional stock photos. Extra search or revisions, an hourly small
+    charge." } ] }, { "topic": "Technical & Support", "questions": [ {
+    "question": "Is hosting really included? What about SSL?", "answer": "Yes,
+    hosting and SSL are always included in the monthly fee. No extra cost. Our
+    plans include enough space for normal websites (usually up to 5–10GB). If
+    you need more, we offer a low-cost hosting upgrade add-on." }, { "question":
+    "Do you provide email accounts too?", "answer": "We can help connect email
+    services if needed, but emails are not included in the base package; still,
+    you can get them separately. Another option is to help you connect to Google
+    Workspace or Microsoft 365. This way, your email is reliable and separate
+    from your website." }, { "question": "What kind of support is included in
+    the subscription?", "answer": "We handle updates, backups, security, and
+    small changes. You can always contact us for help." }, { "question": "How
+    secure is my website (backups, malware, SSL premium)?", "answer": "Your
+    website is safe with SSL and regular backups. You can also add extra
+    security options if you want more protection." } ] }, { "topic": "Add-Ons &
+    Extras", "questions": [ { "question": "What optional add-ons can I get (SEO,
+    chatbot, booking, etc.)?", "answer": "You can add SEO, chatbot, bookings,
+    online payments, product uploads, or extra design features — whatever your
+    business needs." }, { "question": "Can I add more languages to my website?",
+    "answer": "Yes — each extra language is available as a small monthly
+    add-on." }, { "question": "Do you offer marketing support or just
+    websites?", "answer": "Yes, we also offer SEO, social media setup, and
+    online marketing add-ons to help you get more customers." } ] } ] %} {% for
+    group in qas %} {% include 'components/qa.html' %} {% endfor %}
+  </div>
+</div>
+<script>
+  function toggleQA(container) {
+    const answer = container.querySelector(".qa-answer");
+    const icon = container.querySelector(".toggle-icon");
+
+    answer.classList.toggle("hidden");
+
+    // Change icon between plus and minus with animation
+    if (icon.getAttribute("data-lucide") === "plus") {
+      icon.setAttribute("data-lucide", "minus");
+    } else {
+      icon.setAttribute("data-lucide", "plus");
+    }
+
+    // If using Lucide, re-render the icon
+    if (typeof lucide !== "undefined") {
+      lucide.createIcons();
+    }
+  }
+</script>

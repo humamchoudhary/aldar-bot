@@ -1,0 +1,19 @@
+:root {
+  --goglobe-site-bg-color: #001f33;
+  --goglobe-header-bg-color: #001f33;
+  --goglobe-some-r-bg-color: #001f33;
+  --goglobe-some-a-bg-color: #001f33;
+  --goglobe-main-color: #ff5800;
+  --goglobe-main-color1: #ff5800;
+  --goglobe-main-color2: #ff5800;
+  --goglobe-heading-color: #c0bcca;
+  --goglobe-body-color: #c0bcca;
+  --goglobe-border-color: #253239;
+  --goglobe-button-bg-color: #001f33;
+  --goglobe-hover-color: #fff;
+  --goglobe-heading-font-family: "NeueHaas", sans-serif;
+  --goglobe-body-font-family: "NeueHaas", sans-serif;
+  --goglobe-left-panel-width: 250px;
+  --goglobe-header-height: 80px;
+  --goglobe-input-color: #475864;
+}

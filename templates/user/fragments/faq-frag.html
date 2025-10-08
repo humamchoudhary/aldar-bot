@@ -1,0 +1,72 @@
+<div class="flex flex-col w-full h-full items-center pt-10 px-[250px] pb-10">
+  <div class="flex flex-col gap-1 text-center items-center">
+    <h1 class="text-[40px]" style="color: var(--goglobe-heading-color)">
+      Frequently Asked Questions
+    </h1>
+    <p class="text-[18px]" style="color: var(--goglobe-heading-color)">
+      Many support queries and technical questions will already be answered
+    </p>
+  </div>
+  <div class="flex flex-col gap-[12px] mt-12 w-full max-w-6xl">
+    {% set qas = [ { "question": "How quickly can I get my chatbot up and
+    running?", "answer": "Your chatbot can be ready in 5 to 15 business days. We
+    take care of everything from setup to integration, so you can focus on
+    seeing results." }, { "question": "Do I need to be tech-savvy to manage the
+    chatbot?", "answer": "No technical knowledge is required. We handle all the
+    management, updates, and optimizations. You can easily make updates through
+    our user-friendly dashboard or let us know what changes you'd like." }, {
+    "question": "Can customers tell they're interacting with a bot?", "answer":
+    "You decide! The chatbot can be clearly identified as a bot or designed to
+    feel like a natural part of the conversation. Either way, your customers
+    will enjoy quick and convenient interactions." }, { "question": "Does the
+    chatbot support multiple languages?", "answer": "Yes, our chatbots can
+    interact in various languages, including English and Arabic, using natural
+    and localized phrasing." }, { "question": "What happens if a customer needs
+    to speak with a human?", "answer": "The chatbot can smoothly transfer the
+    conversation to a live agent, create a support ticket, or arrange a
+    callback, ensuring a seamless experience." }, { "question": "Is the chatbot
+    compatible with our current tools like CRM or WhatsApp?", "answer":
+    "Absolutely! Our chatbots integrate with major platforms like WhatsApp,
+    Messenger, Shopify, HubSpot, and more. We can also connect via API if
+    needed." }, { "question": "How secure is the chatbot?", "answer": "Security
+    is a top priority. We comply with GDPR, HIPAA, and ISO standards, and you
+    have full control over access levels, data privacy, and retention policies."
+    }, { "question": "Can the chatbot access our internal files and folders?",
+    "answer": "Yes, it can securely access both local and cloud-based files with
+    appropriate security filters." }, { "question": "What AI models are
+    available for use?", "answer": "You can choose from several AI models like
+    GPT, Gemini, Claude, or Deepseek, depending on your plan." }, { "question":
+    "What if the chatbot doesn't know an answer?", "answer": "If the chatbot is
+    unsure, it will either escalate the query to a more advanced AI model or
+    transfer it to a human agent, based on your settings." }, { "question": "Is
+    there a dashboard for tracking performance?", "answer": "Yes, we provide a
+    dashboard with insights into chat history, usage statistics, and performance
+    metrics, tailored to your plan." }, { "question": "How long does the initial
+    setup take?", "answer": "The setup typically takes between 5 to 10 working
+    days, depending on the complexity and the extent of integration required."
+    }, { "question": "Is hosting included in the service?", "answer": "Yes, all
+    our plans include secure hosting and access to future upgrades at no
+    additional cost." } ] %} {% for qa in qas %} {% include
+    'user/fragments/qa.html' %} {% endfor %}
+  </div>
+</div>
+<script>
+  function toggleQA(container) {
+    const answer = container.querySelector(".qa-answer");
+    const icon = container.querySelector(".toggle-icon");
+
+    answer.classList.toggle("hidden");
+
+    // Change icon between plus and minus with animation
+    if (icon.getAttribute("data-lucide") === "plus") {
+      icon.setAttribute("data-lucide", "minus");
+    } else {
+      icon.setAttribute("data-lucide", "plus");
+    }
+
+    // If using Lucide, re-render the icon
+    if (typeof lucide !== "undefined") {
+      lucide.createIcons();
+    }
+  }
+</script>

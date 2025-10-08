@@ -1,0 +1,82 @@
+<div
+  class="flex flex-col rounded-md border-2 border-[var(--goglobe-border-color)] w-128 relative"
+>
+  <div
+    class="flex flex-row justify-between border-b border-[var(--goglobe-border-color)] px-[30px] py-[25px]"
+  >
+    <h1>v{{ change['version'] }}</h1>
+    <p class="text-gray-600 text-xs">{{ change['date'] }}</p>
+  </div>
+  <div class="flex flex-col px-[30px] py-[25px] relative">
+    <p class="text-sm">Changes:</p>
+    <div
+      class="mt-2 overflow-hidden transition-all duration-300 ease-in-out {% if change['changes']|length > 4 %}max-h-[6.5rem]{% else %}max-h-[none]{% endif %}"
+      id="changes-list-{{ index }}"
+    >
+      <ul class="flex flex-col gap-1 pl-5" style="list-style-type: disc">
+        {% for c in change['changes'] %}
+        <li class="text-sm">{{ c }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% if change['changes']|length > 4 %}
+    <div
+      class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[var(--goglobe-site-bg-color)] to-transparent pointer-events-none flex items-end justify-center pb-2 px-[30px] transition-opacity duration-300"
+      id="fade-{{ index }}"
+    >
+      <button
+        class="pointer-events-auto text-sm text-[var(--white)] bg-[var(--goglobe-main-color)] px-3 py-1 rounded-md shadow-sm hover:cursor-pointer hover:opacity-85 transition-all duration-300"
+        onclick="toggleChanges(event, {{ index }})"
+        aria-expanded="false"
+        aria-controls="changes-list-{{ index }}"
+      >
+        Show More
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<script>
+  function toggleChanges(event, index) {
+    event.preventDefault();
+    const container = document.getElementById(`changes-list-${index}`);
+    const button = event.target;
+    const fadeElement = document.getElementById(`fade-${index}`);
+
+    // Check current state
+    const isExpanded = button.getAttribute("aria-expanded") === "true";
+
+    if (isExpanded) {
+      // Collapse the content
+      container.style.maxHeight = "6.5rem";
+      fadeElement.style.opacity = "1";
+      button.textContent = "Show More";
+      button.setAttribute("aria-expanded", "false");
+    } else {
+      // Expand the content
+      container.style.maxHeight = `${container.scrollHeight}px`;
+      fadeElement.style.opacity = "0";
+      button.textContent = "Show Less";
+      button.setAttribute("aria-expanded", "true");
+
+      // Hide fade element after transition
+      setTimeout(() => {
+        fadeElement.style.display = "none";
+      }, 300);
+    }
+  }
+
+  // Initialize elements
+  document.addEventListener("DOMContentLoaded", function () {
+    const containers = document.querySelectorAll('[id^="changes-list-"]');
+    containers.forEach((container) => {
+      if (container.classList.contains("max-h-[6.5rem]")) {
+        const index = container.id.split("-")[2];
+        const fadeElement = document.getElementById(`fade-${index}`);
+        if (fadeElement) {
+          fadeElement.style.display = "flex";
+        }
+      }
+    });
+  });
+</script>

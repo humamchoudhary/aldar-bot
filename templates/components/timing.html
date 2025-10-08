@@ -1,0 +1,25 @@
+<div
+  class="grid grid-cols-2 md:grid-cols-[100px_150px_150px_auto] items-center gap-4 py-2"
+>
+  <!-- Day -->
+  <p class="text-sm text-left">{{ t['day'] | capitalize }}</p>
+  <!-- Time Range -->
+  <div class="flex flex-row gap-2 justify-center items-center">
+    <p class="text-sm">{{ t['startTime'] }}</p>
+    <p class="text-sm">-</p>
+    <p class="text-sm">{{ t['endTime'] }}</p>
+  </div>
+  <!-- Timezone -->
+  <p class="text-sm text-center">Tz: {{ settings.timezone or "None" }}</p>
+  <!-- Delete Button -->
+  <div
+    hx-delete="/admin/settings/timing/{{ id }}"
+    hx-trigger="click"
+    hx-swap="none"
+    hx-on::after-request="window.location.reload()"
+    class="border p-1 w-min h-min rounded transition-all cursor-pointer hover:bg-var(--main-color) hover:text-[var(--white)] justify-self-end"
+    style="border-color: var(--border-color)"
+  >
+    <i data-lucide="trash" class="size-6"></i>
+  </div>
+</div>

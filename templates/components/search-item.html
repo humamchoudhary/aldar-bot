@@ -1,0 +1,29 @@
+<a
+  href="/admin/chat/{{ chat.room_id }}"
+  class="flex flex-row justify-between py-[12px] px-[24px] border-y border-y-[var(--border-color)] hover:opacity-80 hover:cursor-pointer duration-300 transition-all"
+>
+  <div class="flex flex-col">
+    <div class="flex flex-row gap-[15px]">
+      <p class="text-[16px] font-bold text-[var(--main-color)]">
+        {{ chat.username }}
+      </p>
+      {% if chat.admin_required %}
+      <div class="px-[9px] py-[3px] bg-[#56ABFF]/20 rounded-full">
+        <p class="text-sm text-[#56ABFF]">Admin Required</p>
+      </div>
+      {% endif %}
+    </div>
+    <p class="text-[16px] opacity-70 text-[var(--sec-text)]">
+      {{ chat.subject }}
+    </p>
+    <p class="text-[16px] text-[var(--sec-text)] block md:hidden">
+      {{ chat.messages[-1].sender }}: {{ chat.messages[-1].content[:10] }} {% if
+      chat.messages[-1].content|length > 10 %} ... {% endif %}
+    </p>
+    <!-- Desktop: First 20 characters -->
+    <p class="text-[16px] text-[var(--sec-text)] hidden md:block">
+      {{ chat.messages[-1].sender }}: {{ chat.messages[-1].content[:20] }} {% if
+      chat.messages[-1].content|length > 20 %} ... {% endif %}
+    </p>
+  </div>
+</a>

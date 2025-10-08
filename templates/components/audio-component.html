@@ -1,0 +1,128 @@
+<div
+  id="audio-dropzone-{{ audio_type }}"
+  class="norm flex flex-col gap-3 justify-center items-center transition-all cursor-pointer p-4"
+  onclick="document.getElementById('{{ audio_type }}-audio').click()"
+>
+  <input
+    id="{{ audio_type }}-audio"
+    type="file"
+    accept="audio/*"
+    class="hidden"
+  />
+  {% if audio_file %}
+  <div class="flex flex-col items-center w-full">
+    <i
+      data-lucide="music"
+      class="size-8 mb-3"
+      style="color: var(--main-color)"
+    ></i>
+    <p class="text-sm mb-3">
+      {{ audio_type | replace('-', ' ') | title }} audio
+    </p>
+    <audio controls class="w-full max-w-xs">
+      <source src="{{ audio_file }}" type="audio/wav" />
+      Your browser does not support the audio element.
+    </audio>
+    <button
+      class="mt-4 border px-4 py-2 rounded-lg transition-colors text-sm"
+      style="border-color: var(--border-color);
+                           color: var(--sec-text);
+                           hover:background-color: var(--main-color);
+                           hover:color: white"
+    >
+      Change File
+    </button>
+  </div>
+  {% else %}
+  <i data-lucide="upload" class="size-8 mb-3"></i>
+  <p class="text-center text-sm">
+    Upload {{ audio_type | replace('-', ' ') }} audio
+  </p>
+  <p class="text-xs opacity-70 mb-3">MP3 or WAV recommended</p>
+  <button
+    class="border px-4 py-2 rounded-lg transition-colors text-sm"
+    style="border-color: var(--border-color);
+                       color: var(--sec-text);
+                       hover:background-color: var(--main-color);
+                       hover:color: white"
+  >
+    Select File
+  </button>
+  {% endif %}
+</div>
+<script>
+  document
+    .getElementById("{{audio_type}}-audio")
+    .addEventListener("change", function (e) {
+      uploadAudio("{{audio_type}}");
+    });
+
+  const audioDropzone{{audio_type | replace('-', '_')}} = document.getElementById("audio-dropzone-{{audio_type}}");
+
+  ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+    audioDropzone{{audio_type | replace('-', '_')}}.addEventListener(eventName, preventDefaults, false);
+  });
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    audioDropzone{{audio_type | replace('-', '_')}}.addEventListener(
+      eventName,
+      () => highlight(audioDropzone{{audio_type | replace('-', '_')}}),
+      false
+    );
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    audioDropzone{{audio_type | replace('-', '_')}}.addEventListener(
+      eventName,
+      () => unhighlight(audioDropzone{{audio_type | replace('-', '_')}}),
+      false
+    );
+  });
+
+  audioDropzone{{audio_type | replace('-', '_')}}.addEventListener("drop", (e) => handleDrop(e, "{{audio_type}}"), false);
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function highlight(element) {
+    element.classList.add("highlight");
+    element.classList.remove("norm");
+  }
+
+  function unhighlight(element) {
+    element.classList.remove("highlight");
+    element.classList.add("norm");
+  }
+
+  function handleDrop(e, type) {
+    const dt = e.dataTransfer;
+    const file = dt.files[0];
+    handleFile(file, type);
+  }
+
+  function uploadAudio(audioType) {
+    const fileInput = document.getElementById(`${audioType}-audio`);
+    if (fileInput.files.length === 0) {
+      customAlert("Please select a file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    fetch(`/admin/upload-sound`, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Upload failed");
+        location.reload();
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        customAlert("Upload failed. Please try again.");
+      });
+  }
+</script>

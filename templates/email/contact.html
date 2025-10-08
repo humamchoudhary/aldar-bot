@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Contact Request</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: white;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #001523;
+      }
+
+      .email-container {
+        background: #001523;
+        border-radius: 12px;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #001523 0%, #001f33 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        position: relative;
+      }
+
+      .header::before {
+        content: "📧";
+        font-size: 48px;
+        display: block;
+        margin-bottom: 10px;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .header .timestamp {
+        font-size: 14px;
+        color: #c0bcca;
+        margin-top: 8px;
+        opacity: 0.8;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: white;
+      }
+
+      .alert-message {
+        color: white;
+        background: #001f33;
+        border-left: 4px solid #ff5800;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 0 8px 8px 0;
+        position: relative;
+      }
+
+      .alert-message::before {
+        content: "🔔";
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 20px;
+      }
+
+      .priority-badge {
+        display: inline-block;
+        background: #dc3545;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+      }
+
+      .user-info {
+        background: #001f33;
+        border: 1px solid #ff5800;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+
+      .user-info h3 {
+        color: #c0bcca;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .user-info h3::before {
+        content: "👤";
+        font-size: 18px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .info-label {
+        font-size: 12px;
+        color: #c0bcca;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .info-value {
+        font-weight: 600;
+        color: white;
+        word-break: break-word;
+      }
+
+      .subject-section {
+        background: #002040;
+        border-left: 4px solid #ff5800;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 0 6px 6px 0;
+      }
+
+      .subject-section h4 {
+        color: #ff5800;
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .subject-content {
+        color: white;
+        font-weight: 600;
+        font-size: 16px;
+      }
+
+      .message-section {
+        margin: 25px 0;
+      }
+
+      .message-section h4 {
+        color: #c0bcca;
+        margin-bottom: 15px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .message-section h4::before {
+        content: "💬";
+        font-size: 16px;
+      }
+
+      .message-content {
+        background: #001f33;
+        border-radius: 6px;
+        padding: 20px;
+        border-left: 3px solid #ff5800;
+        color: white;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .technical-info {
+        background: #002040;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 20px;
+        border: 1px solid #003366;
+      }
+
+      .technical-info h5 {
+        color: #c0bcca;
+        margin: 0 0 10px 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .tech-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .cta-section {
+        text-align: center;
+        margin: 30px 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #001f33 0%, #002040 100%);
+        border-radius: 8px;
+        border: 1px solid #ff5800;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #ff5800 0%, #ff6b1a 100%);
+        color: white;
+        text-decoration: none;
+        padding: 16px 32px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin: 10px;
+        box-shadow: 0 4px 15px rgba(255, 88, 0, 0.3);
+        transition: transform 0.2s ease;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 88, 0, 0.4);
+      }
+
+      .cta-button.secondary {
+        background: linear-gradient(135deg, #001523 0%, #001f33 100%);
+        border: 2px solid #ff5800;
+      }
+
+      .footer {
+        background: #001f33;
+        padding: 20px 30px;
+        text-align: center;
+        border-top: 1px solid #ff5800;
+      }
+
+      .footer p {
+        margin: 0;
+        color: #c0bcca;
+        font-size: 12px;
+      }
+
+      .footer .timestamp-footer {
+        margin-top: 10px;
+        font-size: 11px;
+        opacity: 0.7;
+      }
+
+      @media (max-width: 480px) {
+        .info-grid,
+        .tech-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .content {
+          padding: 20px;
+        }
+
+        .header {
+          padding: 20px;
+        }
+
+        .cta-button {
+          display: block;
+          margin: 10px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>New Contact Request</h1>
+        <div class="timestamp">
+          Received on {{ time.strftime("%I:%M %p - %d %B %Y") }}
+        </div>
+      </div>
+      <div class="content">
+        <div class="greeting">Hello,</div>
+        <div class="alert-message">
+          <strong>{{ name }}</strong> has submitted a new contact request and is
+          waiting for your response.
+          <span class="priority-badge">NEW</span>
+        </div>
+        <div class="user-info">
+          <h3>Contact Information</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Admin ID</span>
+              <span class="info-value">{{ admin_id }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Full Name</span>
+              <span class="info-value">{{ name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email Address</span>
+              <span class="info-value">{{ email }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Phone Number</span>
+              <span class="info-value">{{ phone }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">IP Address</span>
+              <span class="info-value"
+                >{{ request.headers.get("X_Real-IP",
+                request.remote_addr).split(",")[0] }}</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="subject-section">
+          <h4>Email Address</h4>
+          <a
+            href="mailto:{{ email }}?subject=Re: {{ subject }}"
+            class="subject-content"
+            >{{ email }}</a
+          >
+          <h4>Phone No</h4>
+          <a href="tel:{{ phone }}" class="subject-content">{{ phone }}</a>
+          <h4>Subject</h4>
+          <div class="subject-content">{{ subject }}</div>
+        </div>
+        <div class="message-section">
+          <h4>Message Content</h4>
+          <div class="message-content">{{ message }}</div>
+        </div>
+        <div class="cta-section">
+          <h3 style="color: #c0bcca; margin-top: 0; font-size: 16px">
+            Quick Actions
+          </h3>
+          <a
+            href="mailto:{{ email }}?subject=Re: {{ subject }}"
+            class="cta-button"
+            >Reply via Email</a
+          >
+          <a href="tel:{{ phone }}" class="cta-button secondary">Call Now</a>
+        </div>
+      </div>
+      <div class="footer">
+        <p>This is an automated notification from your contact form system.</p>
+        <p class="timestamp-footer">
+          Generated on {{ time.strftime("%I:%M %p - %d %B %Y") }}
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
