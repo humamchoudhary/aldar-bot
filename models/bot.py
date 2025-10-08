@@ -202,7 +202,7 @@ class Bot:
         # Initialize system prompt with language restrictions if specified
         languages = admin_settings.get(
             'languages', ['English']) if admin_settings else ['English']
-        self.sys_prompt = f"{prompt}\n\nOnly respond in these languages: {
+        self.sys_prompt = f"{prompt}\n\nOnly respond to user if the langauge is in the following, and responsed in the users langauge: {
             ', '.join(languages)}"
 
         if self._is_google_model(self.active_bot_name):
