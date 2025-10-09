@@ -175,7 +175,7 @@ function initializeChatbot() {
 
   #chat-container .chat-header {
     padding: 1rem;
-    background-color: #001f33;
+    background-color: #1c1364;
     color: white;
     display: flex;
     justify-content: space-between;
@@ -202,7 +202,7 @@ function initializeChatbot() {
 
   .drag-handle:hover::after {
     content: "⠿";
-    color: #ff5800;
+    color: #bc9b62;
     font-size: 16px;
     margin-left: 8px;
     opacity: 0.7;
@@ -402,7 +402,7 @@ function initializeChatbot() {
   <path d="M19.6604 41.4421L30.2442 52.026L40.7301 41.4421H19.6604Z" fill="#E8EAEB"/>
   <path d="M20.3463 41.4421L24.1683 45.9501L30.1462 41.5401L36.2221 45.9501L40.044 41.4421H20.3463Z" fill="white"/>
   <path d="M30.1462 41.5403L28.0882 43.0103V43.5003H32.4001V43.0103L30.1462 41.5403Z" fill="#C95C1C"/>
-  <path d="M30.0715 51.5885H33.4968L32.4001 43.5002H28.0882L27.2171 51.5885H30.0715Z" fill="#FF5E00"/>
+  <path d="M30.0715 51.5885H33.4968L32.4001 43.5002H28.0882L27.2171 51.5885H30.0715Z" fill="#bc9b62"/>
   <path d="M30.3974 37.0812C32.3947 37.0812 34.2856 35.0523 34.0847 34.1945C33.8838 33.3367 32.3947 34.1945 30.3974 34.1945C28.4002 34.1945 26.9525 33.1927 26.852 34.1945C26.7515 35.1964 28.3588 36.9372 30.3974 37.0812Z" fill="#3B3731"/>
   <path d="M22.6335 29.1925C23.283 29.1925 23.8095 28.666 23.8095 28.0166C23.8095 27.3671 23.283 26.8406 22.6335 26.8406C21.984 26.8406 21.4575 27.3671 21.4575 28.0166C21.4575 28.666 21.984 29.1925 22.6335 29.1925Z" fill="#3B3731"/>
   <path d="M37.6275 29.1925C38.277 29.1925 38.8035 28.666 38.8035 28.0166C38.8035 27.3671 38.277 26.8406 37.6275 26.8406C36.978 26.8406 36.4515 27.3671 36.4515 28.0166C36.4515 28.666 36.978 29.1925 37.6275 29.1925Z" fill="#3B3731"/>
@@ -412,7 +412,7 @@ function initializeChatbot() {
   <path d="M19.6604 41.4421L30.2442 52.026L40.7301 41.4421H19.6604Z" fill="#E8EAEB"/>
   <path d="M20.3463 41.4421L24.1683 45.9501L30.1462 41.5401L36.2221 45.9501L40.044 41.4421H20.3463Z" fill="white"/>
   <path d="M30.1462 41.5403L28.0882 43.0103V43.5003H32.4001V43.0103L30.1462 41.5403Z" fill="#C95C1C"/>
-  <path d="M30.0715 51.5885H33.4968L32.4001 43.5002H28.0882L27.2171 51.5885H30.0715Z" fill="#FF5E00"/>
+  <path d="M30.0715 51.5885H33.4968L32.4001 43.5002H28.0882L27.2171 51.5885H30.0715Z" fill="#bc9b62"/>
   <path d="M30.3974 37.0812C32.3947 37.0812 34.2856 35.0523 34.0847 34.1945C33.8838 33.3367 32.3947 34.1945 30.3974 34.1945C28.4002 34.1945 26.9525 33.1927 26.852 34.1945C26.7515 35.1964 28.3588 36.9372 30.3974 37.0812Z" fill="#3B3731"/>
   <path d="M22.6335 29.1925C23.283 29.1925 23.8095 28.666 23.8095 28.0166C23.8095 27.3671 23.283 26.8406 22.6335 26.8406C21.984 26.8406 21.4575 27.3671 21.4575 28.0166C21.4575 28.666 21.984 29.1925 22.6335 29.1925Z" fill="#3B3731"/>
   <path d="M37.6275 29.1925C38.277 29.1925 38.8035 28.666 38.8035 28.0166C38.8035 27.3671 38.277 26.8406 37.6275 26.8406C36.978 26.8406 36.4515 27.3671 36.4515 28.0166C36.4515 28.666 36.978 29.1925 37.6275 29.1925Z" fill="#3B3731"/>
@@ -421,13 +421,13 @@ function initializeChatbot() {
 <div
   id="chat-container"
   class="chat-container-close"
-  style="background-color: #001f33;"
+  style="background-color: #1c1364;"
 >
   <div
     class="chat-header"
     style="
       padding: 20px 15px 0px;
-      background-color: #001f33;
+      background-color: #1c1364;
       color: white;
       display: flex;
       justify-content: space-between;
@@ -445,7 +445,7 @@ function initializeChatbot() {
       style="
         background: none;
         border: none;
-        color: #ff5800;
+        color: #bc9b62;
         font-size: 24px;
         cursor: pointer;
         display: none;
@@ -473,7 +473,7 @@ function initializeChatbot() {
       style="
         background: none;
         border: none;
-        color: #ff5800;
+        color: #bc9b62;
         font-size: 24px;
         cursor: pointer;
         transition: all 0.1s ease-in-out 0.1s;

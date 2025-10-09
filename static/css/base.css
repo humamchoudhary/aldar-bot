@@ -1,19 +1,24 @@
 :root {
-  --goglobe-site-bg-color: #001f33;
-  --goglobe-header-bg-color: #001f33;
-  --goglobe-some-r-bg-color: #001f33;
-  --goglobe-some-a-bg-color: #001f33;
-  --goglobe-main-color: #ff5800;
-  --goglobe-main-color1: #ff5800;
-  --goglobe-main-color2: #ff5800;
-  --goglobe-heading-color: #c0bcca;
-  --goglobe-body-color: #c0bcca;
-  --goglobe-border-color: #253239;
-  --goglobe-button-bg-color: #001f33;
-  --goglobe-hover-color: #fff;
+  /* Core brand colors — unchanged */
+  --goglobe-site-bg-color: #1c1364;
+  --goglobe-header-bg-color: #1c1364;
+  --goglobe-some-r-bg-color: #1c1364;
+  --goglobe-some-a-bg-color: #1c1364;
+  --goglobe-main-color: #bc9b62;
+  --goglobe-main-color1: #bc9b62;
+  --goglobe-main-color2: #bc9b62;
+
+  /* Adjusted supporting colors for better harmony */
+  --goglobe-heading-color: #d4d1e1; /* softer lilac-gray for readability */
+  --goglobe-body-color: #b3b0c7; /* muted neutral for contrast balance */
+  --goglobe-border-color: #2a205c; /* darker indigo tone for subtle framing */
+  --goglobe-button-bg-color: #bc9b62; /* accent button for strong contrast */
+  --goglobe-hover-color: #fff; /* clean white hover state */
+  --goglobe-input-color: #6a638c; /* softer midtone violet-gray input field */
+
+  /* Font & layout constants (unchanged) */
   --goglobe-heading-font-family: "NeueHaas", sans-serif;
   --goglobe-body-font-family: "NeueHaas", sans-serif;
   --goglobe-left-panel-width: 250px;
   --goglobe-header-height: 80px;
-  --goglobe-input-color: #475864;
 }

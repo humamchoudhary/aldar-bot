@@ -1,6 +1,6 @@
 /* :root { */
-/* --sec-bg-color: #001f33; */
-/* --main-color: #ff5800; */
+/* --sec-bg-color: #1c1364; */
+/* --main-color: #bc9b62; */
 /* --bg-color: #001523; */
 /* --border-color: #253239; */
 /* --font-family: "NeueHaas", sans-serif; */
@@ -9,7 +9,7 @@
 
 :root {
   --sec-bg-color: #f0f4f8; /* Secondary background: soft light gray-blue */
-  --main-color: #ff5800; /* Keep accent color the same */
+  --main-color: #bc9b62; /* Keep accent color the same */
   --bg-color: #ffffff; /* Primary background: white */
   --border-color: #d0d7de; /* Light border */
   /* --border-color: #25323922; */
@@ -20,13 +20,13 @@
 }
 
 .dark {
-  --sec-bg-color: #001f33;
-  --main-color: #ff5800;
-  --bg-color: #001523;
-  --border-color: #253239;
-  --sec-text: #c0bcca;
+  --sec-bg-color: #1c1364; /* deep indigo */
+  --main-color: #bc9b62; /* golden-bronze accent */
+  --bg-color: #0e1024; /* darker indigo-black for depth */
+  --border-color: #2b2958; /* muted indigo-gray for subtle framing */
+  --sec-text: #cfcbe0; /* soft lilac-gray for readable secondary text */
   --font-family: "NeueHaas", sans-serif;
-  --white: #fff;
+  --white: #ffffff; /* pure white highlight */
 }
 
 html {
