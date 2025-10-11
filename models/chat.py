@@ -1,27 +1,35 @@
 from datetime import datetime
 from pprint import pprint
+from uuid import uuid4
 
 
 class Message:
-    def __init__(self, sender, content, timestamp=None):
+    def __init__(self, sender, content, m_type="text",timestamp=None):
+        self.id = uuid4()
         self.sender = sender
         self.content = content
         self.timestamp = timestamp or datetime.utcnow()
+        self.m_type = m_type
 
     def to_dict(self):
         return {
+                "id":str(self.id),
             "sender": self.sender,
             "content": self.content,
+            "type":self.m_type,
             "timestamp": self.timestamp
         }
 
     @classmethod
     def from_dict(cls, data):
-        return cls(
+        msg =  cls(
             sender=data.get("sender"),
             content=data.get("content"),
+            m_type=data.get("type"),
             timestamp=data.get("timestamp")
         )
+        msg.id = data.get("id")
+        return msg
 
     def __str__(self):
         return f"{self.to_dict()}"

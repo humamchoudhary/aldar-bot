@@ -695,8 +695,8 @@ app, socketio = create_app()
 if __name__ == '__main__':
     socketio.run(app, port=Config.PORT, host='0.0.0.0',
                  debug=True,
-                 # ssl_context='adhoc'
+                 ssl_context='adhoc'
 
-                 ssl_context=('cert.pem', 'key.pem')
+                 # ssl_context=('cert.pem', 'key.pem')
 
                  )

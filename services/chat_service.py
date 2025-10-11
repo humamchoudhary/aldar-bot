@@ -169,13 +169,13 @@ class ChatService:
         cursor = self.chats_collection.aggregate(pipeline)
         return [Chat.from_dict(chat_data) for chat_data in cursor]
 
-    def add_message(self, room_id: str, sender: str, content: str) -> Optional[Message]:
+    def add_message(self, room_id: str, sender: str, content: str,type:str="text") -> Optional[Message]:
         """Add message with optimized update operation."""
         chat = self.get_chat_by_room_id(room_id)
         if not chat:
             return None
 
-        message = Message(sender, content)
+        message = Message(sender, content,type)
 
         result = self.chats_collection.update_one(
             {"room_id": room_id},

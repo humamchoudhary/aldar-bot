@@ -24,11 +24,11 @@ import pytz
 
 @min_bp.before_request
 def before_req():
-    path = request.path
+    path = str(request.path)
     print(session.items())
     print(f"Path: {path}")
     print(f"LastVisit: {session.get('last_visit')}")
-    if path.startswith("/min") and (path.split("/")[-1] not in ['auth', 'send_message', 'ping_admin'] and path not in ['/min/', '/min/get-headers']):
+    if path.startswith("/min") and (path.split("/")[-1] not in ['auth', 'send_message', 'ping_admin',"send_audio"] and path not in ['/min/', '/min/get-headers'] and "audio_file" not in path):
         session["last_visit"] = path
 
 #
@@ -74,7 +74,7 @@ def headers():
 @min_bp.route('/')
 def index():
 
-    print(session.get('last_visit'))
+    # print(session.get('last_visit'))
     if 'last_visit' in session and session['last_visit'] not in ['/min/', '/min/get-headers']:
         # response = make_response('', 200)
         # response.headers['HX-Redirect'] = session['last_visit']
@@ -261,7 +261,7 @@ def chat(chat_id):
 
     chat_service = ChatService(current_app.db)
     chat = chat_service.get_chat_by_room_id(f'{user.user_id}-{chat_id[:8]}')
-    print(chat)
+    # print(chat)
     if not chat:
         if request.headers.get('HX-Request') == 'true':
             return redirect(url_for("min.onboard"))
@@ -415,6 +415,113 @@ Auto Generated Message"""
 
     return jsonify({"status": "Ana has been notified"}), 200
 
+import wave
+
+def wave_file(filename, pcm, channels=1, rate=24000, sample_width=2):
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(sample_width)
+        wf.setframerate(rate)
+        wf.writeframes(pcm)
+
+
+@min_bp.route('/chat/<chat_id>/send_audio', methods=['POST','GET'])
+@login_required
+def receive_audio_blob(chat_id):
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No audio file provided'}), 400
+
+    audio_file = request.files['audio']
+    audio_bytes = audio_file.read()  # Get bytes from file
+    
+    print(f"Received audio: {len(audio_bytes)} bytes")
+    
+    # RESET FILE POINTER to beginning so we can save it
+    audio_file.seek(0)
+    
+    resp = current_app.bot.transcribe(audio_bytes)
+    print(resp)
+
+    print(session.get('admin_id'))
+    user_service = UserService(current_app.db)
+    user = user_service.get_user_by_id(session['user_id'])
+    chat_service = ChatService(current_app.db)
+    admin = AdminService(current_app.db).get_admin_by_id(
+        session.get('admin_id'))
+
+    chat = chat_service.get_chat_by_room_id(f'{user.user_id}-{chat_id[:8]}')
+    if not chat:
+        if request.headers.get('HX-Request'):
+            return "Chat not found", 404
+        return jsonify({"error": "Chat not found"}), 404
+    print(resp)
+
+    new_message = chat_service.add_message(chat.room_id, user.name, resp,type="audio")
+
+    save_path = os.path.join('files', f"{chat.room_id}", f"{new_message.id}.wav")
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    # Now this will work since we reset the file pointer
+    audio_file.save(save_path) 
+
+
+    current_app.socketio.emit('new_message', {
+        'sender': user.name,
+        'content': resp,
+        'timestamp': new_message.timestamp.isoformat(),
+        'room_id': chat.room_id,
+        'type':"audio","id":str(new_message.id)
+    }, room=chat.room_id)
+    
+    if (not chat.admin_required):
+        msg, usage = current_app.bot.responed(
+            f"Subject of chat: {chat.subject}\n {resp}", chat.room_id)
+        print(msg)
+        audio = current_app.bot.generate_audio(msg)
+
+        bot_message = chat_service.add_message(chat.room_id, "bot", msg,type="audio")
+
+        current_app.socketio.emit('new_message', {
+            'sender': "bot",
+            'content': msg,
+            'timestamp': bot_message.timestamp.isoformat(),
+            'room_id': chat.room_id,
+            'type':"audio",
+            "id":str(bot_message.id)
+        }, room=chat.room_id)
+
+        save_path = os.path.join('files', f"{chat.room_id}", f"{bot_message.id}.wav")
+        wave_file(save_path,audio)
+        
+        
+
+    
+
+    return "", 200
+        
+from flask import send_from_directory, abort
+import os
+
+
+@min_bp.route("/chat/<chat_id>/audio_file/<message_id>")
+@login_required
+def audio_file(chat_id, message_id):
+    print(chat_id)
+    # Directory where audio files for this chat are stored
+    base_dir = os.path.join('files', chat_id)
+    
+    # Construct full file path (you could store actual filenames in a DB instead)
+    file_path = os.path.join(base_dir, f"{message_id}.wav")
+    print(file_path)
+    
+    # Make sure the file exists
+    if not os.path.exists(file_path):
+        abort(404, description="Audio file not found")
+    
+    # Serve the file safely
+    return send_from_directory(base_dir, f"{message_id}.wav", mimetype="audio/wav")
+
+
 
 @min_bp.route('/chat/<chat_id>/send_message', methods=['POST', 'GET'])
 @login_required
@@ -444,6 +551,7 @@ def send_message(chat_id):
 
     # # print(f'{session["user_id"]}-{chat_id[:8]}')
     new_message.content = markdown.markdown(new_message.content)
+    
     current_app.socketio.emit('new_message', {
         'sender': user.name,
         'content': message,
@@ -451,6 +559,7 @@ def send_message(chat_id):
         'room_id': chat.room_id,
         "html": render_template("/user/fragments/chat_message.html", message=new_message, username=user.name)
     }, room=chat.room_id)
+
     # print('hello')
     print(len(chat.messages))
     if "job" not in chat.subject.lower() and len(chat.messages) <= 2:

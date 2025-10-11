@@ -10,6 +10,24 @@ opacity:0.7;
 
 }
 
+/* Add to your existing CSS */
+#audio-feedback {
+    transition: all 0.3s ease;
+}
+
+#recording-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#audio-visualizer {
+    display: flex;
+    align-items: end;
+    gap: 2px;
+    height: 20px;
+}
+
 /* Code Block Styling */
 .md-content pre {
     position: relative;
@@ -27,7 +45,7 @@ opacity:0.7;
     font-family: 'Courier New', Courier, monospace;
     font-size: 14px;
     line-height: 1.6;
-    white-space: pre;
+    #0e1024-space: pre;
     background: none;
     padding: 0;
     border: none;
@@ -57,7 +75,7 @@ opacity:0.7;
     right: 8px;
     padding: 6px 12px;
     background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    color: #0e1024;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 5px;
     cursor: pointer;
@@ -133,9 +151,9 @@ opacity:0.7;
     outline: none;
     display: block;
     width: 100%;
-    padding: 14px 20px 12px;
+    padding: 8px 10px 8px;
     padding-right: 72px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     line-height: 22px;
     max-height: 170px;
@@ -158,14 +176,41 @@ opacity:0.7;
     border-color: var(--goglobe-main-color); /* 👈 highlight border on focus */
   }
 </style>
-          <button id="send-btn" style="position: absolute; width: 50px; height: 35px; bottom: 8px; right: 8px; padding: 0; margin: 0; border-radius: 5px; outline: none; cursor: pointer; border: none; background-color: var(--goglobe-main-color); display: flex; align-items: center; justify-content: center; color: white; transition: all 0.3s ease;" onclick="sendMessage()">
+
+
+          <button id="send-btn" style="position: absolute; width: 40px; height: 30px; bottom: 6px; right: 8px; padding: 0; margin: 0; border-radius: 5px; outline: none; cursor: pointer; border: none; background-color: var(--goglobe-main-color); display: flex; align-items: center; justify-content: center; color: #0e1024; transition: all 0.3s ease;" onclick="sendMessage()">
             <img
               src="{{ settings['backend_url'] }}{{ url_for('static', filename='svg/enter.svg') }}"
               alt=""
-              style="color: #fff; width: 21px; height: 21px; filter: invert(1);"
+              style="color: #0e1024; width: 12px; height: 12px; filter: invert(1);"
             />
           </button>
         </div>
+
+
+        <div
+          id="enable-mic"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem;
+            border-radius: 9999px;
+            border: 0.5px solid var(--goglobe-border-color);
+            transition: all 200ms;
+            position: relative;
+            width: 40px;
+            height:30px;
+            cursor: pointer;
+          "
+          title="Request Assistance"
+          onclick="enableMic()"
+          onmouseover="this.style.backgroundColor='var(--goglobe-main-color)'; this.style.borderColor='var(--goglobe-hover-color)';"
+          onmouseout="this.style.backgroundColor=''; this.style.borderColor='var(--goglobe-border-color)';"
+        >
+<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic-icon lucide-mic"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+        </div>
+
         <div
           id="ping-admin-btn"
           style="
@@ -177,8 +222,8 @@ opacity:0.7;
             border: 0.5px solid var(--goglobe-border-color);
             transition: all 200ms;
             position: relative;
-            width: 40px;
-            height:40px;
+            width: 30px;
+            height:30px;
             cursor: pointer;
           "
           title="Request Assistance"
@@ -187,7 +232,7 @@ opacity:0.7;
           onmouseout="this.style.backgroundColor=''; this.style.borderColor='var(--goglobe-border-color)';"
         >
           <img
-            style="border-radius: 9999px; min-width: 40px"
+            style="border-radius: 9999px; min-width: 35px"
             src="{{ settings['backend_url'] }}{{ url_for('static', filename='img/ana.jpg') }}"
           />
         </div>
@@ -200,6 +245,296 @@ opacity:0.7;
 
 {% block scripts %}
 <script>
+
+// Add these variables at the top of your script section
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let javascriptNode = null;
+
+// Enable/disable mic function
+function enableMic() {
+
+    console.log("Enable Mic")
+
+    const micButton = document.getElementById('enable-mic');
+    const textarea = document.getElementById('fn__chat_textarea');
+    const sendBtn = document.getElementById('send-btn');
+    
+    if (!isRecording) {
+        // Start recording
+        startRecording(micButton, textarea, sendBtn);
+    } else {
+        // Stop recording
+        stopRecording(micButton, textarea, sendBtn);
+    }
+}
+
+// Start recording function
+function startRecording(micButton, textarea, sendBtn) {
+    // Change icon to close icon
+    micButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square">
+            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+        </svg>
+    `;
+    
+    // Hide textarea and show audio feedback
+    textarea.style.display = 'none';
+    createAudioFeedback();
+    
+    // Disable send button
+    sendBtn.style.cursor = 'not-allowed';
+    sendBtn.style.opacity = '0.5';
+    
+    // Start recording process
+    startAudioRecording();
+}
+
+// Stop recording function
+function stopRecording(micButton, textarea, sendBtn) {
+    // Change icon back to mic
+    micButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic">
+            <path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>
+        </svg>
+    `;
+    
+    // Remove audio feedback and show textarea
+    removeAudioFeedback();
+    textarea.style.display = 'block';
+    
+    // Re-enable send button if textarea has content
+    if (textarea.value.trim() !== '') {
+        sendBtn.style.cursor = 'pointer';
+        sendBtn.style.opacity = '1';
+    }
+    
+    // Stop recording and send audio
+    stopAudioRecording();
+}
+
+// Create audio feedback visualization
+function createAudioFeedback() {
+    const textareaContainer = document.querySelector('div[style*="width: 100%; height: fit-content; position: relative"]');
+    
+    // Create audio feedback element
+    const audioFeedback = document.createElement('div');
+    audioFeedback.id = 'audio-feedback';
+    audioFeedback.style.cssText = `
+        display: flex;
+        align-items: center;
+        padding: 8px 20px;
+        border: 2px solid var(--goglobe-main-color);
+        border-radius: 6px;
+        background-color: rgba(207, 203, 224, 0.2);
+        color: var(--goglobe-heading-color);
+        font-size: 12px;
+        font-family: var(--goglobe-heading-font-family);
+        margin-bottom: 0px;
+    `;
+    
+    // Create recording indicator
+    const recordingIndicator = document.createElement('div');
+    recordingIndicator.id = 'recording-indicator';
+    recordingIndicator.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="display: inline-block; width: 8px; height: 8px; background-color: #ff3b30; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                <span>Recording...</span>
+            </div>
+            <div id="audio-visualizer" style="display: flex; align-items: center; gap: 2px; height: 20px;"></div>
+        </div>
+    `;
+    
+    audioFeedback.appendChild(recordingIndicator);
+    textareaContainer.insertBefore(audioFeedback, textareaContainer.firstChild);
+    
+    // Add pulse animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Remove audio feedback
+function removeAudioFeedback() {
+    const audioFeedback = document.getElementById('audio-feedback');
+    if (audioFeedback) {
+        audioFeedback.remove();
+    }
+}
+
+// Start audio recording with visualization
+function startAudioRecording() {
+    audioChunks = [];
+    
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            // Set up audio context for visualization
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            microphone = audioContext.createMediaStreamSource(stream);
+            javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+            
+            analyser.smoothingTimeConstant = 0.8;
+            analyser.fftSize = 1024;
+            
+            microphone.connect(analyser);
+            analyser.connect(javascriptNode);
+            javascriptNode.connect(audioContext.destination);
+            
+            // Set up audio visualization
+            setupAudioVisualization();
+            
+            // Set up media recorder
+            mediaRecorder = new MediaRecorder(stream);
+            
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.onstop = () => {
+                // Clean up audio context
+                if (javascriptNode) javascriptNode.disconnect();
+                if (analyser) analyser.disconnect();
+                if (microphone) microphone.disconnect();
+                if (audioContext) audioContext.close();
+                
+                // Stop all tracks
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Send audio to server
+                sendAudioToServer();
+            };
+            
+            // Start recording
+            mediaRecorder.start();
+            isRecording = true;
+        })
+        .catch(error => {
+            console.error('Error accessing microphone:', error);
+            alert('Unable to access microphone. Please check your permissions.');
+            resetUI();
+        });
+}
+
+// Set up audio visualization
+function setupAudioVisualization() {
+    const visualizer = document.getElementById('audio-visualizer');
+    visualizer.innerHTML = '';
+    
+    // Create bars for visualization
+    for (let i = 0; i < 10; i++) {
+        const bar = document.createElement('div');
+        bar.style.cssText = `
+            width: 3px;
+            background-color: var(--goglobe-main-color);
+            border-radius: 5px;
+            transition: height 0.1s ease;
+        `;
+        visualizer.appendChild(bar);
+    }
+    
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    javascriptNode.onaudioprocess = () => {
+        analyser.getByteFrequencyData(dataArray);
+        
+        // Calculate average volume
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        
+        // Update visualization bars
+        const bars = visualizer.children;
+        for (let i = 0; i < bars.length; i++) {
+            // Calculate height based on volume with some variation
+            const height = Math.max(Math.min(20, (average / 128) * 20 * (1 + Math.sin(i) * 0.3))*5,4);
+            bars[i].style.height = `${height}px`;
+        }
+    };
+}
+
+// Stop audio recording
+function stopAudioRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+    }
+}
+
+// Send audio to server
+function sendAudioToServer() {
+
+
+    if (audioChunks.length === 0) {
+        console.error('No audio data to send');
+        return;
+    }
+    
+    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav');
+    
+    fetch('{{settings["backend_url"]}}/min/chat/{{chat.chat_id}}/send_audio', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        scrollToBottom();
+    })
+    .catch(error => {
+        console.error('Error sending audio:', error);
+        alert('Failed to send audio message. Please try again.');
+    });
+}
+
+// Reset UI in case of errors
+function resetUI() {
+    const micButton = document.getElementById('enable-mic');
+    const textarea = document.getElementById('fn__chat_textarea');
+    const sendBtn = document.getElementById('send-btn');
+    
+    // Reset mic button
+    micButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic">
+            <path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>
+        </svg>
+    `;
+    
+    // Remove audio feedback and show textarea
+    removeAudioFeedback();
+    textarea.style.display = 'block';
+    
+    // Reset send button
+    if (textarea.value.trim() !== '') {
+        sendBtn.style.cursor = 'pointer';
+        sendBtn.style.opacity = '1';
+    } else {
+        sendBtn.style.cursor = 'not-allowed';
+        sendBtn.style.opacity = '0.7';
+    }
+    
+    isRecording = false;
+}
+
+
 
 
    function scrollToBottom(){
@@ -326,6 +661,7 @@ messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });
      });
 
      socket.on('new_message', function(data) {
+         console.log("new_message")
 
        appendMessage(data);
      });
@@ -347,49 +683,69 @@ messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });
            const audio = new Audio("{{settings["backend_url"]}}/static/sounds/message.wav");
         audio.play();
        }
+       const username = '{{username}}'
 
 const messageHTML = `
-<div style="position: relative; width: fit-content;   
-    align-self:${message.sender === '{{username}}' ? 'flex-end' : 'flex-start'};
-    display:flex; flex-direction:row; gap:10px; align-items:flex-start;">
-
-    ${ message.sender === "bot" ? `
-      <div style="width:40px; height:40px; flex-shrink:0;">
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M36.8532 22.8708C38.5603 13.7173 32.3861 4.88706 23.0631 3.14835C13.7402 1.40964 4.79815 7.42077 3.09105 16.5742C1.38396 25.7276 7.55813 34.5579 16.8811 36.2966L33.3017 39.359L31.0172 32.7057C34.0749 30.2049 36.1394 26.7257 36.8532 22.8708Z" fill="white"/>
-  <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/>
-  <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/>
-  <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/>
-  <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/>
-  <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/>
-  <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/>
-  <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/>
-  <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/>
-  <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/>
-  <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/>
-  <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/>
-  <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/>
-  <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/>
-  <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/>
-  <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/>
-  <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/>
-  <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/>
-  <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/>
-  <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/>
-  <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/>
-</svg>
+  <div 
+    style="
+      position: relative;
+      width: fit-content;
+      max-width: 85%;
+      align-self:${message.sender === '{{username}}' ? 'flex-end' : 'flex-start'};
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      align-items: flex-start;
+    "
+  >
+    ${message.sender === "bot" ? `
+      <div style="width: 40px; height: 40px; flex-shrink: 0;">
+        <!-- Bot Avatar SVG -->
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M36.8532 22.8708C38.5603 13.7173 32.3861 4.88706 23.0631 3.14835C13.7402 1.40964 4.79815 7.42077 3.09105 16.5742C1.38396 25.7276 7.55813 34.5579 16.8811 36.2966L33.3017 39.359L31.0172 32.7057C34.0749 30.2049 36.1394 26.7257 36.8532 22.8708Z" fill="white"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> </svg>
       </div>
-    ` : "" }
+    ` : ""}
 
-    <div class="md-content"
-      style="padding: 0px 10px; border-radius: 5px; font-size: 16px; font-weight: 400;
-             font-family: var(--goglobe-heading-font-family); 
-             background-color: ${message.sender === '{{username}}' ? '#001523' : 'var(--goglobe-some-r-bg-color)'};
-             color: var(--goglobe-heading-color); 
-             border: 0.5px solid var(--goglobe-border-color);">
-      ${tempDiv.innerHTML}
+    <div 
+      class="md-content"
+      style="
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: 400;
+        font-family: var(--goglobe-heading-font-family);
+        background-color: ${message.sender === username ? '#cfcbe0' : 'var(--goglobe-some-r-bg-color)'};
+        color: var(--goglobe-heading-color);
+        border: 0.5px solid var(--goglobe-border-color);
+        width: 85%;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      "
+    >
+      ${message.type === 'audio'
+        ? `
+          <audio controls style="width: 100%;">
+            <source 
+              src="{{settings["backend_url"]}}/min/chat/{{chat.room_id}}/audio_file/${message.id}" 
+              type="audio/wav"
+            />
+            Your browser does not support the audio element.
+          </audio>
+          ${message.content 
+            ? `<div 
+                style="
+                  font-size: 12px;
+                  color: var(--goglobe-heading-color);
+                  margin-top: 4px;
+                  font-style: italic;
+                ">
+                ${message.content}
+              </div>`
+            : ''}
+        `
+        : `${tempDiv.innerHTML}`
+      }
     </div>
-</div>
+  </div>
 `;
 
      messagesContainer.insertAdjacentHTML('beforeend', messageHTML);

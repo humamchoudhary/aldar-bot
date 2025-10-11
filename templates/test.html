@@ -58,7 +58,7 @@
       name="htmx-config"
       content='{"selfRequestsOnly":false, "withCredentials": true}'
     />
-    <script src="{{backend_url}}/render-bot/3f1df8d76e7065a2cc3bfe46d318b08fded0c8beeb41067c75c7f684710c6002"></script>
+    <script src="{{backend_url}}/render-bot/6dc1066b8a2880024e6e2e1a4c3941a2597b0467132849c6d62d232eb00d9958"></script>
 
     <!-- Google Tag Manager -->
     <script>
@@ -91,12 +91,6 @@
       ></iframe
     ></noscript>
     <!-- End Google Tag Manager (noscript) -->
-    {% for i in range(100) %}
-    <div
-      class="w-full"
-      style="height: 500px; background-color: #6{{ i|string|first }}{{ i|string|first }}6{{ i|string|first }}{{ i|string|first }}"
-    ></div>
-    {% endfor %}
 
     <div style="display: flex; flex-direction: column; gap: 6px">
       <button id="testBtn">Click Me!</button>

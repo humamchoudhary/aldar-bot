@@ -63,6 +63,7 @@ class Admin:
 
     @classmethod
     def from_dict(cls, data):
+        print(data)
         admin = cls(
             username=data.get("username"),
             password_hash=data.get("password_hash"),
