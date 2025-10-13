@@ -10,9 +10,50 @@
     </p>
   </div>
   <div
-    class="md-content text-[16px] text-[var(--sec-text)] leading-[22px] text-wrap"
-    data-content="{{ message.content }}"
+    class="md-content"
+    style="
+      padding: 10px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 400;
+      font-family: var(--goglobe-heading-font-family);
+      background-color: {% if message.sender == username %}#cfcbe0{% else %}var(--goglobe-some-r-bg-color){% endif %};
+      color: var(--goglobe-heading-color);
+      border: 0.5px solid var(--goglobe-border-color);
+      width: 85%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      text-wrap:auto;
+    "
   >
-    {{ message.content }}
+    {% if message.m_type == 'audio' %}
+    <audio controls style="width: 100%;">
+      <source
+        src="{{ url_for('admin.audio_file', chat_id=chat.room_id, message_id=message.id) }}"
+        type="audio/wav"
+      />
+      Your browser does not support the audio element.
+    </audio>
+
+    {% if message.content %}
+    <!-- Optional caption/transcription -->
+    <div
+      style="
+        font-size: 12px;
+        color: var(--goglobe-heading-color);
+        margin-top: 4px;
+        font-style: italic;
+      "
+    >
+      {{ message.content|markdown|safe }}
+    </div>
+    {% endif %}
+
+    {% else %}
+    {{ message.content|markdown|safe }}
+    {% endif %}
   </div>
+
+
+
 </div>

@@ -789,6 +789,100 @@ def intervene(room_id):
     chat_service.set_admin_required(room_id,True)
     return "",200
 
+
+@admin_bp.route('/chat/<chat_id>/send_audio', methods=['POST'])
+@admin_required
+def receive_audio_blob(chat_id):
+        if 'audio' not in request.files:
+            if request.headers.get('HX-Request'):
+                return "No audio file provided", 400
+            return jsonify({'error': 'No audio file provided'}), 400
+
+        audio_file = request.files['audio']
+        audio_bytes = audio_file.read()  # Get bytes from file
+        
+        print(f"Received audio: {len(audio_bytes)} bytes")
+        
+        # RESET FILE POINTER to beginning so we can save it
+        audio_file.seek(0)
+        
+        # Transcribe audio
+        resp = current_app.bot.transcribe(audio_bytes)
+        print(resp)
+
+        # Get admin info from session
+        admin_service = AdminService(current_app.db)
+        admin = admin_service.get_admin_by_id(session.get('admin_id'))
+        
+        if not admin:
+            if request.headers.get('HX-Request'):
+                return "Admin not found", 404
+            return jsonify({"error": "Admin not found"}), 404
+
+        chat_service = ChatService(current_app.db)
+        
+        # Get chat by room_id (using the provided chat_id directly as it should be room_id)
+        chat = chat_service.get_chat_by_room_id(chat_id)
+        if not chat:
+            if request.headers.get('HX-Request'):
+                return "Chat not found", 404
+            return jsonify({"error": "Chat not found"}), 404
+
+        print(f"Transcription: {resp}")
+
+        # Add message as admin (using admin name instead of user name)
+        new_message = chat_service.add_message(chat.room_id, admin.username, resp, type="audio")
+
+        # Save audio file
+        save_path = os.path.join('files', f"{chat.room_id}", f"{new_message.id}.wav")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        
+        # Now this will work since we reset the file pointer
+        audio_file.save(save_path) 
+
+        # Emit socket event
+        current_app.socketio.emit('new_message', {
+            'sender': admin.username,
+            'content': resp,
+            'timestamp': new_message.timestamp.isoformat(),
+            'room_id': chat.room_id,
+            'type': "audio",
+            "id": str(new_message.id)
+        }, room=chat.room_id)
+        
+        
+        if request.headers.get('HX-Request'):
+            return "", 200
+        return jsonify({"success": True}), 200
+        
+
+
+
+from flask import send_from_directory, abort
+import os
+
+
+@admin_bp.route("/chat/<chat_id>/audio_file/<message_id>")
+@admin_required
+def audio_file(chat_id, message_id):
+    print(chat_id)
+    # Directory where audio files for this chat are stored
+    base_dir = os.path.join('files', chat_id)
+    
+    # Construct full file path (you could store actual filenames in a DB instead)
+    file_path = os.path.join(base_dir, f"{message_id}.wav")
+    print(file_path)
+    
+    # Make sure the file exists
+    if not os.path.exists(file_path):
+        abort(404, description="Audio file not found")
+    
+    # Serve the file safely
+    return send_from_directory(base_dir, f"{message_id}.wav", mimetype="audio/wav")
+
+
+
+
 @admin_bp.route("/chat/<room_id>/send_message", methods=["POST"])
 @admin_required
 def send_message(room_id):

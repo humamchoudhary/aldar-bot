@@ -667,90 +667,118 @@ messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });
      });
    }
 
-   function appendMessage(message) {
-     const messagesContainer = document.getElementById('messageArea');
+function appendMessage(message) {
+  const messagesContainer = document.getElementById('messageArea');
 
-     // Create a temporary div for processing
-     const tempDiv = document.createElement('div');
-     tempDiv.innerHTML = marked.parse(message.content);
-       console.log(message)
+  // Create a temporary div for processing
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = marked.parse(message.content);
+  console.log(message)
 
-     // Fix links in the rendered content
-     fixAllLinks(tempDiv);
-       console.log(tempDiv)
-       if(message.sender !== '{{username}}'){
+  // Fix links in the rendered content
+  fixAllLinks(tempDiv);
+  console.log(tempDiv)
+  
+  if(message.sender !== '{{username}}'){
+    const audio = new Audio("{{settings["backend_url"]}}/static/sounds/message.wav");
+    audio.play();
+  }
+  
+  const username = '{{username}}'
 
-           const audio = new Audio("{{settings["backend_url"]}}/static/sounds/message.wav");
-        audio.play();
-       }
-       const username = '{{username}}'
-
-const messageHTML = `
-  <div 
-    style="
-      position: relative;
-      width: fit-content;
-      max-width: 85%;
-      align-self:${message.sender === '{{username}}' ? 'flex-end' : 'flex-start'};
-      display: flex;
-      flex-direction: row;
-      gap: 10px;
-      align-items: flex-start;
-    "
-  >
-    ${message.sender === "bot" ? `
-      <div style="width: 40px; height: 40px; flex-shrink: 0;">
-        <!-- Bot Avatar SVG -->
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M36.8532 22.8708C38.5603 13.7173 32.3861 4.88706 23.0631 3.14835C13.7402 1.40964 4.79815 7.42077 3.09105 16.5742C1.38396 25.7276 7.55813 34.5579 16.8811 36.2966L33.3017 39.359L31.0172 32.7057C34.0749 30.2049 36.1394 26.7257 36.8532 22.8708Z" fill="white"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> </svg>
-      </div>
-    ` : ""}
-
+  const messageHTML = `
     <div 
-      class="md-content"
       style="
-        padding: 10px;
-        border-radius: 5px;
-        font-size: 12px;
-        font-weight: 400;
-        font-family: var(--goglobe-heading-font-family);
-        background-color: ${message.sender === username ? '#cfcbe0' : 'var(--goglobe-some-r-bg-color)'};
-        color: var(--goglobe-heading-color);
-        border: 0.5px solid var(--goglobe-border-color);
-        width: 85%;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
+        position: relative;
+        width: fit-content;
+        max-width: 85%;
+        align-self:${message.sender === '{{username}}' ? 'flex-end' : 'flex-start'};
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        align-items: flex-start;
       "
     >
-      ${message.type === 'audio'
-        ? `
-          <audio controls style="width: 100%;">
-            <source 
-              src="{{settings["backend_url"]}}/min/chat/{{chat.room_id}}/audio_file/${message.id}" 
-              type="audio/wav"
-            />
-            Your browser does not support the audio element.
-          </audio>
-          ${message.content 
-            ? `<div 
-                style="
-                  font-size: 12px;
-                  color: var(--goglobe-heading-color);
-                  margin-top: 4px;
-                  font-style: italic;
-                ">
-                ${message.content}
-              </div>`
-            : ''}
-        `
-        : `${tempDiv.innerHTML}`
-      }
-    </div>
-  </div>
-`;
+      ${message.sender === "bot" ? `
+        <div style="width: 40px; height: 40px; flex-shrink: 0;">
+          <!-- Bot Avatar SVG -->
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"> 
+            <!-- Your SVG content here -->
+          </svg>
+        </div>
+      ` : ""}
 
-     messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
-     scrollToBottom();
-   }
+      <div 
+        class="md-content"
+        style="
+          padding: 10px;
+          border-radius: 5px;
+          font-size: 12px;
+          font-weight: 400;
+          font-family: var(--goglobe-heading-font-family);
+          background-color: ${message.sender === username ? '#cfcbe0' : 'var(--goglobe-some-r-bg-color)'};
+          color: var(--goglobe-heading-color);
+          border: 0.5px solid var(--goglobe-border-color);
+          width: 85%;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        "
+      >
+        ${message.type === 'audio'
+          ? `
+            <audio controls style="width: 100%;" ${message.sender !== username ? 'class="auto-play-audio"' : ''}>
+              <source 
+                src="{{settings["backend_url"]}}/min/chat/{{chat.room_id}}/audio_file/${message.id}" 
+                type="audio/wav"
+              />
+              Your browser does not support the audio element.
+            </audio>
+            ${message.content 
+              ? `<div 
+                  style="
+                    font-size: 12px;
+                    color: var(--goglobe-heading-color);
+                    margin-top: 4px;
+                    font-style: italic;
+                  ">
+                  ${message.content}
+                </div>`
+              : ''}
+          `
+          : `${tempDiv.innerHTML}`
+        }
+      </div>
+    </div>
+  `;
+
+  messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
+  
+  // Auto-play the last audio message if it's from someone else
+  if (message.type === 'audio' && message.sender !== username) {
+    // Wait for the DOM to be updated, then find and play the last audio element
+    setTimeout(() => {
+      const audioElements = messagesContainer.querySelectorAll('audio.auto-play-audio');
+      if (audioElements.length > 0) {
+        const lastAudio = audioElements[audioElements.length - 1];
+        
+        // Stop any currently playing audio
+        audioElements.forEach(audio => {
+          if (audio !== lastAudio && !audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+        });
+        
+        // Play the last audio
+        lastAudio.play().catch(error => {
+          console.log('Autoplay prevented or audio error:', error);
+        });
+      }
+    }, 100);
+  }
+  
+  scrollToBottom();
+}
 
    // Function to fix all links in HTML content
    function fixAllLinks(element) {
