@@ -254,10 +254,13 @@ let audioContext = null;
 let analyser = null;
 let microphone = null;
 let javascriptNode = null;
+let silenceTimer = null;
+let silenceStartTime = null;
+const SILENCE_THRESHOLD = 2; // seconds of silence before auto-stop
+const VOLUME_THRESHOLD = 10; // minimum volume level to consider as sound
 
 // Enable/disable mic function
 function enableMic() {
-
     console.log("Enable Mic")
 
     const micButton = document.getElementById('enable-mic');
@@ -268,7 +271,7 @@ function enableMic() {
         // Start recording
         startRecording(micButton, textarea, sendBtn);
     } else {
-        // Stop recording
+        // Stop recording manually
         stopRecording(micButton, textarea, sendBtn);
     }
 }
@@ -296,6 +299,13 @@ function startRecording(micButton, textarea, sendBtn) {
 
 // Stop recording function
 function stopRecording(micButton, textarea, sendBtn) {
+    // Clear silence timer if it exists
+    if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+    }
+    silenceStartTime = null;
+    
     // Change icon back to mic
     micButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic">
@@ -315,6 +325,47 @@ function stopRecording(micButton, textarea, sendBtn) {
     
     // Stop recording and send audio
     stopAudioRecording();
+}
+
+// Auto-stop recording due to silence
+function autoStopRecording() {
+    console.log("Auto-stopping recording due to silence");
+    const micButton = document.getElementById('enable-mic');
+    const textarea = document.getElementById('fn__chat_textarea');
+    const sendBtn = document.getElementById('send-btn');
+    
+    stopRecording(micButton, textarea, sendBtn);
+}
+
+// Check for silence and manage timer
+function checkSilence(averageVolume) {
+    const currentTime = Date.now();
+    console.log(averageVolume)
+    if (averageVolume > VOLUME_THRESHOLD) {
+        // Sound detected, reset silence timer
+        if (silenceTimer) {
+            clearTimeout(silenceTimer);
+            silenceTimer = null;
+        }
+        silenceStartTime = null;
+    } else {
+        // Silence detected
+        if (!silenceStartTime) {
+            console.log("silence")
+            silenceStartTime = currentTime;
+        } else {
+            const silenceDuration = (currentTime - silenceStartTime) / 1000;
+            
+            if (silenceDuration >= SILENCE_THRESHOLD) {
+                // Silence for threshold time, stop recording
+                if (!silenceTimer) {
+                    silenceTimer = setTimeout(() => {
+                        autoStopRecording();
+                    }, 100);
+                }
+            }
+        }
+    }
 }
 
 // Create audio feedback visualization
@@ -345,6 +396,7 @@ function createAudioFeedback() {
             <div style="display: flex; align-items: center; gap: 4px;">
                 <span style="display: inline-block; width: 8px; height: 8px; background-color: #ff3b30; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
                 <span>Recording...</span>
+                <span id="silence-timer" style="font-size: 10px; color: #666; margin-left: 8px;"></span>
             </div>
             <div id="audio-visualizer" style="display: flex; align-items: center; gap: 2px; height: 20px;"></div>
         </div>
@@ -365,6 +417,21 @@ function createAudioFeedback() {
     document.head.appendChild(style);
 }
 
+// Update silence timer display
+function updateSilenceTimerDisplay() {
+    const silenceTimerElement = document.getElementById('silence-timer');
+    if (silenceTimerElement && silenceStartTime) {
+        const silenceDuration = (Date.now() - silenceStartTime) / 1000;
+        if (silenceDuration > 0.5) { // Only show after 0.5 seconds of silence
+ //           silenceTimerElement.textContent = `Silence: ${silenceDuration.toFixed(1)}s`;
+        } else {
+            silenceTimerElement.textContent = '';
+        }
+    } else if (silenceTimerElement) {
+        silenceTimerElement.textContent = '';
+    }
+}
+
 // Remove audio feedback
 function removeAudioFeedback() {
     const audioFeedback = document.getElementById('audio-feedback');
@@ -376,6 +443,7 @@ function removeAudioFeedback() {
 // Start audio recording with visualization
 function startAudioRecording() {
     audioChunks = [];
+    silenceStartTime = null;
     
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
@@ -456,6 +524,10 @@ function setupAudioVisualization() {
             sum += dataArray[i];
         }
         const average = sum / bufferLength;
+        console.log(average)
+        // Check for silence and update timer
+        checkSilence(average);
+        updateSilenceTimerDisplay();
         
         // Update visualization bars
         const bars = visualizer.children;
@@ -477,8 +549,6 @@ function stopAudioRecording() {
 
 // Send audio to server
 function sendAudioToServer() {
-
-
     if (audioChunks.length === 0) {
         console.error('No audio data to send');
         return;
@@ -511,6 +581,13 @@ function resetUI() {
     const textarea = document.getElementById('fn__chat_textarea');
     const sendBtn = document.getElementById('send-btn');
     
+    // Clear silence timer
+    if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+    }
+    silenceStartTime = null;
+    
     // Reset mic button
     micButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic">
@@ -533,10 +610,6 @@ function resetUI() {
     
     isRecording = false;
 }
-
-
-
-
    function scrollToBottom(){
 
     const messageArea = document.getElementById('messageArea');

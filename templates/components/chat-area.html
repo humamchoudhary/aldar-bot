@@ -368,7 +368,7 @@ function setupAudioVisualization() {
         // Update visualization bars
         const bars = visualizer.children;
         for (let i = 0; i < bars.length; i++) {
-            const height = Math.max(Math.min(20, (average / 128) * 20 * (1 + Math.sin(i) * 0.3)), 4);
+            const height = Math.max(Math.min(20, (average / 128) * 20 * (1 + Math.sin(i) * 0.3))*5,4);
             bars[i].style.height = `${height}px`;
         }
     };
