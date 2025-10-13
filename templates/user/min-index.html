@@ -558,7 +558,7 @@ function sendAudioToServer() {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
     
-    fetch('{{settings["backend_url"]}}/min/chat/{{chat.chat_id}}/send_audio', {
+    fetch('{{settings["backend_url"]}}/min/chat/{{chat.room_id}}/send_audio', {
         method: 'POST',
         body: formData,
         credentials: 'include'

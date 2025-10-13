@@ -449,7 +449,7 @@ def receive_audio_blob(chat_id):
     admin = AdminService(current_app.db).get_admin_by_id(
         session.get('admin_id'))
 
-    chat = chat_service.get_chat_by_room_id(f'{user.user_id}-{chat_id[:8]}')
+    chat = chat_service.get_chat_by_room_id(chat_id)
     print(chat)
     if not chat:
         if request.headers.get('HX-Request'):
