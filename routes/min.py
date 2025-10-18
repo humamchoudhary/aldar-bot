@@ -542,6 +542,7 @@ def send_message(chat_id):
         session.get('admin_id'))
 
     chat = chat_service.get_chat_by_room_id(f'{user.user_id}-{chat_id[:8]}')
+    print(chat)
     if not chat:
         if request.headers.get('HX-Request'):
             return "Chat not found", 404
