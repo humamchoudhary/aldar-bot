@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Recorder - Live Playback & Auto Save</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      .container {
+        text-align: center;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin: 10px;
+        cursor: pointer;
+      }
+      #startBtn {
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+      }
+      #stopBtn {
+        background: #f44336;
+        color: white;
+        border: none;
+        border-radius: 5px;
+      }
+      #saveBtn {
+        background: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 5px;
+      }
+      button:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+      }
+      .status {
+        margin: 20px 0;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+      .recording {
+        background: #ffebee;
+        color: #c62828;
+        border: 2px solid #c62828;
+      }
+      .idle {
+        background: #e8f5e8;
+        color: #2e7d32;
+        border: 2px solid #2e7d32;
+      }
+      .silent {
+        background: #fff3e0;
+        color: #ef6c00;
+        border: 2px solid #ef6c00;
+      }
+      .playing {
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 2px solid #1565c0;
+      }
+      #log {
+        text-align: left;
+        background: #f5f5f5;
+        padding: 10px;
+        border-radius: 5px;
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 20px;
+      }
+      .controls {
+        margin: 15px 0;
+      }
+      label {
+        display: block;
+        margin: 10px 0;
+      }
+      input[type="range"] {
+        width: 200px;
+      }
+      .volume-meter {
+        width: 100%;
+        height: 20px;
+        background: #ddd;
+        border-radius: 10px;
+        margin: 10px 0;
+        overflow: hidden;
+      }
+      .volume-level {
+        height: 100%;
+        background: #4caf50;
+        width: 0%;
+        transition: width 0.1s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎤 Audio Recorder - Live Playback & Auto Save</h1>
+
+      <div class="controls">
+        <button id="startBtn">🎤 Start Recording</button>
+        <button id="stopBtn" disabled>⏹️ Stop Recording</button>
+        <button id="saveBtn" disabled>💾 Save Recording</button>
+      </div>
+
+      <div class="controls">
+        <label>
+          🔇 Silence Threshold:
+          <input
+            type="range"
+            id="threshold"
+            min="0.001"
+            max="0.05"
+            step="0.001"
+            value="0.01"
+          />
+          <span id="thresholdValue">0.01</span>
+        </label>
+        <label>
+          ⏱️ Silence Timeout:
+          <input
+            type="range"
+            id="timeout"
+            min="1000"
+            max="5000"
+            step="100"
+            value="2000"
+          />
+          <span id="timeoutValue">2000 ms</span>
+        </label>
+      </div>
+
+      <div class="volume-meter">
+        <div class="volume-level" id="volumeLevel"></div>
+      </div>
+
+      <div id="status" class="status idle">Status: Ready to record</div>
+
+      <div id="log"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+      const socket = io();
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const saveBtn = document.getElementById("saveBtn");
+      const statusDiv = document.getElementById("status");
+      const logDiv = document.getElementById("log");
+      const thresholdSlider = document.getElementById("threshold");
+      const thresholdValue = document.getElementById("thresholdValue");
+      const timeoutSlider = document.getElementById("timeout");
+      const timeoutValue = document.getElementById("timeoutValue");
+      const volumeLevel = document.getElementById("volumeLevel");
+
+      let mediaRecorder;
+      let audioStream;
+      let isRecording = false;
+      let audioContext;
+      let analyser;
+      let dataArray;
+      let silenceCheckInterval;
+
+      let SILENCE_THRESHOLD = parseFloat(thresholdSlider.value);
+      let SILENCE_TIMEOUT = parseInt(timeoutSlider.value);
+      let lastSoundTime = 0;
+      let silenceTimer = null;
+
+      thresholdSlider.addEventListener("input", () => {
+        SILENCE_THRESHOLD = parseFloat(thresholdSlider.value);
+        thresholdValue.textContent = thresholdSlider.value;
+      });
+
+      timeoutSlider.addEventListener("input", () => {
+        SILENCE_TIMEOUT = parseInt(timeoutSlider.value);
+        timeoutValue.textContent = timeoutSlider.value + " ms";
+      });
+
+      function log(message) {
+        console.log(message);
+        const timestamp = new Date().toLocaleTimeString();
+        logDiv.innerHTML += `<p><strong>[${timestamp}]</strong> ${message}</p>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function updateStatus(message, state) {
+        statusDiv.textContent = `Status: ${message}`;
+        statusDiv.className = `status ${state}`;
+      }
+
+      function setupSilenceDetection() {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(audioStream);
+        source.connect(analyser);
+
+        analyser.fftSize = 2048;
+        dataArray = new Float32Array(analyser.fftSize);
+
+        lastSoundTime = Date.now();
+        silenceCheckInterval = setInterval(checkForSilence, 100);
+      }
+
+      function checkForSilence() {
+        if (!analyser) return;
+
+        analyser.getFloatTimeDomainData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i] * dataArray[i];
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+
+        // Update volume meter
+        const volumePercent = Math.min(100, (rms / 0.05) * 100);
+        volumeLevel.style.width = volumePercent + "%";
+
+        if (rms > SILENCE_THRESHOLD) {
+          lastSoundTime = Date.now();
+          updateStatus("Recording...", "recording");
+
+          if (silenceTimer) {
+            clearTimeout(silenceTimer);
+            silenceTimer = null;
+          }
+        } else {
+          const silenceDuration = Date.now() - lastSoundTime;
+
+          if (silenceDuration >= SILENCE_TIMEOUT && !silenceTimer) {
+            updateStatus("Silence detected - saving...", "silent");
+            log(`Silence detected for ${silenceDuration}ms - saving recording`);
+
+            silenceTimer = setTimeout(() => {
+              socket.emit("silence_detected");
+              updateStatus("Recording saved automatically", "idle");
+            }, 500);
+          }
+        }
+      }
+
+      startBtn.addEventListener("click", async () => {
+        try {
+          log("Requesting microphone access...");
+          audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              channelCount: 1,
+              sampleRate: 44100,
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: false,
+            },
+          });
+
+          log("Microphone access granted");
+
+          const options = {
+            mimeType: "audio/webm;codecs=opus",
+          };
+
+          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options.mimeType = "audio/webm";
+            log("Opus codec not supported, falling back to default WebM");
+          }
+
+          mediaRecorder = new MediaRecorder(audioStream, options);
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              socket.emit("audio_chunk", event.data);
+            }
+          };
+
+          mediaRecorder.start(100);
+          isRecording = true;
+
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+          saveBtn.disabled = false;
+          updateStatus("Recording...", "recording");
+          log("Recording started");
+
+          setupSilenceDetection();
+        } catch (error) {
+          log(`Error starting recording: ${error.message}`);
+          alert("Could not access microphone. Please check permissions.");
+        }
+      });
+
+      stopBtn.addEventListener("click", () => {
+        if (mediaRecorder && isRecording) {
+          mediaRecorder.stop();
+          isRecording = false;
+
+          if (audioStream) {
+            audioStream.getTracks().forEach((track) => track.stop());
+          }
+
+          if (silenceCheckInterval) {
+            clearInterval(silenceCheckInterval);
+          }
+          if (silenceTimer) {
+            clearTimeout(silenceTimer);
+          }
+
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          saveBtn.disabled = true;
+          updateStatus("Recording stopped", "idle");
+          volumeLevel.style.width = "0%";
+          log("Recording stopped");
+        }
+      });
+
+      saveBtn.addEventListener("click", () => {
+        socket.emit("save_recording");
+        updateStatus("Saving recording...", "playing");
+        log("Manual save requested");
+      });
+
+      socket.on("connect", () => {
+        log("Connected to server");
+      });
+
+      socket.on("recording_saved", (data) => {
+        log(
+          `✅ Recording saved: ${data.filename} (${data.save_type}, ${data.file_size} bytes)`,
+        );
+        updateStatus("Recording saved & playing back", "playing");
+      });
+
+      socket.on("disconnect", () => {
+        log("Disconnected from server");
+      });
+
+      window.addEventListener("beforeunload", () => {
+        if (isRecording) {
+          mediaRecorder.stop();
+        }
+        if (audioStream) {
+          audioStream.getTracks().forEach((track) => track.stop());
+        }
+      });
+    </script>
+  </body>
+</html>

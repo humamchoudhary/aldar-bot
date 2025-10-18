@@ -9,11 +9,13 @@ from pymongo import MongoClient
 import bcrypt
 import os
 from config import Config
-from routes import chat_bp, admin_bp, auth_bp, min_bp,api_bp
+from routes import chat_bp, admin_bp, auth_bp, min_bp,api_bp,call_bp
 from routes.admin import register_admin_socketio_events
+from routes.call import register_call_socketio_events
 import routes.auth
 import routes.min
 import routes.api
+import routes.call
 from routes.min import register_min_socketio_events
 import glob
 from models.bot import Bot
@@ -97,7 +99,7 @@ def create_app(config_class=Config):
 
     app.jinja_env.tests['mobile'] = is_mobile
 
-    app.jinja_env.globals['bots'] = Bot.get_bots
+    # app.jinja_env.globals['bots'] = Bot.get_bots
 
     # app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Or 'None' if using HTTPS
     # # Must be True if using 'None' for SameSite
@@ -616,10 +618,12 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp)
     app.register_blueprint(min_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(call_bp)
 
     # Register Socket.IO event handlers
     register_min_socketio_events(socketio)
     register_admin_socketio_events(socketio)
+    register_call_socketio_events(socketio)
 
     # Create admin user if it doesn't exist
     if not app.config.get('ADMIN_PASSWORD'):
@@ -695,8 +699,8 @@ app, socketio = create_app()
 if __name__ == '__main__':
     socketio.run(app, port=Config.PORT, host='0.0.0.0',
                  debug=True,
-                 ssl_context='adhoc'
+                 # ssl_context='adhoc'
 
-                 # ssl_context=('cert.pem', 'key.pem')
+                 ssl_context=('cert.pem', 'key.pem')
 
                  )

@@ -475,7 +475,7 @@ def receive_audio_blob(chat_id):
     }, room=chat.room_id)
     
     if (not chat.admin_required):
-        msg, usage = current_app.bot.responed(
+        msg, usage = current_app.bot.respond(
             f"Subject of chat: {chat.subject}\n {resp}", chat.room_id)
         print(msg)
         audio = current_app.bot.generate_audio(msg)
@@ -563,14 +563,14 @@ def send_message(chat_id):
 
     # print('hello')
     print(len(chat.messages))
-    if "job" not in chat.subject.lower() and len(chat.messages) <= 2:
-        print("SEND MAIL")
-
-        mail = Mail(current_app)
-        status = send_email(admin.email, f'New Message: {
-            chat.subject}', "Message", mail, render_template('/email/new_message.html', user=user, chat=chat))
-
-        print(status)
+    # if "job" not in chat.subject.lower() and len(chat.messages) <= 2:
+    #     print("SEND MAIL")
+    #
+    #     mail = Mail(current_app)
+    #     status = send_email(admin.email, f'New Message: {
+    #         chat.subject}', "Message", mail, render_template('/email/new_message.html', user=user, chat=chat))
+    #
+    #     print(status)
     admin_service = AdminService(current_app.db)
     noti_res = send_push_noti(admin_service.get_expo_tokens(
         session.get("admin_id")), "New Message", f'{user.name}: {message}', chat.room_id)
@@ -579,7 +579,7 @@ def send_message(chat_id):
         print(f"Notificaiton Error: {noti_res.__dict__}")
 
     if (not chat.admin_required):
-        msg, usage = current_app.bot.responed(
+        msg, usage = current_app.bot.respond(
             f"Subject of chat: {chat.subject}\n {message}", chat.room_id)
         admin_service = AdminService(current_app.db).update_tokens(
             admin.admin_id, usage['cost'])

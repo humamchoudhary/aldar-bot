@@ -1,12 +1,12 @@
 import os
 import pickle
+import requests
 from io import BytesIO
 from dotenv import load_dotenv
 from PIL import Image
 from google import genai
 from google.genai import types
 import json
-import wave
 
 
 load_dotenv()
@@ -15,98 +15,221 @@ load_dotenv()
 class Bot:
     def __init__(self, name, app):
         self.gm_key = app.config['SETTINGS']['apiKeys']['gemini']
-        self.active_bot = None
-        self.active_bot_name = app.config['SETTINGS'].get('model', 'gemini_2.0_flash')
         self.base_prompt = app.config["SETTINGS"]["prompt"]
 
-        # Gemini model configurations
-        self.google_models = {
-
-            "gemini-2.5-flash": {
-                "supports_images": True,
-                "max_tokens": 8192,
-                "temperature": 0.7,
-                "pricing": {"input": 0.10, "output": 0.40}
-            },
-            "gemini-2.0-flash": {
-                "supports_images": True,
-                "max_tokens": 8192,
-                "temperature": 0.7,
-                "pricing": {"input": 0.10, "output": 0.40}
-            },
-        }
-
-        self._set_bot(self.active_bot_name)
-
-    @classmethod
-    def get_bots(cls):
-        return [
-            ('Gemini 2.5 Flash', "gemini_2.0_flash"),
-            ('Gemini 2.0 Flash', "gemini_2.0_flash"),
-        ]
-    def transcribe(self,audio_bytes):
-
         print(os.getenv('GEMINI_KEY'))
-        client =  genai.Client(api_key=os.getenv('GEMINI_KEY'))
-
-        response = client.models.generate_content(
-          model='gemini-2.5-flash',
-          contents=[
-            'Transcribe this audio clip, only text no sounds ',
-            types.Part.from_bytes(
-              data=audio_bytes,
-              mime_type='audio/mp3',
+        self.client = genai.Client(api_key=os.getenv('GEMINI_KEY'))
+        
+        # Hardcoded model assignments
+        self.transcription_model = "gemini-2.5-flash-lite"
+        self.audio_generation_model = "gemini-2.5-flash-preview-tts"
+        self.text_model = "gemini-2.5-flash"
+        
+        # Aldar Exchange API base URL
+        self.aldar_base_url = "https://aldarexchangeuat.net/ONLINEApp"
+        
+        # Define Aldar Exchange tools
+        self.tools = [
+            types.Tool(
+                function_declarations=[
+                    types.FunctionDeclaration(
+                        name="get_exchange_rate",
+                        description="Get the current exchange rate for a specific rate type. Use type=1 for standard rates.",
+                        parameters={
+                            "type": "object",
+                            "properties": {
+                                "rate_type": {
+                                    "type": "integer",
+                                    "description": "The rate type code (e.g., 1 for standard rate)"
+                                }
+                            },
+                            "required": ["rate_type"]
+                        }
+                    ),
+                    types.FunctionDeclaration(
+                        name="get_branch_details",
+                        description="Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
+                        parameters={
+                            "type": "object",
+                            "properties": {}
+                        }
+                    ),
+                    types.FunctionDeclaration(
+                        name="calculate_exchange",
+                        description="Calculate currency conversion between QAR and foreign currency. Specify either local currency amount (QAR) or foreign currency amount, not both.",
+                        parameters={
+                            "type": "object",
+                            "properties": {
+                                "transaction_type": {
+                                    "type": "string",
+                                    "description": "Transaction type: 'tt' for transfer, 'BUY' for buying currency, 'SELL' for selling currency",
+                                    "enum": ["tt", "BUY", "SELL"]
+                                },
+                                "currency_code": {
+                                    "type": "string",
+                                    "description": "3-letter ISO currency code (e.g., USD, EUR, GBP)"
+                                },
+                                "local_amount": {
+                                    "type": "number",
+                                    "description": "Amount in local currency (QAR). Use 0 if specifying foreign amount."
+                                },
+                                "foreign_amount": {
+                                    "type": "number",
+                                    "description": "Amount in foreign currency. Use 0 if specifying local amount."
+                                }
+                            },
+                            "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
+                        }
+                    )
+                ]
             )
-          ]
+        ]
+
+    def _call_aldar_api(self, function_name, parameters):
+        """Execute actual API calls to Aldar Exchange"""
+        try:
+            if function_name == "get_exchange_rate":
+                rate_type = parameters.get("rate_type", 1)
+                url = f"{self.aldar_base_url}/api/User/GetRate"
+                response = requests.get(url, params={"type": rate_type})
+                response.raise_for_status()
+                return response.json()
+            
+            elif function_name == "get_branch_details":
+                url = f"{self.aldar_base_url}/api/User/GetBranchesDetails"
+                response = requests.get(url)
+                response.raise_for_status()
+                return response.json()
+            
+            elif function_name == "calculate_exchange":
+                url = f"{self.aldar_base_url}/api/User/GetRate"
+                params = {
+                    "type": parameters.get("transaction_type"),
+                    "curcode": parameters.get("currency_code"),
+                    "lcyamount": parameters.get("local_amount", 0),
+                    "fcyamount": parameters.get("foreign_amount", 0)
+                }
+                response = requests.get(url, params=params)
+                response.raise_for_status()
+                return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            return {"error": f"API call failed: {str(e)}"}
+
+    def transcribe(self, audio_bytes):
+        """Transcribe audio to text"""
+        response = self.client.models.generate_content(
+            model=self.transcription_model,
+            contents=[
+                'Transcribe this audio clip accurately',
+                types.Part.from_bytes(
+                    data=audio_bytes,
+                    mime_type='audio/mp3',
+                )
+            ]
         )
         return response.text
 
-    def generate_audio(self,message):
-        client =  genai.Client(api_key=os.getenv('GEMINI_KEY'))
-        print(os.getenv('GEMINI_KEY'))
-
-        response = client.models.generate_content(
-           model="gemini-2.5-flash-preview-tts",
-           contents=f"Say: {message}",
-           config=types.GenerateContentConfig(
-              response_modalities=["AUDIO"],
-              speech_config=types.SpeechConfig(
-                 voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                       voice_name='Achird',
+    def generate_audio(self, message):
+        """Generate audio from text"""
+        response = self.client.models.generate_content(
+            model=self.audio_generation_model,
+            contents=f"Say: {message}",
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name='Achird',
+                        )
                     )
-                 )
-              ),
-           )
+                ),
+            )
         )
 
         data = response.candidates[0].content.parts[0].inline_data.data
         return data
 
-    def responed(self, input, id,type="text"):
-        # if type == "audio":
-        #     input = self._transcribe(input)
-        print(input)
+    def audio_to_text(self, audio_bytes):
+        """Take audio and return text response"""
+        # Transcribe audio to text
+        transcribed_text = self.transcribe(audio_bytes)
+        
+        # Generate response using text model
+        response = self.client.models.generate_content(
+            model=self.text_model,
+            contents=transcribed_text,
+            config=types.GenerateContentConfig(
+                tools=self.tools
+            )
+        )
+        
+        return response.text
+
+    def audio_to_audio(self, audio_bytes):
+        """Take audio and return both text and audio response"""
+        # Transcribe audio to text
+        transcribed_text = self.transcribe(audio_bytes)
+        
+        # Generate response using text model
+        response = self.client.models.generate_content(
+            model=self.text_model,
+            contents=transcribed_text,
+            config=types.GenerateContentConfig(
+                tools=self.tools
+            )
+        )
+        
+        response_text = response.text
+        
+        # Generate audio from response text
+        response_audio = self.generate_audio(response_text)
+        
+        return response_text, response_audio
+
+    def respond(self, input, id, type="text"):
+        """Main response method - handles text, audio input with function calling"""
+        if type == "audio":
+            # If input is audio, transcribe it first
+            input = self.transcribe(input)
+        
+        print(f"User input: {input}")
         chat_state = self._load_chat(id)
-        response = chat_state["client"].chats.create(
-            **chat_state["config"]
-        ).send_message(input)
+        
+        # Send initial message with tools enabled
+        response = chat_state["chat"].send_message(input)
+        
+        # Handle function calls
+        while response.candidates[0].content.parts:
+            part = response.candidates[0].content.parts[0]
+            
+            # Check if there's a function call
+            if hasattr(part, 'function_call') and part.function_call:
+                function_call = part.function_call
+                function_name = function_call.name
+                function_args = dict(function_call.args)
+                
+                print(f"Function called: {function_name}")
+                print(f"Arguments: {function_args}")
+                
+                # Execute the function
+                function_response = self._call_aldar_api(function_name, function_args)
+                print(f"Function response: {function_response}")
+                
+                # Send function response back to model
+                response = chat_state["chat"].send_message(
+                    types.Part.from_function_response(
+                        name=function_name,
+                        response=function_response
+                    )
+                )
+            else:
+                # No more function calls, break the loop
+                break
 
         tokens = self._count_tokens(response)
         self._save_chat(chat_state, id)
         return response.text, tokens
-
-    def _get_google_model_name(self, bot_key):
-        """Convert bot key back to actual model name"""
-        return bot_key.replace("_", "-")
-
-    def _set_bot(self, name):
-        actual_model = self._get_google_model_name(name)
-        if actual_model not in self.google_models:
-            raise ValueError(f"Unsupported model: {name}")
-        
-        self.active_bot = genai.Client(api_key=self.gm_key)
-        self.active_bot_name = name
 
     def create_chat(self, id, admin=None):
         """Create a new chat session with optional admin-specific settings"""
@@ -119,20 +242,14 @@ class Bot:
 
         # Initialize system prompt with language restrictions if specified
         languages = admin_settings.get('languages', ['English']) if admin_settings else ['English']
-        self.sys_prompt = f"{prompt}\n\n"
-        # Only respond to user if the language is in the following, and respond in the user's language: {', '.join(languages)}"
+        self.sys_prompt = f"{prompt}\n\nYou have access to Aldar Exchange APIs to help users with currency exchange rates, branch information, and conversion calculations. Use these tools when users ask about exchange rates, currency conversion, or branch locations."
 
         chat_state = self._init_google_chat(text_content, images)
-        chat_state["model_name"] = self.active_bot_name
-        chat_state["model_config"] = self._get_model_config()
 
         # Save chat state
         os.makedirs('./bin/chat/', exist_ok=True)
         with open(f'bin/chat/{id}.chatpl', 'wb') as file:
             pickle.dump(chat_state, file)
-
-    def _get_model_config(self):
-        return self._get_google_model_name(self.active_bot_name)
 
     def _process_files(self, admin_id):
         text_content = []
@@ -189,30 +306,44 @@ class Bot:
         return "\n".join(text_content), images
 
     def _init_google_chat(self, text_content, images):
-        actual_model = self._get_google_model_name(self.active_bot_name)
-        model_config = self.google_models[actual_model]
-
+        """Initialize Google chat session with function calling"""
         history = []
 
-        # Only add images if the model supports them
-        if model_config["supports_images"] and images:
+        # Add images to history if any
+        if images:
             for img in images:
                 buffered = BytesIO()
                 img.save(buffered, format="JPEG")
-                history.append(types.UserContent(
-                    types.Part.from_bytes(
-                        data=buffered.getvalue(), mime_type='image/jpeg')
+                history.append(types.Content(
+                    role="user",
+                    parts=[types.Part.from_bytes(
+                        data=buffered.getvalue(), mime_type='image/jpeg')]
                 ))
         
         print(self.sys_prompt)
+        
+        # Create chat with tools enabled
+        chat = self.client.chats.create(
+            model=self.text_model,
+            config=types.GenerateContentConfig(
+                system_instruction=f"{self.sys_prompt}\n{text_content}",
+                max_output_tokens=8192,
+                temperature=0.7,
+                tools=self.tools
+            ),
+            history=history
+        )
+        
         return {
-            "client": self.active_bot,
+            "client": self.client,
+            "chat": chat,
             "config": {
-                "model": actual_model,
+                "model": self.text_model,
                 "config": types.GenerateContentConfig(
                     system_instruction=f"{self.sys_prompt}\n{text_content}",
-                    max_output_tokens=model_config["max_tokens"],
-                    temperature=model_config["temperature"]
+                    max_output_tokens=8192,
+                    temperature=0.7,
+                    tools=self.tools
                 ),
                 "history": history
             }
@@ -222,25 +353,18 @@ class Bot:
         try:
             with open(f"bin/chat/{id}.chatpl", 'rb') as file:
                 chat_state = pickle.load(file)
-                # Set the active bot based on stored model
-                if "model_name" in chat_state:
-                    self._set_bot(chat_state["model_name"])
-                else:
-                    self._set_bot('gemini_2.0_flash')
                 return chat_state
         except FileNotFoundError:
             raise ValueError(f"No chat session found for id {id}")
 
     def _save_chat(self, chat_state, id):
-        # Ensure current model info is saved
-        chat_state["model_name"] = self.active_bot_name
-        chat_state["model_config"] = self._get_model_config()
         with open(f"bin/chat/{id}.chatpl", 'wb') as file:
             pickle.dump(chat_state, file)
 
     def _count_tokens(self, response):
-        actual_model = self._get_google_model_name(self.active_bot_name)
-        costs = self.google_models[actual_model]["pricing"]
+        """Calculate token usage and costs"""
+        # Default pricing
+        costs = {"input": 0.10, "output": 0.40}
         usage = response.usage_metadata.dict()
         
         input_tokens = usage['prompt_token_count']
@@ -253,7 +377,7 @@ class Bot:
             "input": input_tokens,
             "output": output_tokens,
             "cost": (input_cost + output_cost) * 100,
-            "bot": self.active_bot_name
+            "bot": self.text_model
         }
 
 
@@ -264,22 +388,31 @@ if __name__ == "__main__":
         'apiKeys': {
             'gemini': os.getenv('GEMINI_KEY')
         },
-        'prompt': "You are a helpful AI assistant.",
-        'model': 'gemini_2.0_flash'
+        'prompt': "You are a helpful AI assistant specialized in helping users with currency exchange information.",
+        'model': 'gemini-2.5-flash'
     }
 
     bot = Bot('test', app)
 
-    with open('sample.wav', 'rb') as f:
-        audio_bytes = f.read()
-    # print(bot._transcribe(audio_bytes).text)
-
-    # Test bot
-    for bot_name, bot_code in bot.get_bots():
-        print(f"\nTesting {bot_name}...")
-        bot._set_bot(bot_code)
-        chat_id = f"test_{bot_code}"
-        bot.create_chat(chat_id)
-        response, tokens = bot.responed(audio_bytes, chat_id,type="audio")
-        print(f"Response: {response[:100]}...")
-        print(f"Tokens used: {tokens}")
+    # Test the function calling
+    print("\nTesting function calling with chat...")
+    chat_id = "test_chat_tools"
+    bot.create_chat(chat_id)
+    
+    # Test 1: Get branch details
+    print("\n=== Test 1: Get branch details ===")
+    response, tokens = bot.respond("Show me all Aldar Exchange branches", chat_id, type="text")
+    print(f"Response: {response}")
+    print(f"Tokens used: {tokens}")
+    
+    # Test 2: Calculate exchange
+    print("\n=== Test 2: Calculate exchange ===")
+    response, tokens = bot.respond("How much QAR would I need to buy 1000 USD?", chat_id, type="text")
+    print(f"Response: {response}")
+    print(f"Tokens used: {tokens}")
+    
+    # Test 3: Get exchange rate
+    print("\n=== Test 3: Get exchange rate ===")
+    response, tokens = bot.respond("What's the current exchange rate?", chat_id, type="text")
+    print(f"Response: {response}")
+    print(f"Tokens used: {tokens}")
