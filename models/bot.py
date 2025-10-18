@@ -99,7 +99,9 @@ class Bot:
                 url = f"{self.aldar_base_url}/api/User/GetBranchesDetails"
                 response = requests.get(url)
                 response.raise_for_status()
-                return response.json()
+                branches = response.json()
+                # Wrap list in dictionary as Gemini expects dict response
+                return {"branches": branches, "total_count": len(branches)}
             
             elif function_name == "calculate_exchange":
                 url = f"{self.aldar_base_url}/api/User/GetRate"
