@@ -274,4 +274,4 @@ node_modules/*
 credentials.json
 
 .todo
-
+*.wav

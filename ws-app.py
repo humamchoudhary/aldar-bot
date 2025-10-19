@@ -99,6 +99,9 @@ class GeminiTwilioBridge:
             "thinking_config": {"thinking_budget": 0},
             "output_audio_transcription": {},
             "input_audio_transcription": {},
+             "speech_config": {
+                    "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
+                },
             "systemInstruction":self.system_instruction,
 
             "tools":[{"function_declarations":[
@@ -387,4 +390,4 @@ async def media_stream():
     print("🏁 Gemini session ended")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5049)
+    app.run(host="0.0.0.0", port=5001)

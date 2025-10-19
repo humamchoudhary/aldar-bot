@@ -766,7 +766,8 @@
             
             setTimeout(() => {
                 // Set container height for call interface
-                chatContainer.style.height = '500px';
+                chatContainer.style.height = '650px';
+                chatContainer.style.maxHeight='80vh';
                 
                 // Load call interface into chatbox
                 const chatbox = document.getElementById('chatbox');
