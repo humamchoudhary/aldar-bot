@@ -16,8 +16,7 @@ class Bot:
     def __init__(self, name, app):
         self.gm_key = app.config['SETTINGS']['apiKeys']['gemini']
         self.base_prompt = app.config["SETTINGS"]["prompt"]
-
-        print(os.getenv('GEMINI_KEY'))
+        
         self.client = genai.Client(api_key=os.getenv('GEMINI_KEY'))
         
         # Hardcoded model assignments
@@ -100,7 +99,6 @@ class Bot:
                 response = requests.get(url)
                 response.raise_for_status()
                 branches = response.json()
-                # Wrap list in dictionary as Gemini expects dict response
                 return {"branches": branches, "total_count": len(branches)}
             
             elif function_name == "calculate_exchange":
@@ -154,10 +152,8 @@ class Bot:
 
     def audio_to_text(self, audio_bytes):
         """Take audio and return text response"""
-        # Transcribe audio to text
         transcribed_text = self.transcribe(audio_bytes)
         
-        # Generate response using text model
         response = self.client.models.generate_content(
             model=self.text_model,
             contents=transcribed_text,
@@ -170,10 +166,8 @@ class Bot:
 
     def audio_to_audio(self, audio_bytes):
         """Take audio and return both text and audio response"""
-        # Transcribe audio to text
         transcribed_text = self.transcribe(audio_bytes)
         
-        # Generate response using text model
         response = self.client.models.generate_content(
             model=self.text_model,
             contents=transcribed_text,
@@ -183,8 +177,6 @@ class Bot:
         )
         
         response_text = response.text
-        
-        # Generate audio from response text
         response_audio = self.generate_audio(response_text)
         
         return response_text, response_audio
@@ -192,20 +184,32 @@ class Bot:
     def respond(self, input, id, type="text"):
         """Main response method - handles text, audio input with function calling"""
         if type == "audio":
-            # If input is audio, transcribe it first
             input = self.transcribe(input)
         
         print(f"User input: {input}")
-        chat_state = self._load_chat(id)
+        
+        # Load chat history and system instruction
+        history, system_instruction = self._load_chat(id)
+        
+        # Recreate chat with loaded history
+        chat = self.client.chats.create(
+            model=self.text_model,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                max_output_tokens=8192,
+                temperature=0.7,
+                tools=self.tools
+            ),
+            history=history
+        )
         
         # Send initial message with tools enabled
-        response = chat_state["chat"].send_message(input)
+        response = chat.send_message(input)
         
         # Handle function calls
         while response.candidates[0].content.parts:
             part = response.candidates[0].content.parts[0]
             
-            # Check if there's a function call
             if hasattr(part, 'function_call') and part.function_call:
                 function_call = part.function_call
                 function_name = function_call.name
@@ -214,23 +218,33 @@ class Bot:
                 print(f"Function called: {function_name}")
                 print(f"Arguments: {function_args}")
                 
-                # Execute the function
                 function_response = self._call_aldar_api(function_name, function_args)
                 print(f"Function response: {function_response}")
                 
-                # Send function response back to model
-                response = chat_state["chat"].send_message(
+                response = chat.send_message(
                     types.Part.from_function_response(
                         name=function_name,
                         response=function_response
                     )
                 )
             else:
-                # No more function calls, break the loop
                 break
 
         tokens = self._count_tokens(response)
-        self._save_chat(chat_state, id)
+        
+        # Manually append user message and assistant response to history
+        history.append(types.Content(
+            role="user",
+            parts=[types.Part(text=input)]
+        ))
+        history.append(types.Content(
+            role="model",
+            parts=[types.Part(text=response.text)]
+        ))
+        
+        # Save updated history
+        self._save_chat(history, system_instruction, id)
+        
         return response.text, tokens
 
     def create_chat(self, id, admin=None):
@@ -239,21 +253,30 @@ class Bot:
         admin_settings = admin.settings if admin else {}
         text_content, images = self._process_files(admin.admin_id if admin else None)
 
-        # Use admin-specific prompt if available, otherwise use base prompt
+        # Use admin-specific prompt if available
         prompt = admin_settings.get('prompt', self.base_prompt) if admin_settings else self.base_prompt
 
-        # Initialize system prompt with language restrictions if specified
-        languages = admin_settings.get('languages', ['English']) if admin_settings else ['English']
-        self.sys_prompt = f"{prompt}\n\nYou have access to Aldar Exchange APIs to help users with currency exchange rates, branch information, and conversion calculations. Use these tools when users ask about exchange rates, currency conversion, or branch locations."
+        # Initialize system instruction
+        system_instruction = f"{prompt}\n\nYou have access to Aldar Exchange APIs to help users with currency exchange rates, branch information, and conversion calculations. Use these tools when users ask about exchange rates, currency conversion, or branch locations.\n{text_content}"
 
-        chat_state = self._init_google_chat(text_content, images)
-        print(chat_state)
-        # Save chat state
+        # Initialize history with images if any
+        history = []
+        if images:
+            for img in images:
+                buffered = BytesIO()
+                img.save(buffered, format="JPEG")
+                history.append(types.Content(
+                    role="user",
+                    parts=[types.Part.from_bytes(
+                        data=buffered.getvalue(), mime_type='image/jpeg')]
+                ))
+        
+        # Save minimal chat state
         os.makedirs('./bin/chat/', exist_ok=True)
-        with open(f'bin/chat/{id}.chatpl', 'wb') as file:
-            pickle.dump(chat_state, file)
+        self._save_chat(history, system_instruction, id)
 
     def _process_files(self, admin_id):
+        """Process files from admin directory"""
         text_content = []
         images = []
         
@@ -262,31 +285,28 @@ class Bot:
             
         base_path = os.path.join(os.getcwd(), 'user_data', str(admin_id))
 
-        # Check if files directory exists
+        # Process image and text files
         files_dir = os.path.join(base_path, "files")
-        if not os.path.exists(files_dir):
-            return "", []
+        if os.path.exists(files_dir):
+            for file_name in os.listdir(files_dir):
+                file_path = os.path.join(files_dir, file_name)
+                file_ext = os.path.splitext(file_name)[1].lower()
 
-        # Process files in files directory
-        for file_name in os.listdir(files_dir):
-            file_path = os.path.join(files_dir, file_name)
-            file_ext = os.path.splitext(file_name)[1].lower()
+                try:
+                    if file_ext in ('.jpg', '.jpeg', '.png', '.gif', '.webp'):
+                        with Image.open(file_path) as img:
+                            images.append(img.copy())
+                    elif file_ext == '.txt':
+                        url = file_name.replace("*", "/").replace(".txt", "")
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            text_content.extend([
+                                f"<url>{url}</url>",
+                                f"<file url='{url}'>{f.read()}</file>"
+                            ])
+                except Exception as e:
+                    print(f"Error processing {file_name}: {str(e)}")
 
-            try:
-                if file_ext in ('.jpg', '.jpeg', '.png', '.gif', '.webp'):
-                    with Image.open(file_path) as img:
-                        images.append(img.copy())
-                elif file_ext == '.txt':
-                    url = file_name.replace("*", "/").replace(".txt", "")
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        text_content.extend([
-                            f"<url>{url}</url>",
-                            f"<file url='{url}'>{f.read()}</file>"
-                        ])
-            except Exception as e:
-                print(f"Error processing {file_name}: {str(e)}")
-
-        # Process files in db directory
+        # Process database files
         db_dir = os.path.join(base_path, "db")
         if os.path.exists(db_dir):
             for file_name in os.listdir(db_dir):
@@ -304,68 +324,28 @@ class Bot:
                 except Exception as e:
                     print(f"Error processing DB file {file_name}: {str(e)}")
         
-        print(text_content)
         return "\n".join(text_content), images
 
-    def _init_google_chat(self, text_content, images):
-        """Initialize Google chat session with function calling"""
-        history = []
-
-        # Add images to history if any
-        if images:
-            for img in images:
-                buffered = BytesIO()
-                img.save(buffered, format="JPEG")
-                history.append(types.Content(
-                    role="user",
-                    parts=[types.Part.from_bytes(
-                        data=buffered.getvalue(), mime_type='image/jpeg')]
-                ))
-        
-        print(self.sys_prompt)
-        
-        # Create chat with tools enabled
-        chat = self.client.chats.create(
-            model=self.text_model,
-            config=types.GenerateContentConfig(
-                system_instruction=f"{self.sys_prompt}\n{text_content}",
-                max_output_tokens=8192,
-                temperature=0.7,
-                tools=self.tools
-            ),
-            history=history
-        )
-        
-        return {
-            "client": self.client,
-            # "chat": chat,
-            "config": {
-                "model": self.text_model,
-                "config": types.GenerateContentConfig(
-                    system_instruction=f"{self.sys_prompt}\n{text_content}",
-                    max_output_tokens=8192,
-                    temperature=0.7,
-                    tools=self.tools
-                ),
-                "history": history
-            }
-        }
-
     def _load_chat(self, id):
+        """Load chat history and system instruction"""
         try:
             with open(f"bin/chat/{id}.chatpl", 'rb') as file:
-                chat_state = pickle.load(file)
-                return chat_state
+                chat_data = pickle.load(file)
+                return chat_data["history"], chat_data["system_instruction"]
         except FileNotFoundError:
             raise ValueError(f"No chat session found for id {id}")
 
-    def _save_chat(self, chat_state, id):
+    def _save_chat(self, history, system_instruction, id):
+        """Save only chat history and system instruction"""
+        chat_data = {
+            "history": history,
+            "system_instruction": system_instruction
+        }
         with open(f"bin/chat/{id}.chatpl", 'wb') as file:
-            pickle.dump(chat_state, file)
+            pickle.dump(chat_data, file)
 
     def _count_tokens(self, response):
         """Calculate token usage and costs"""
-        # Default pricing
         costs = {"input": 0.10, "output": 0.40}
         usage = response.usage_metadata.dict()
         
