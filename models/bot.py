@@ -247,7 +247,7 @@ class Bot:
         self.sys_prompt = f"{prompt}\n\nYou have access to Aldar Exchange APIs to help users with currency exchange rates, branch information, and conversion calculations. Use these tools when users ask about exchange rates, currency conversion, or branch locations."
 
         chat_state = self._init_google_chat(text_content, images)
-
+        print(chat_state)
         # Save chat state
         os.makedirs('./bin/chat/', exist_ok=True)
         with open(f'bin/chat/{id}.chatpl', 'wb') as file:
@@ -338,7 +338,7 @@ class Bot:
         
         return {
             "client": self.client,
-            "chat": chat,
+            # "chat": chat,
             "config": {
                 "model": self.text_model,
                 "config": types.GenerateContentConfig(
