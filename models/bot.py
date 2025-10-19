@@ -132,23 +132,42 @@ class Bot:
 
     def generate_audio(self, message):
         """Generate audio from text"""
-        response = self.client.models.generate_content(
-            model=self.audio_generation_model,
-            contents=f"Say: {message}",
-            config=types.GenerateContentConfig(
-                response_modalities=["AUDIO"],
-                speech_config=types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name='Achird',
+        try:
+            response = self.client.models.generate_content(
+                model=self.audio_generation_model,
+                contents=f"Say: {message}",
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name='Achird',
+                            )
                         )
-                    )
-                ),
+                    ),
+                )
             )
-        )
 
-        data = response.candidates[0].content.parts[0].inline_data.data
-        return data
+            # Check if response has the expected structure
+            if response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts and len(candidate.content.parts) > 0:
+                    part = candidate.content.parts[0]
+                    if hasattr(part, 'inline_data') and part.inline_data:
+                        return part.inline_data.data
+            
+            # If audio data not found in expected location, try alternative paths
+            if hasattr(response, 'parts') and response.parts:
+                for part in response.parts:
+                    if hasattr(part, 'inline_data') and part.inline_data:
+                        return part.inline_data.data
+            
+            raise ValueError("No audio data found in response")
+            
+        except Exception as e:
+            print(f"Error generating audio: {str(e)}")
+            print(f"Response structure: {response}")
+            raise
 
     def audio_to_text(self, audio_bytes):
         """Take audio and return text response"""
