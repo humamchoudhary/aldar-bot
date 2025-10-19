@@ -11,7 +11,7 @@ import os
 from config import Config
 from routes import chat_bp, admin_bp, auth_bp, min_bp,api_bp,call_bp
 from routes.admin import register_admin_socketio_events
-from routes.call import register_call_socketio_events
+# from routes.call import register_call_socketio_events
 import routes.auth
 import routes.min
 import routes.api
@@ -623,7 +623,7 @@ def create_app(config_class=Config):
     # Register Socket.IO event handlers
     register_min_socketio_events(socketio)
     register_admin_socketio_events(socketio)
-    register_call_socketio_events(socketio)
+    # register_call_socketio_events(socketio)
 
     # Create admin user if it doesn't exist
     if not app.config.get('ADMIN_PASSWORD'):
