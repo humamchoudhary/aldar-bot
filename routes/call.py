@@ -49,6 +49,6 @@ def generate_token():
 
 @call_bp.route("/get-files")
 def get_sys_files():
-    return current_app.bot._process_files(admin_id="67e9dfe8-5715-499c-b34b-219fa24971cb")
-    #return  current_app.bot._process_files(admin_id="f7fe50c3-bba5-4cc0-9551-69b433079521")
+    # return current_app.bot._process_files(admin_id="67e9dfe8-5715-499c-b34b-219fa24971cb")
+    return  current_app.bot._process_files(admin_id="f7fe50c3-bba5-4cc0-9551-69b433079521")
 
