@@ -117,8 +117,8 @@ class GeminiTwilioBridge:
                 if event == "start":
                     self.stream_sid = data["start"]["streamSid"]
                     self.custom_params = data["start"]["customParameters"]
-                    
-                    print(f"📡 Twilio stream started: {self.stream_sid}")
+                    print(data)
+                    print(f"📡 Twilio stream started: {self.stream_sid} -> {self.custom_params}")
 
                 elif event == "media":
                     audio_b64 = data["media"]["payload"]
