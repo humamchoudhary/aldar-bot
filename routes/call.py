@@ -95,6 +95,7 @@ def initialize_call(call_uuid):
     print(f"Call UUID: {call_uuid}")
     print(f"File Name: {data.get('file_name')}")
     print(f"Started At: {data.get('started_at')}")
+    print(data)
     print("=" * 60)
     
     try:
