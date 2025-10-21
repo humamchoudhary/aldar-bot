@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from typing import TypedDict, Literal, Optional
 from pymongo.collection import Collection
+from bson import ObjectId
 
 class CallTranscription(TypedDict):
     speaker: str
@@ -15,7 +16,7 @@ class Call(TypedDict):
     ended_at: Optional[datetime]
     audio: str
     transcription: list[CallTranscription]
-    userdata: dict
+    userdata: dict # {"From":"","name":"" or None, "qid":""or None}
 
 class CallService:
     def __init__(self, db):
@@ -24,16 +25,24 @@ class CallService:
     
     def create_call(self, call_id, data):
         """Create a new call record."""
-        self.call_collection.insert_one(
-            Call(
-                call_id=call_id,
-                status="ongoing",
-                started_at=data.get("started_at", datetime.now()),
-                ended_at=None,
-                audio=data.get("file_name", f"call_{call_id}.wav"),
-                transcription=[],userdata=data.get("custom_params",{"name":"","qid":0})
-            )
-        )
+        # Ensure datetime objects are used
+        started_at = data.get("started_at")
+        if isinstance(started_at, str):
+            started_at = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+        elif started_at is None:
+            started_at = datetime.utcnow()
+        
+        call_doc = {
+            "call_id": call_id,
+            "status": "ongoing",
+            "started_at": started_at,  # Store as datetime
+            "ended_at": None,
+            "audio": data.get("file_name", f"call_{call_id}.wav"),
+            "transcription": [],
+            "userdata": data.get("custom_parameters", {"From": "", "name": None, "qid": None})
+        }
+        
+        self.call_collection.insert_one(call_doc)
     
     def add_chunk(self, call_id, data):
         """Add transcription chunks to a call."""
@@ -57,7 +66,7 @@ class CallService:
             {
                 "$set": {
                     "status": "ended",
-                    "ended_at": datetime.now()
+                    "ended_at": datetime.utcnow()  # Store as datetime
                 }
             }
         )
@@ -79,13 +88,15 @@ class CallService:
         
         # Projection - only fetch fields needed for list view
         projection = {
-            'call_id': 1,
-            'status': 1,
-            'started_at': 1,
-            'ended_at': 1,
-            'audio': 1,
+            # 'call_id': 1,
+            # 'status': 1,
+            # 'started_at': 1,
+            # 'ended_at': 1,
+            # 'audio': 1,
+            # 'userdata': 1,
             # Exclude heavy transcription field
-            # 'transcription': 0
+            'transcription': 0,
+            '_id': 0  # Exclude MongoDB's _id field
         }
         
         calls = list(
@@ -95,9 +106,17 @@ class CallService:
             .limit(limit)
         )
         
-        # Rename started_at to call_time for template compatibility
+        # MongoDB returns datetime objects by default - no conversion needed!
+        # Just verify they are datetime objects
         for call in calls:
-            call['call_time'] = call.pop('started_at')
+            # Convert started_at to datetime if it's a string
+            if isinstance(call['started_at'], str):
+                call['started_at'] = datetime.fromisoformat(call['started_at'].replace('Z', '+00:00'))
+            
+            # Convert ended_at to datetime if it exists and is a string
+            if call.get('ended_at') and isinstance(call['ended_at'], str):
+                call['ended_at'] = datetime.fromisoformat(call['ended_at'].replace('Z', '+00:00'))
+        
         
         return calls
     
@@ -114,11 +133,18 @@ class CallService:
     
     def get_full_call(self, call_id):
         """Get complete call data including transcription for detail view."""
-        call = self.call_collection.find_one({"call_id": call_id})
+        call = self.call_collection.find_one({"call_id": call_id}, {"_id": 0})
+        
+        # MongoDB returns datetime objects natively - no conversion needed
+        # Verify they are datetime objects
         if call:
-            # Rename for template compatibility
-            if 'started_at' in call:
-                call['call_time'] = call.pop('started_at')
+            if isinstance(call['started_at'], str):
+                call['started_at'] = datetime.fromisoformat(call['started_at'].replace('Z', '+00:00'))
+            
+            # Convert ended_at to datetime if it exists and is a string
+            if call.get('ended_at') and isinstance(call['ended_at'], str):
+                call['ended_at'] = datetime.fromisoformat(call['ended_at'].replace('Z', '+00:00'))
+        
         return call
     
     def delete_call(self, call_id):

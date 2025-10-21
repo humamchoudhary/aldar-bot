@@ -1,7 +1,7 @@
 from services.call_service import CallService
 from services.notification_service import NotificationService
 from flask_mail import Mail
-from flask import request, flash, make_response
+from flask import request, flash, make_response, send_file
 import zipfile
 import io
 import json
@@ -3026,6 +3026,8 @@ def get_saved_table_data():
         return jsonify({'error': f'Failed to load table data: {str(e)}'}), 500
 
 
+from  pprint import pprint
+
 
 
 ####################################### CALL #############################################
@@ -3042,18 +3044,32 @@ def get_all_calls():
         limit=20,
         skip=0
     )
+    pprint(calls)
     
     # Get call counts for dropdown
     call_counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
     
     return render_template(
-        "admin/call.html",
+        "admin/calls.html",
         calls=calls,
         call_counts=call_counts,
         has_more=len(calls) == 20,
         next_page=1,
         current_filter='all'
     )
+
+@admin_bp.route("/call/<call_id>")
+def get_call(call_id):
+    call_service = CallService(current_app.db)
+    call = call_service.get_full_call(call_id)
+    return render_template(
+        "components/call.html",
+        call=call,
+    )
+
+@admin_bp.route("/call/<call_id>/audio")
+def send_audio_file(call_id):
+    return send_file(f"recordings/call_{call_id}.wav", mimetype="audio/wav")
 
 def register_admin_socketio_events(socketio):
     @socketio.on("admin_join")
