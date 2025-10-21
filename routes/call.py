@@ -10,6 +10,7 @@ from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
 from twilio.twiml.voice_response import VoiceResponse, Connect, Stream
 
+from flask import Flask, request, Response
 # Load environment variables from .env file
 load_dotenv()
 
@@ -52,6 +53,7 @@ def generate_token():
 def get_voice():
     print(request.values)
     caller_number = request.values.get('From', None)
+    print(caller_number)
 
     response = VoiceResponse()
 
@@ -65,7 +67,8 @@ def get_voice():
 
     # Print or return the TwiML
     print(str(response))
-    return response
+
+    return Response(str(response), mimetype="text/xml")
 
 @call_bp.route("/get-files")
 def get_sys_files():
