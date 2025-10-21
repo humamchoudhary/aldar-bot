@@ -6,11 +6,9 @@ import os
 import wave
 
 from flask import Flask, current_app, render_template, request, jsonify
-from twilio.twiml.voice_response import VoiceResponse
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
-
-
+from twilio.twiml.voice_response import VoiceResponse, Connect, Stream
 
 # Load environment variables from .env file
 load_dotenv()
@@ -49,6 +47,25 @@ def generate_token():
     token.add_grant(voice_grant)
     
     return jsonify({'token': token.to_jwt()})
+
+@call_bp.route("/voice")
+def get_voice():
+    print(request.values)
+    caller_number = request.values.get('From', None)
+
+    response = VoiceResponse()
+
+    # Add a greeting message
+    response.say("Hi, how may I help you?", voice="Google.en-US-Chirp3-HD-Kore")
+
+    # Connect to your WebSocket stream
+    connect = Connect()
+    connect.stream(url="wss://al-dar-call.go-globe.dev/")
+    response.append(connect)
+
+    # Print or return the TwiML
+    print(str(response))
+    return response
 
 @call_bp.route("/get-files")
 def get_sys_files():
