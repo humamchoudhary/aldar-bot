@@ -71,9 +71,98 @@ class GeminiTwilioBridge:
             "thinking_config": {"thinking_budget": 0},
             "output_audio_transcription": {},
             "input_audio_transcription": {},
-            "speech_config": {"voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}},
-            "systemInstruction": self.system_instruction,
+             "speech_config": {
+                    "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
+                },
+            "systemInstruction":self.system_instruction,
+
+            "tools":[{"function_declarations":[
+                        {
+                            "name": "get_exchange_rate",
+                            "description": "Get the current exchange rate for a specific rate type. Use type=1 for standard rates.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "rate_type": {
+                                        "type": "integer",
+                                        "description": "The rate type code (e.g., 1 for standard rate)"
+                                    }
+                                },
+                                "required": ["rate_type"]
+                            }
+                        },
+                        {
+                            "name": "get_branch_details",
+                            "description": "Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "name": "calculate_exchange",
+                            "description": "Calculate currency conversion between QAR and foreign currency. Specify either local currency amount (QAR) or foreign currency amount, not both.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "transaction_type": {
+                                        "type": "string",
+                                        "description": "Transaction type: 'tt' for transfer, 'BUY' for buying currency, 'SELL' for selling currency",
+                                        "enum": ["tt", "BUY", "SELL"]
+                                    },
+                                    "currency_code": {
+                                        "type": "string",
+                                        "description": "3-letter ISO currency code (e.g., USD, EUR, GBP)"
+                                    },
+                                    "local_amount": {
+                                        "type": "number",
+                                        "description": "Amount in local currency (QAR). Use 0 if specifying foreign amount."
+                                    },
+                                    "foreign_amount": {
+                                        "type": "number",
+                                        "description": "Amount in foreign currency. Use 0 if specifying local amount."
+                                    }
+                                },
+                                "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
+                            }
+                        }
+                    ]}]
         }
+
+    def _call_aldar_api(self, function_name, parameters):
+        """Execute actual API calls to Aldar Exchange"""
+        try:
+            if function_name == "get_exchange_rate":
+                rate_type = parameters.get("rate_type", 1)
+                url = f"{self.aldar_base_url}/api/User/GetRate"
+                response = requests.get(url, params={"type": rate_type})
+                response.raise_for_status()
+                return response.json()
+            
+            elif function_name == "get_branch_details":
+                url = f"{self.aldar_base_url}/api/User/GetBranchesDetails"
+                response = requests.get(url)
+                response.raise_for_status()
+                branches = response.json()
+                # Wrap list in dictionary as Gemini expects dict response
+                return {"branches": branches, "total_count": len(branches)}
+            
+            elif function_name == "calculate_exchange":
+                url = f"{self.aldar_base_url}/api/User/GetRate"
+                params = {
+                    "type": parameters.get("transaction_type"),
+                    "curcode": parameters.get("currency_code"),
+                    "lcyamount": parameters.get("local_amount", 0),
+                    "fcyamount": parameters.get("foreign_amount", 0)
+                }
+                response = requests.get(url, params=params)
+                response.raise_for_status()
+                return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            return {"error": f"API call failed: {str(e)}"}
+
+
 
     def get_system_instruction(self):
         try:
@@ -181,6 +270,27 @@ class GeminiTwilioBridge:
                     stream=self.twilio_audio_stream(),
                     mime_type="audio/pcm;rate=16000"
                 ):
+
+
+                    if response.tool_call:
+                        print("------ Function Called --------")
+                        func_resps = []
+                        print(response.tool_call)
+                        for fc in response.tool_call.function_calls:
+                            resp = self._call_aldar_api(function_name=fc.name,parameters=fc.args)
+                            function_response = types.FunctionResponse(
+                                id=fc.id,
+                                name=fc.name,
+                                response=resp
+                            )
+                            func_resps.append(function_response)
+
+                        await session.send_tool_response(function_responses=func_resps)
+
+
+
+
+
                     # Handle Gemini -> Twilio audio
                     if response.data:
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
