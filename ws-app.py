@@ -120,6 +120,8 @@ class GeminiTwilioBridge:
                     print(data)
                     print(f"📡 Twilio stream started: {self.stream_sid} -> {self.custom_params}")
 
+                    await self.initialize_call()
+
                 elif event == "media":
                     audio_b64 = data["media"]["payload"]
                     mulaw_bytes = base64.b64decode(audio_b64)
@@ -171,7 +173,6 @@ class GeminiTwilioBridge:
     async def gemini_session(self):
         """Bridges Twilio audio and Gemini responses."""
         print(f"✅ Starting Gemini session for {self.call_uuid}")
-        await self.initialize_call()
 
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
             bot_buffer = ""
