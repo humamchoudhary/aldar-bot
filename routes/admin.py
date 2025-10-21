@@ -1,3 +1,4 @@
+from services.call_service import CallService
 from services.notification_service import NotificationService
 from flask_mail import Mail
 from flask import request, flash, make_response
@@ -3025,6 +3026,34 @@ def get_saved_table_data():
         return jsonify({'error': f'Failed to load table data: {str(e)}'}), 500
 
 
+
+
+####################################### CALL #############################################
+
+@admin_bp.route("/calls", methods=["GET"])
+@admin_required
+def get_all_calls():
+    """Main calls page with initial data."""
+    call_service = CallService(current_app.db)
+    
+    # Get initial calls with limited data
+    calls = call_service.get_calls_with_limited_data(
+        admin_id=session.get("admin_id"),
+        limit=20,
+        skip=0
+    )
+    
+    # Get call counts for dropdown
+    call_counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
+    
+    return render_template(
+        "admin/call.html",
+        calls=calls,
+        call_counts=call_counts,
+        has_more=len(calls) == 20,
+        next_page=1,
+        current_filter='all'
+    )
 
 def register_admin_socketio_events(socketio):
     @socketio.on("admin_join")
