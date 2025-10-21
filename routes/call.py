@@ -52,8 +52,8 @@ def generate_token():
 @call_bp.route("/voice")
 def get_voice():
     print(request.values)
-    caller_number = request.values.get('From', None)
-    print(caller_number)
+    # caller_number = 
+    # print(caller_number)
 
     response = VoiceResponse()
 
@@ -62,7 +62,12 @@ def get_voice():
 
     # Connect to your WebSocket stream
     connect = Connect()
-    connect.stream(url="wss://al-dar-call.go-globe.dev/")
+    stream = connect.stream(url="wss://al-dar-call.go-globe.dev/")
+
+    stream.parameter(name='From', value=f'{request.values.get('From', None)}')
+
+    stream.parameter(name='name', value=f'{request.values.get('name', None)}')
+    stream.parameter(name='qid', value=f'{request.values.get('name', None)}')
     response.append(connect)
 
     # Print or return the TwiML
