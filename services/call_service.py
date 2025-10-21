@@ -15,6 +15,7 @@ class Call(TypedDict):
     ended_at: Optional[datetime]
     audio: str
     transcription: list[CallTranscription]
+    userdata: dict
 
 class CallService:
     def __init__(self, db):
@@ -30,7 +31,7 @@ class CallService:
                 started_at=data.get("started_at", datetime.now()),
                 ended_at=None,
                 audio=data.get("file_name", f"call_{call_id}.wav"),
-                transcription=[]
+                transcription=[],userdata=data.get("custom_params",{"name":"","qid":0})
             )
         )
     

@@ -23,8 +23,8 @@ TWILIO_API_SECRET = os.getenv("TWILIO_API_SECRET")
 TWILIO_TWIML_APP_SID = os.getenv("TWILIO_TWIML_APP_SID")
 
 # Endpoint to send logs after call ends
-LOG_ENDPOINT = os.getenv("LOG_ENDPOINT", "https://192.168.100.4:5000/call/log")
-SYS_INST_ENDPOINT = os.getenv("SYS_INST_ENDPOINT", "https://192.168.100.4:5000/call/get-files")
+LOG_ENDPOINT = os.getenv("LOG_ENDPOINT", "https://al-dar.go-globe.dev/call/log")
+SYS_INST_ENDPOINT = os.getenv("SYS_INST_ENDPOINT", "https://al-dar.go-globe.dev/call/get-files")
 
 # Configure chunk size for incremental logging
 LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))  # Send logs every 5 messages by default
@@ -43,6 +43,7 @@ class GeminiTwilioBridge:
         self.last_sent_index = 0
         self.unsent_transcriptions = []
         self.stream_sid = None
+        self.custom_params = {}
 
         # ---- Create per-call WAV file ----
         os.makedirs("recordings", exist_ok=True)
@@ -93,6 +94,7 @@ class GeminiTwilioBridge:
                 "call_uuid": self.call_uuid,
                 "file_name": self.filename,
                 "started_at": datetime.datetime.now().isoformat(),
+                "custom_params":self.custom_params
             }
             print(f"📞 Initializing call session → {init_url}")
             async with aiohttp.ClientSession() as session:
@@ -114,6 +116,8 @@ class GeminiTwilioBridge:
 
                 if event == "start":
                     self.stream_sid = data["start"]["streamSid"]
+                    self.custom_params = data["start"]["customParameters"]
+                    
                     print(f"📡 Twilio stream started: {self.stream_sid}")
 
                 elif event == "media":
