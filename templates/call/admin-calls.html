@@ -292,7 +292,7 @@
       <div class="header">
         <div class="status">
           <div id="statusIndicator" class="status-indicator"></div>
-          <span id="connectionStatus">Connecting...</span>
+          <span id="connectionStatus">Initializing...</span>
         </div>
       </div>
 
@@ -316,7 +316,7 @@
 
         <div id="waitingMessage" class="waiting-message" style="display: none">
           <div class="spinner"></div>
-          <span>Transferring call... Please wait for customer to connect</span>
+          <span>Transferring call... Please wait</span>
         </div>
 
         <div class="audio-indicator">
@@ -354,21 +354,23 @@
 
     <script src="/static/js/twilio.min.js"></script>
     <script>
+      // Configuration - UPDATE THESE WITH YOUR FLASK SERVER URL
+      const FLASK_API_URL = "https://al-dar.go-globe.dev"; // Your Flask admin server
+      const QUART_API_URL = "https://al-dar-call.go-globe.dev"; // Your Quart Gemini server
+
       let twilioDevice;
       let activeCall;
-      let callSid = null;
+      let currentCallUuid = null;
       let audioContext;
       let analyser;
       let micStream;
       let remoteAnalyser;
       let animationFrame;
-      let pollInterval;
-
-      const SERVER_BASE_URL = "https://al-dar-call.go-globe.dev";
 
       async function initTwilioDevice() {
         try {
-          const response = await fetch(`/call/token`);
+          // Get token from Flask admin server
+          const response = await fetch(`${FLASK_API_URL}/admin/token`);
           const data = await response.json();
 
           twilioDevice = new Twilio.Device(data.token, {
@@ -406,7 +408,8 @@
 
       async function loadActiveCalls() {
         try {
-          const response = await fetch(`${SERVER_BASE_URL}/admin/active-calls`);
+          // Get calls from Quart Gemini server
+          const response = await fetch(`${QUART_API_URL}/api/active-calls`);
           const data = await response.json();
           displayActiveCalls(data.calls || []);
         } catch (error) {
@@ -430,7 +433,6 @@
             const itemClass = isPending
               ? "call-item pending-transfer"
               : "call-item";
-            const btnDisabled = isPending ? "" : "";
 
             return `
                     <div class="${itemClass}">
@@ -439,8 +441,8 @@
                             <small>QID: ${call.customer_info?.qid || "N/A"}</small>
                             <div class="call-badge ${badgeClass}">${badgeText}</div>
                         </div>
-                        <button class="join-btn" onclick="joinCall('${call.call_uuid}', '${call.call_sid}')" ${btnDisabled}>
-                            ${isPending ? "📞 Answer" : "👋 Request Transfer"}
+                        <button class="join-btn" onclick="requestTransfer('${call.call_uuid}', '${call.call_sid}')">
+                            ${isPending ? "📞 Join Now" : "👋 Request Transfer"}
                         </button>
                     </div>
                 `;
@@ -448,17 +450,17 @@
           .join("");
       }
 
-      async function joinCall(callUuid, twilioCallSid) {
+      async function requestTransfer(callUuid, callSid) {
         try {
-          // First, request transfer from Gemini to admin
+          // Request transfer via Flask admin server
           const response = await fetch(
-            `${SERVER_BASE_URL}/admin/request-transfer`,
+            `${FLASK_API_URL}/admin/request-transfer`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 call_uuid: callUuid,
-                call_sid: twilioCallSid,
+                call_sid: callSid,
               }),
             },
           );
@@ -466,7 +468,9 @@
           const data = await response.json();
 
           if (data.success) {
-            // Show waiting UI
+            console.log("✅ Transfer requested successfully");
+
+            // Show control panel
             document.getElementById("controlPanel").classList.add("active");
             document.getElementById("customerName").textContent =
               data.customer_info?.name || "Unknown";
@@ -474,49 +478,33 @@
               data.customer_info?.qid || "Unknown";
             document.getElementById("waitingMessage").style.display = "block";
             document.getElementById("callState").textContent =
-              "Transfer requested...";
+              "Transferring...";
 
-            callSid = twilioCallSid;
+            currentCallUuid = callUuid;
 
-            // Poll for call status
-            startPollingCallStatus(callUuid);
+            // Wait a moment for transfer to complete, then connect
+            setTimeout(() => {
+              connectToCall(callUuid);
+            }, 2000);
 
-            // Refresh the calls list to show pending state
+            // Refresh calls list
             loadActiveCalls();
           } else {
-            alert("Failed to request transfer: " + data.error);
+            alert(
+              "Failed to request transfer: " + (data.error || "Unknown error"),
+            );
           }
         } catch (error) {
-          console.error("Failed to join call:", error);
+          console.error("Failed to request transfer:", error);
           alert("Error: " + error.message);
         }
-      }
-
-      function startPollingCallStatus(callUuid) {
-        if (pollInterval) clearInterval(pollInterval);
-
-        pollInterval = setInterval(async () => {
-          try {
-            const response = await fetch(
-              `${SERVER_BASE_URL}/admin/call-status/${callUuid}`,
-            );
-            const data = await response.json();
-
-            if (data.status === "ready_for_admin") {
-              // Call is ready, now connect via Twilio Device
-              clearInterval(pollInterval);
-              await connectToCall(callUuid);
-            }
-          } catch (error) {
-            console.error("Error polling call status:", error);
-          }
-        }, 1000);
       }
 
       async function connectToCall(callUuid) {
         try {
           document.getElementById("callState").textContent = "Connecting...";
 
+          // Connect via Twilio Device to Flask admin endpoint
           activeCall = await twilioDevice.connect({
             params: {
               call_uuid: callUuid,
@@ -549,16 +537,11 @@
       }
 
       function handleCallEnd() {
-        if (pollInterval) {
-          clearInterval(pollInterval);
-          pollInterval = null;
-        }
-
         stopAudioVisualization();
         document.getElementById("controlPanel").classList.remove("active");
         document.getElementById("waitingMessage").style.display = "none";
         activeCall = null;
-        callSid = null;
+        currentCallUuid = null;
         loadActiveCalls();
       }
 
@@ -566,6 +549,20 @@
         if (activeCall) {
           activeCall.disconnect();
         }
+
+        // Notify Flask server
+        if (currentCallUuid) {
+          try {
+            await fetch(`${FLASK_API_URL}/admin/end-call`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ call_uuid: currentCallUuid }),
+            });
+          } catch (error) {
+            console.error("Failed to notify server:", error);
+          }
+        }
+
         handleCallEnd();
       }
 

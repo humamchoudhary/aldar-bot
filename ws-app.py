@@ -7,38 +7,28 @@ import wave
 import aiohttp
 import asyncio
 import datetime
-from quart import Quart, websocket, request, jsonify
+from quart import Quart, websocket
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 import requests
-from twilio.jwt.access_token import AccessToken
-from twilio.jwt.access_token.grants import VoiceGrant
-from twilio.rest import Client as TwilioClient
-from quart_cors import cors
+
 # Load environment variables
 load_dotenv()
-
-# Twilio credentials
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_API_KEY = os.getenv("TWILIO_API_KEY")
-TWILIO_API_SECRET = os.getenv("TWILIO_API_SECRET")
-TWILIO_TWIML_APP_SID = os.getenv("TWILIO_TWIML_APP_SID")
-
-# Initialize Twilio client
-twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, os.getenv("TWILIO_AUTH_TOKEN"))
 
 # Endpoint to send logs after call ends
 LOG_ENDPOINT = os.getenv("LOG_ENDPOINT", "https://al-dar.go-globe.dev/call/log")
 SYS_INST_ENDPOINT = os.getenv("SYS_INST_ENDPOINT", "https://al-dar.go-globe.dev/call/get-files")
+
+# Admin API endpoint (Flask server)
+ADMIN_API_URL = os.getenv("ADMIN_API_URL", "https://admin.al-dar.go-globe.dev")
 
 # Configure chunk size for incremental logging
 LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))
 
 app = Quart(__name__)
 
-app = cors(app, allow_origin="*") 
-active_calls = {}
+active_calls = {} 
 
 class GeminiTwilioBridge:
     def __init__(self):
@@ -47,13 +37,12 @@ class GeminiTwilioBridge:
 
         # ---- Unique per-call identifiers ----
         self.call_uuid = str(uuid4())
-        self.call_sid = None  # Twilio Call SID
+        self.call_sid = None
         self.transcriptions = []
         self.last_sent_index = 0
         self.stream_sid = None
         self.custom_params = {}
         self.transfer_requested = False
-        self.admin_stream_ready = False
 
         # ---- Create per-call WAV file ----
         os.makedirs("recordings", exist_ok=True)
@@ -202,6 +191,30 @@ class GeminiTwilioBridge:
         except Exception as e:
             print(f"❌ Error initializing call: {e}")
 
+    async def notify_admin_api(self, event_type, data=None):
+        """Notify the admin Flask server about call events"""
+        try:
+            payload = {
+                "call_uuid": self.call_uuid,
+                "call_sid": self.call_sid,
+                "event": event_type,
+                "customer_info": self.custom_params,
+                "data": data or {}
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{ADMIN_API_URL}/api/call-event",
+                    json=payload,
+                    ssl=False
+                ) as resp:
+                    if resp.status == 200:
+                        print(f"✅ Notified admin API: {event_type}")
+                    else:
+                        print(f"⚠️ Failed to notify admin API: {resp.status}")
+        except Exception as e:
+            print(f"❌ Error notifying admin API: {e}")
+
     async def request_transfer_to_admin(self):
         """Handle transfer request from Gemini"""
         print(f"🔄 Transfer requested for call {self.call_uuid}")
@@ -211,14 +224,10 @@ class GeminiTwilioBridge:
             "transcription": "Customer requested human assistance - transfer initiated"
         })
         
-        # Update call in Twilio to redirect to admin stream
-        try:
-            # The actual redirect will happen via TwiML endpoint
-            # This just marks the call as ready for admin
-            self.admin_stream_ready = True
-            print(f"✅ Call {self.call_uuid} ready for admin takeover")
-        except Exception as e:
-            print(f"❌ Error preparing transfer: {e}")
+        # Notify admin server
+        await self.notify_admin_api("transfer_requested", {
+            "reason": "customer_request"
+        })
 
     async def twilio_audio_stream(self):
         """Handle incoming Twilio WebSocket audio stream."""
@@ -238,11 +247,15 @@ class GeminiTwilioBridge:
                     
                     active_calls[self.call_uuid] = self
                     await self.initialize_call()
+                    
+                    # Notify admin server about new call
+                    await self.notify_admin_api("call_started")
 
                 elif event == "media":
                     # Stop processing if transfer is requested
                     if self.transfer_requested:
                         continue
+
                     audio_b64 = data["media"]["payload"]
                     mulaw_bytes = base64.b64decode(audio_b64)
                     pcm_bytes = audioop.ulaw2lin(mulaw_bytes, 2)
@@ -252,6 +265,7 @@ class GeminiTwilioBridge:
 
                 elif event == "stop":
                     print("🛑 Twilio stream stopped.")
+                    await self.notify_admin_api("call_ended")
                     break
                     
             except Exception as e:
@@ -305,6 +319,7 @@ class GeminiTwilioBridge:
                     # Stop processing if transfer requested
                     if self.transfer_requested:
                         print("🔄 Transfer in progress, stopping Gemini responses")
+                        # Close this stream gracefully
                         break
 
                     if response.tool_call:
@@ -315,7 +330,6 @@ class GeminiTwilioBridge:
                             
                             if fc.name == "request_human_transfer":
                                 await self.request_transfer_to_admin()
-                                # Return success response
                                 function_response = types.FunctionResponse(
                                     id=fc.id,
                                     name=fc.name,
@@ -333,11 +347,11 @@ class GeminiTwilioBridge:
                         await session.send_tool_response(function_responses=func_resps)
 
                     # Handle Gemini -> Twilio audio
-                    if response.data:
+                    if response.data and not self.transfer_requested:
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
                         self.merged_wav.writeframes(pcm_16k)
 
-                        if self.stream_sid and not self.transfer_requested:
+                        if self.stream_sid:
                             b64_audio = self.convert_audio_to_twilio_format(response.data)
                             await websocket.send(json.dumps({
                                 "event": "media",
@@ -382,191 +396,52 @@ class GeminiTwilioBridge:
                 if self.call_uuid in active_calls:
                     del active_calls[self.call_uuid]
 
-                # Only close websocket if not transferring
+                # Don't close websocket if transferring - let Twilio handle it
                 if not self.transfer_requested:
                     await websocket.close(code=200)
+                    
                 print(f"🏁 Call session {self.call_uuid} ended.")
 
 
-# ============= ROUTES =============
+# ============= API ROUTES FOR ADMIN SERVER =============
 
-@app.route('/call/token', methods=['GET'])
-async def get_call_token():
-    """Generate Twilio access token for customer calls"""
-    identity = f"customer_{uuid4()}"
-    
-    access_token = AccessToken(
-        TWILIO_ACCOUNT_SID,
-        TWILIO_API_KEY,
-        TWILIO_API_SECRET,
-        identity=identity
-    )
-    
-    voice_grant = VoiceGrant(
-        outgoing_application_sid=TWILIO_TWIML_APP_SID,
-        incoming_allow=True
-    )
-    access_token.add_grant(voice_grant)
-    
-    return jsonify({
-        'token': access_token.to_jwt(),
-        'identity': identity
-    })
-
-
-@app.route('/admin/token', methods=['GET'])
-async def get_admin_token():
-    """Generate Twilio access token for admin"""
-    identity = f"admin_{uuid4()}"
-    
-    access_token = AccessToken(
-        TWILIO_ACCOUNT_SID,
-        TWILIO_API_KEY,
-        TWILIO_API_SECRET,
-        identity=identity
-    )
-    
-    voice_grant = VoiceGrant(
-        outgoing_application_sid=TWILIO_TWIML_APP_SID,
-        incoming_allow=True
-    )
-    access_token.add_grant(voice_grant)
-    
-    return jsonify({
-        'token': access_token.to_jwt(),
-        'identity': identity
-    })
-
-
-@app.route('/admin/active-calls', methods=['GET'])
+@app.route('/api/active-calls', methods=['GET'])
 async def get_active_calls():
-    """Get list of active calls"""
+    """API endpoint for admin server to get active calls"""
     calls_list = [
         {
             "call_uuid": uuid,
             "call_sid": bridge.call_sid,
             "customer_info": bridge.custom_params,
             "transfer_requested": bridge.transfer_requested,
-            "duration": "active"
+            "stream_sid": bridge.stream_sid
         }
         for uuid, bridge in active_calls.items()
     ]
+    from quart import jsonify
     return jsonify({"calls": calls_list})
 
 
-@app.route('/admin/request-transfer', methods=['POST'])
-async def request_transfer():
-    """Admin requests to take over a call"""
-    data = await request.get_json()
-    call_uuid = data.get('call_uuid')
-    call_sid = data.get('call_sid')
+@app.route('/api/get-call-info/<call_uuid>', methods=['GET'])
+async def get_call_info(call_uuid):
+    """Get specific call information"""
+    from quart import jsonify
     
     if call_uuid not in active_calls:
-        return jsonify({"success": False, "error": "Call not found"}), 404
+        return jsonify({"error": "Call not found"}), 404
     
     bridge = active_calls[call_uuid]
-    
-    # Mark transfer as requested
-    bridge.transfer_requested = True
-    bridge.admin_stream_ready = True
-    
-    # Use Twilio API to redirect the call
-    try:
-        # Update the call to use admin TwiML
-        twilio_client.calls(call_sid).update(
-            twiml=f'''<?xml version="1.0" encoding="UTF-8"?>
-            <Response>
-                <Say>Please hold while we connect you to a representative.</Say>
-                <Pause length="1"/>
-                <Connect>
-                    <Stream url="wss://al-dar-call.go-globe.dev/admin-stream/{call_uuid}">
-                        <Parameter name="call_uuid" value="{call_uuid}" />
-                        <Parameter name="admin_transfer" value="true" />
-                    </Stream>
-                </Connect>
-            </Response>'''
-        )
-        
-        print(f"✅ Call {call_sid} redirected to admin stream")
-        
-        return jsonify({
-            "success": True,
-            "call_uuid": call_uuid,
-            "customer_info": bridge.custom_params
-        })
-    except Exception as e:
-        print(f"❌ Error redirecting call: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({
+        "call_uuid": call_uuid,
+        "call_sid": bridge.call_sid,
+        "customer_info": bridge.custom_params,
+        "transfer_requested": bridge.transfer_requested,
+        "stream_sid": bridge.stream_sid,
+        "transcriptions": bridge.transcriptions
+    })
 
 
-@app.route('/admin/call-status/<call_uuid>', methods=['GET'])
-async def get_call_status(call_uuid):
-    """Check if call is ready for admin to join"""
-    if call_uuid not in active_calls:
-        return jsonify({"status": "not_found"}), 404
-    
-    bridge = active_calls[call_uuid]
-    
-    if bridge.admin_stream_ready:
-        return jsonify({"status": "ready_for_admin"})
-    else:
-        return jsonify({"status": "not_ready"})
-
-
-@app.route('/voice', methods=['POST'])
-async def voice():
-    """TwiML endpoint for incoming/outgoing calls"""
-    form = await request.form
-    call_uuid = str(uuid4())
-    
-    # Get custom parameters
-    name = form.get('name', 'Unknown')
-    qid = form.get('qid', 'N/A')
-    
-    twiml_response = f'''<?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-        <Connect>
-            <Stream url="wss://al-dar-call.go-globe.dev/">
-                <Parameter name="call_uuid" value="{call_uuid}" />
-                <Parameter name="name" value="{name}" />
-                <Parameter name="qid" value="{qid}" />
-            </Stream>
-        </Connect>
-    </Response>'''
-    
-    return twiml_response, 200, {'Content-Type': 'text/xml'}
-
-
-@app.route('/admin-voice', methods=['POST'])
-async def admin_voice():
-    """TwiML endpoint for admin calls"""
-    form = await request.form
-    call_uuid = form.get('call_uuid')
-    admin_join = form.get('admin_join')
-    
-    if not call_uuid or call_uuid not in active_calls:
-        return '''<?xml version="1.0" encoding="UTF-8"?>
-        <Response>
-            <Say>Call not found or has ended.</Say>
-            <Hangup/>
-        </Response>''', 200, {'Content-Type': 'text/xml'}
-    
-    bridge = active_calls[call_uuid]
-    
-    twiml_response = f'''<?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-        <Connect>
-            <Stream url="wss://al-dar-call.go-globe.dev/admin-stream/{call_uuid}">
-                <Parameter name="call_uuid" value="{call_uuid}" />
-                <Parameter name="admin" value="true" />
-            </Stream>
-        </Connect>
-    </Response>'''
-    
-    return twiml_response, 200, {'Content-Type': 'text/xml'}
-
-
-# ============= WEBSOCKET ENDPOINTS =============
+# ============= WEBSOCKET ENDPOINT =============
 
 @app.websocket('/')
 async def media_stream():
@@ -590,6 +465,12 @@ async def admin_stream(call_uuid):
     stream_sid = None
     
     try:
+        # Notify that admin joined
+        bridge.transcriptions.append({
+            "name": "system",
+            "transcription": "Admin joined the call"
+        })
+        
         while True:
             message = await websocket.receive()
             data = json.loads(message)
@@ -598,12 +479,6 @@ async def admin_stream(call_uuid):
             if event == "start":
                 stream_sid = data["start"]["streamSid"]
                 print(f"📡 Admin stream started: {stream_sid}")
-                
-                # Add transcription
-                bridge.transcriptions.append({
-                    "name": "system",
-                    "transcription": "Admin connected to call"
-                })
             
             elif event == "media":
                 # Receive admin audio and record it
@@ -617,7 +492,7 @@ async def admin_stream(call_uuid):
                 print("🛑 Admin stream stopped")
                 bridge.transcriptions.append({
                     "name": "system",
-                    "transcription": "Admin disconnected from call"
+                    "transcription": "Admin left the call"
                 })
                 break
                 
