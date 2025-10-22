@@ -26,6 +26,11 @@ def index():
     return render_template('call/index.html')
 
 
+@call_bp.route('/calls')
+def calls():
+    return render_template('call/admin-calls.html')
+
+
 #
 @call_bp.route('/token', methods=['GET'])
 def generate_token():

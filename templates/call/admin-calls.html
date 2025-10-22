@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Call Interface</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ccc;
+      }
+
+      .status-indicator.connected {
+        background: #22c55e;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .calls-section {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      .calls-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .call-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 2px solid transparent;
+        transition: all 0.3s;
+      }
+
+      .call-item:hover {
+        border-color: #667eea;
+        transform: translateY(-2px);
+      }
+
+      .call-info {
+        flex: 1;
+      }
+
+      .call-info strong {
+        display: block;
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .call-info small {
+        color: #666;
+      }
+
+      .join-btn {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s;
+      }
+
+      .join-btn:hover {
+        background: #5568d3;
+      }
+
+      .control-panel {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: none;
+      }
+
+      .control-panel.active {
+        display: block;
+      }
+
+      .customer-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      .control-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .mute-btn {
+        background: #fbbf24;
+        color: white;
+      }
+
+      .mute-btn.muted {
+        background: #ef4444;
+      }
+
+      .end-btn {
+        background: #ef4444;
+        color: white;
+      }
+
+      .control-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .audio-indicator {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 20px 0;
+      }
+
+      .indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .indicator-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        transition: all 0.3s;
+      }
+
+      .indicator-circle.speaking {
+        background: #22c55e;
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+        animation: speaking 0.5s ease-in-out infinite;
+      }
+
+      @keyframes speaking {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
+      .refresh-btn {
+        background: #22c55e;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        margin-top: 15px;
+      }
+
+      .no-calls {
+        text-align: center;
+        color: #666;
+        padding: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="status">
+          <div id="statusIndicator" class="status-indicator"></div>
+          <span id="connectionStatus">Connecting...</span>
+        </div>
+      </div>
+
+      <div class="calls-section">
+        <h2>Active Calls</h2>
+        <div id="callsList" class="calls-list">
+          <div class="no-calls">Loading active calls...</div>
+        </div>
+        <button class="refresh-btn" onclick="loadActiveCalls()">
+          🔄 Refresh Calls
+        </button>
+      </div>
+
+      <div id="controlPanel" class="control-panel">
+        <h2>Call Control</h2>
+        <div class="customer-info">
+          <strong>Customer:</strong>
+          <div>Name: <span id="customerName">-</span></div>
+          <div>QID: <span id="customerQid">-</span></div>
+        </div>
+
+        <div class="audio-indicator">
+          <div class="indicator">
+            <div id="customerIndicator" class="indicator-circle"></div>
+            <small>Customer</small>
+          </div>
+          <div class="indicator">
+            <div id="adminIndicator" class="indicator-circle"></div>
+            <small>You</small>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button
+            id="muteBtn"
+            class="control-btn mute-btn"
+            onclick="toggleMute()"
+          >
+            🎤 Mute
+          </button>
+          <button class="control-btn end-btn" onclick="endTakeover()">
+            ❌ End & Return to AI
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let adminWs = null;
+      let activeCallUuid = null;
+      let audioContext = null;
+      let mediaStream = null;
+      let isMuted = false;
+      let audioProcessor = null;
+      let customerAudioQueue = [];
+      let isPlayingCustomerAudio = false;
+
+      const SERVER_URL = "wss://al-dar-call.go-globe.dev/admin";
+
+      function connectToServer() {
+        const statusEl = document.getElementById("connectionStatus");
+        const indicatorEl = document.getElementById("statusIndicator");
+
+        statusEl.textContent = "Connecting...";
+        indicatorEl.classList.remove("connected");
+
+        adminWs = new WebSocket(SERVER_URL);
+
+        adminWs.onopen = () => {
+          console.log("✅ Connected to server");
+          statusEl.textContent = "Connected";
+          indicatorEl.classList.add("connected");
+          loadActiveCalls();
+        };
+
+        adminWs.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          handleServerMessage(data);
+        };
+
+        adminWs.onerror = (error) => {
+          console.error("Connection error:", error);
+          statusEl.textContent = "Connection Error";
+        };
+
+        adminWs.onclose = () => {
+          statusEl.textContent = "Disconnected";
+          indicatorEl.classList.remove("connected");
+          setTimeout(connectToServer, 3000); // Auto-reconnect
+        };
+      }
+
+      function loadActiveCalls() {
+        if (adminWs && adminWs.readyState === WebSocket.OPEN) {
+          adminWs.send(
+            JSON.stringify({
+              action: "list_calls",
+            }),
+          );
+        }
+      }
+
+      function handleServerMessage(data) {
+        console.log("Received:", data.type);
+
+        switch (data.type) {
+          case "active_calls":
+            displayActiveCalls(data.calls);
+            break;
+
+          case "takeover_success":
+            console.log("✅ Takeover successful");
+            activeCallUuid = data.call_uuid;
+            document.getElementById("customerName").textContent =
+              data.customer_info?.name || "Unknown";
+            document.getElementById("customerQid").textContent =
+              data.customer_info?.qid || "Unknown";
+            document.getElementById("controlPanel").classList.add("active");
+            break;
+
+          case "customer_audio":
+            playCustomerAudio(data.audio);
+            break;
+
+          case "takeover_ended":
+            console.log("Call returned to AI");
+            cleanupCall();
+            break;
+
+          case "error":
+            alert("Error: " + data.message);
+            break;
+        }
+      }
+
+      function displayActiveCalls(calls) {
+        const listEl = document.getElementById("callsList");
+
+        if (!calls || calls.length === 0) {
+          listEl.innerHTML = '<div class="no-calls">No active calls</div>';
+          return;
+        }
+
+        listEl.innerHTML = calls
+          .map(
+            (call) => `
+                <div class="call-item">
+                    <div class="call-info">
+                        <strong>${call.customer_info?.name || "Unknown"}</strong>
+                        <small>QID: ${call.customer_info?.qid || "N/A"}</small>
+                    </div>
+                    <button class="join-btn" onclick="joinCall('${call.call_uuid}')">
+                        Join Call
+                    </button>
+                </div>
+            `,
+          )
+          .join("");
+      }
+
+      async function joinCall(callUuid) {
+        if (!adminWs || adminWs.readyState !== WebSocket.OPEN) {
+          alert("Not connected to server");
+          return;
+        }
+
+        try {
+          // Get microphone access
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 48000,
+            },
+          });
+
+          // Setup audio context and processing
+          audioContext = new (window.AudioContext || window.webkitAudioContext)(
+            {
+              sampleRate: 48000,
+            },
+          );
+
+          const source = audioContext.createMediaStreamSource(mediaStream);
+          audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+
+          source.connect(audioProcessor);
+          audioProcessor.connect(audioContext.destination);
+
+          // Send admin audio to server (resample to 16kHz)
+          audioProcessor.onaudioprocess = (e) => {
+            if (!isMuted && adminWs && adminWs.readyState === WebSocket.OPEN) {
+              const inputData = e.inputBuffer.getChannelData(0);
+
+              // Resample from 48kHz to 16kHz
+              const resampled = resampleAudio(inputData, 48000, 16000);
+
+              // Convert to PCM16
+              const pcm16 = convertFloat32ToPCM16(resampled);
+              const base64Audio = arrayBufferToBase64(pcm16);
+
+              adminWs.send(
+                JSON.stringify({
+                  type: "admin_audio",
+                  audio: base64Audio,
+                }),
+              );
+
+              // Visual indicator
+              const volume = getAudioVolume(inputData);
+              const indicator = document.getElementById("adminIndicator");
+              if (volume > 0.01) {
+                indicator.classList.add("speaking");
+              } else {
+                indicator.classList.remove("speaking");
+              }
+            }
+          };
+
+          // Send join request
+          adminWs.send(
+            JSON.stringify({
+              action: "join_call",
+              call_uuid: callUuid,
+            }),
+          );
+
+          console.log("✅ Joined call:", callUuid);
+        } catch (error) {
+          console.error("Failed to join call:", error);
+          alert("Microphone access required: " + error.message);
+        }
+      }
+
+      function playCustomerAudio(base64Audio) {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+        }
+
+        try {
+          // Decode base64 to PCM16 data
+          const binaryString = atob(base64Audio);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+
+          // Convert PCM16 to Float32
+          const pcm16 = new Int16Array(bytes.buffer);
+          const float32 = new Float32Array(pcm16.length);
+
+          for (let i = 0; i < pcm16.length; i++) {
+            float32[i] = pcm16[i] / 32768.0;
+          }
+
+          // Create audio buffer (16kHz from server)
+          const audioBuffer = audioContext.createBuffer(
+            1,
+            float32.length,
+            16000,
+          );
+          audioBuffer.getChannelData(0).set(float32);
+
+          // Play audio
+          const source = audioContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioContext.destination);
+          source.start(0);
+
+          // Visual indicator
+          const indicator = document.getElementById("customerIndicator");
+          indicator.classList.add("speaking");
+          setTimeout(() => {
+            indicator.classList.remove("speaking");
+          }, 300);
+        } catch (error) {
+          console.error("Error playing customer audio:", error);
+        }
+      }
+
+      function toggleMute() {
+        isMuted = !isMuted;
+        const btn = document.getElementById("muteBtn");
+
+        if (isMuted) {
+          btn.textContent = "🔇 Unmute";
+          btn.classList.add("muted");
+        } else {
+          btn.textContent = "🎤 Mute";
+          btn.classList.remove("muted");
+        }
+
+        console.log(isMuted ? "🔇 Muted" : "🔊 Unmuted");
+      }
+
+      function endTakeover() {
+        if (adminWs && activeCallUuid) {
+          adminWs.send(
+            JSON.stringify({
+              type: "end_takeover",
+            }),
+          );
+        }
+        cleanupCall();
+      }
+
+      function cleanupCall() {
+        if (audioProcessor) {
+          audioProcessor.disconnect();
+          audioProcessor = null;
+        }
+
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          mediaStream = null;
+        }
+
+        if (audioContext) {
+          audioContext.close();
+          audioContext = null;
+        }
+
+        activeCallUuid = null;
+        isMuted = false;
+
+        document.getElementById("controlPanel").classList.remove("active");
+        document.getElementById("muteBtn").textContent = "🎤 Mute";
+        document.getElementById("muteBtn").classList.remove("muted");
+
+        loadActiveCalls();
+      }
+
+      // Audio utility functions
+      function resampleAudio(audioData, fromRate, toRate) {
+        const ratio = fromRate / toRate;
+        const newLength = Math.round(audioData.length / ratio);
+        const result = new Float32Array(newLength);
+
+        for (let i = 0; i < newLength; i++) {
+          const srcIndex = i * ratio;
+          const srcIndexFloor = Math.floor(srcIndex);
+          const srcIndexCeil = Math.min(
+            srcIndexFloor + 1,
+            audioData.length - 1,
+          );
+          const t = srcIndex - srcIndexFloor;
+
+          result[i] =
+            audioData[srcIndexFloor] * (1 - t) + audioData[srcIndexCeil] * t;
+        }
+
+        return result;
+      }
+
+      function convertFloat32ToPCM16(float32Array) {
+        const pcm16 = new Int16Array(float32Array.length);
+        for (let i = 0; i < float32Array.length; i++) {
+          const s = Math.max(-1, Math.min(1, float32Array[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+        return pcm16.buffer;
+      }
+
+      function arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+      }
+
+      function getAudioVolume(audioData) {
+        let sum = 0;
+        for (let i = 0; i < audioData.length; i++) {
+          sum += audioData[i] * audioData[i];
+        }
+        return Math.sqrt(sum / audioData.length);
+      }
+
+      // Initialize on load
+      window.addEventListener("DOMContentLoaded", () => {
+        connectToServer();
+      });
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        cleanupCall();
+        if (adminWs) {
+          adminWs.close();
+        }
+      });
+    </script>
+  </body>
+</html>
