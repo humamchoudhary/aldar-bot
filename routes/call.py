@@ -26,9 +26,6 @@ from . import call_bp
 #     return render_template('call/index.html')
 #
 #
-# @call_bp.route('/calls')
-# def calls():
-#     return render_template('call/admin-calls.html')
 #
 #
 # #
@@ -256,7 +253,7 @@ from . import call_bp
 
 
 
-from flask import Flask, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
 from twilio.rest import Client as TwilioClient
@@ -452,6 +449,11 @@ def handle_call_event():
             del active_transfers[call_uuid]
     
     return jsonify({"success": True})
+
+
+@call_bp.route('/calls')
+def calls():
+    return render_template('call/admin-calls.html')
 
 
 if __name__ == '__main__':
