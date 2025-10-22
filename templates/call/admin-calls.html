@@ -354,6 +354,11 @@
       }
 
       function handleServerMessage(data) {
+        if (!data || !data.type) {
+          console.warn("Received message without type:", data);
+          return;
+        }
+
         console.log("Received:", data.type);
 
         switch (data.type) {
@@ -372,7 +377,9 @@
             break;
 
           case "customer_audio":
-            playCustomerAudio(data.audio);
+            if (data.audio) {
+              playCustomerAudio(data.audio);
+            }
             break;
 
           case "takeover_ended":
@@ -383,6 +390,9 @@
           case "error":
             alert("Error: " + data.message);
             break;
+
+          default:
+            console.warn("Unknown message type:", data.type);
         }
       }
 

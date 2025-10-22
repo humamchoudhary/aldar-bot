@@ -132,9 +132,9 @@ class GeminiTwilioBridge:
                     ]}]
         }
 
-
         self.admin_mode = False
         self.admin_ws = None
+        self.twilio_ws = None  # Store Twilio WebSocket reference
     
     def _call_aldar_api(self, function_name, parameters):
         """Execute actual API calls to Aldar Exchange"""
@@ -151,7 +151,6 @@ class GeminiTwilioBridge:
                 response = requests.get(url)
                 response.raise_for_status()
                 branches = response.json()
-                # Wrap list in dictionary as Gemini expects dict response
                 return {"branches": branches, "total_count": len(branches)}
             
             elif function_name == "calculate_exchange":
@@ -168,8 +167,6 @@ class GeminiTwilioBridge:
             
         except requests.exceptions.RequestException as e:
             return {"error": f"API call failed: {str(e)}"}
-
-
 
     def get_system_instruction(self):
         try:
@@ -213,8 +210,8 @@ class GeminiTwilioBridge:
                 if event == "start":
                     self.stream_sid = data["start"]["streamSid"]
                     self.custom_params = data["start"]["customParameters"]
-                    print(data)
-                    print(f"📡 Twilio stream started: {self.stream_sid} -> {self.custom_params}")
+                    print(f"📡 Twilio stream started: {self.stream_sid}")
+                    print(f"👤 Customer info: {self.custom_params}")
                     
                     active_calls[self.call_uuid] = self
                     await self.initialize_call()
@@ -225,13 +222,19 @@ class GeminiTwilioBridge:
                     pcm_bytes = audioop.ulaw2lin(mulaw_bytes, 2)
                     pcm_16k, _ = audioop.ratecv(pcm_bytes, 2, 1, 8000, 16000, None)
                     self.merged_wav.writeframes(pcm_16k)
-                    yield pcm_16k
+                    
+                    # Send customer audio to admin if in admin mode
                     if self.admin_mode and self.admin_ws:
                         await self.send_audio_to_admin(pcm_16k)
+                    
+                    # Only yield to Gemini if NOT in admin mode
+                    if not self.admin_mode:
+                        yield pcm_16k
 
                 elif event == "stop":
                     print("🛑 Twilio stream stopped.")
                     break
+                    
             except Exception as e:
                 print(f"❌ Error in twilio_audio_stream: {e}")
                 break
@@ -239,31 +242,36 @@ class GeminiTwilioBridge:
     async def send_audio_to_admin(self, pcm_data):
         """Send customer audio to admin WebSocket."""
         try:
-            b64_audio = base64.b64encode(pcm_data).decode('utf-8')
-            await self.admin_ws.send(json.dumps({
-                "type": "customer_audio",
-                "audio": b64_audio
-            }))
+            if self.admin_ws:
+                b64_audio = base64.b64encode(pcm_data).decode('utf-8')
+                await self.admin_ws.send(json.dumps({
+                    "type": "customer_audio",
+                    "audio": b64_audio
+                }))
+                # print("📤 Sent customer audio to admin")  # Too verbose
         except Exception as e:
             print(f"❌ Error sending audio to admin: {e}")
+            self.admin_mode = False
+            self.admin_ws = None
 
-    async def receive_admin_audio(self, audio_data):
-        """Receive audio from admin and send to customer via Twilio."""
+    async def send_audio_to_customer(self, pcm_16k_data):
+        """Send audio to customer via Twilio."""
         try:
             if self.stream_sid:
-                # Convert admin audio (PCM 16kHz) to Twilio format
-                pcm_8k, _ = audioop.ratecv(audio_data, 2, 1, 16000, 8000, None)
+                # Convert PCM 16kHz to Twilio format (8kHz µ-law)
+                pcm_8k, _ = audioop.ratecv(pcm_16k_data, 2, 1, 16000, 8000, None)
                 mulaw_data = audioop.lin2ulaw(pcm_8k, 2)
                 b64_audio = base64.b64encode(mulaw_data).decode("utf-8")
                 
+                # Send via the main Twilio WebSocket
                 await websocket.send(json.dumps({
                     "event": "media",
                     "streamSid": self.stream_sid,
                     "media": {"payload": b64_audio}
                 }))
-                print("🎤 Sent admin audio to customer")
+                # print("🎤 Sent audio to customer")  # Too verbose
         except Exception as e:
-            print(f"❌ Error sending admin audio: {e}")
+            print(f"❌ Error sending audio to customer: {e}")
 
     async def admin_takeover(self, admin_websocket):
         """Switch from Gemini to Admin mode."""
@@ -272,11 +280,15 @@ class GeminiTwilioBridge:
         self.admin_ws = admin_websocket
         
         # Notify admin
-        await self.admin_ws.send(json.dumps({
-            "type": "takeover_success",
-            "call_uuid": self.call_uuid,
-            "customer_info": self.custom_params
-        }))
+        try:
+            await self.admin_ws.send(json.dumps({
+                "type": "takeover_success",
+                "call_uuid": self.call_uuid,
+                "customer_info": self.custom_params
+            }))
+        except Exception as e:
+            print(f"❌ Failed to send takeover confirmation: {e}")
+            return
         
         # Add transcription note
         self.transcriptions.append({
@@ -286,21 +298,27 @@ class GeminiTwilioBridge:
         
         # Keep admin connection alive and handle audio
         try:
-            while True:
-                msg = await self.admin_ws.receive()
-                data = json.loads(msg)
-                
-                if data.get("type") == "admin_audio":
-                    # Admin is speaking, send to customer
-                    audio_b64 = data.get("audio")
-                    if audio_b64:
-                        pcm_data = base64.b64decode(audio_b64)
-                        await self.receive_admin_audio(pcm_data)
-                
-                elif data.get("type") == "end_takeover":
-                    print("👔 Admin ending takeover")
-                    await self.end_admin_takeover()
-                    break
+            while self.admin_mode:
+                try:
+                    msg = await asyncio.wait_for(self.admin_ws.receive(), timeout=0.1)
+                    data = json.loads(msg)
+                    
+                    if data.get("type") == "admin_audio":
+                        # Admin is speaking, send to customer
+                        audio_b64 = data.get("audio")
+                        if audio_b64:
+                            pcm_data = base64.b64decode(audio_b64)
+                            await self.send_audio_to_customer(pcm_data)
+                    
+                    elif data.get("type") == "end_takeover":
+                        print("👔 Admin ending takeover")
+                        await self.end_admin_takeover()
+                        break
+                        
+                except asyncio.TimeoutError:
+                    # No message received, continue
+                    await asyncio.sleep(0.01)
+                    continue
                     
         except Exception as e:
             print(f"❌ Admin connection error: {e}")
@@ -325,10 +343,6 @@ class GeminiTwilioBridge:
             "transcription": "Admin has left, AI resumed"
         })
 
-
-
-
-
     def convert_audio_to_twilio_format(self, audio_data: bytes) -> str:
         """Convert Gemini PCM (24kHz) → 8kHz µ-law → base64 for Twilio."""
         pcm_8k, _ = audioop.ratecv(audio_data, 2, 1, 24000, 8000, None)
@@ -351,7 +365,6 @@ class GeminiTwilioBridge:
                 "chunk_index": self.last_sent_index,
             }
 
-            print(f"📤 Sending log chunk ({self.last_sent_index}–{len(self.transcriptions)}) → {chunk_url}")
             async with aiohttp.ClientSession() as session:
                 async with session.post(chunk_url, json=payload, ssl=False) as resp:
                     if resp.status == 200:
@@ -374,15 +387,13 @@ class GeminiTwilioBridge:
                     mime_type="audio/pcm;rate=16000"
                 ):
 
-
+                    # Skip Gemini processing when in admin mode
                     if self.admin_mode:
                         continue 
-
 
                     if response.tool_call:
                         print("------ Function Called --------")
                         func_resps = []
-                        print(response.tool_call)
                         for fc in response.tool_call.function_calls:
                             resp = self._call_aldar_api(function_name=fc.name,parameters=fc.args)
                             function_response = types.FunctionResponse(
@@ -394,12 +405,8 @@ class GeminiTwilioBridge:
 
                         await session.send_tool_response(function_responses=func_resps)
 
-
-
-
-
-                    # Handle Gemini -> Twilio audio
-                    if response.data:
+                    # Handle Gemini -> Twilio audio (only when NOT in admin mode)
+                    if response.data and not self.admin_mode:
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
                         self.merged_wav.writeframes(pcm_16k)
 
@@ -410,7 +417,6 @@ class GeminiTwilioBridge:
                                 "streamSid": self.stream_sid,
                                 "media": {"payload": b64_audio}
                             }))
-                            print("🎧 Sent Gemini audio chunk to Twilio")
 
                     # Handle transcriptions
                     if response.server_content.input_transcription:
@@ -427,7 +433,6 @@ class GeminiTwilioBridge:
 
                     if response.server_content.output_transcription:
                         chunk = response.server_content.output_transcription.text
-                        print("🤖 Bot chunk:", chunk)
                         bot_buffer += " " + chunk.strip()
 
                     if response.server_content.model_turn:
@@ -437,6 +442,7 @@ class GeminiTwilioBridge:
                             bot_buffer = ""
                             if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                                 await self.send_log_chunk()
+                                
             except Exception as e:
                 print(f"❌ Error in gemini_session: {e}")
 
@@ -451,6 +457,10 @@ class GeminiTwilioBridge:
 
                 await websocket.close(code=200)
                 print(f"🏁 Call session {self.call_uuid} ended cleanly.")
+
+
+
+
 
 @app.websocket('/admin')
 async def admin_websocket():
