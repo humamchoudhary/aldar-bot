@@ -388,6 +388,11 @@ function handleServerMessage(data) {
 
 
 async function joinCall(callUuid) {
+ 
+    if (!adminWs || adminWs.readyState !== WebSocket.OPEN) {
+        alert('Not connected to server. Please wait for connection.');
+        return;
+    }
     try {
         // Get microphone access
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -520,6 +525,10 @@ function arrayBufferToBase64(buffer) {
     return btoa(binary);
 }
 
+
+window.addEventListener('DOMContentLoaded', () => {
+    connectToServer();
+});
 
 
 
