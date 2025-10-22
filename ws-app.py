@@ -13,24 +13,24 @@ from google.genai import types
 from dotenv import load_dotenv
 import requests
 
-from quart_cors import cors
 # Load environment variables
 load_dotenv()
+
+# Twilio credentials
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_API_KEY = os.getenv("TWILIO_API_KEY")
+TWILIO_API_SECRET = os.getenv("TWILIO_API_SECRET")
+TWILIO_TWIML_APP_SID = os.getenv("TWILIO_TWIML_APP_SID")
 
 # Endpoint to send logs after call ends
 LOG_ENDPOINT = os.getenv("LOG_ENDPOINT", "https://al-dar.go-globe.dev/call/log")
 SYS_INST_ENDPOINT = os.getenv("SYS_INST_ENDPOINT", "https://al-dar.go-globe.dev/call/get-files")
 
-# Admin API endpoint (Flask server)
-ADMIN_API_URL = os.getenv("ADMIN_API_URL", "https://admin.al-dar.go-globe.dev")
-
 # Configure chunk size for incremental logging
-LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))
+LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))  # Send logs every 5 messages by default
 
 app = Quart(__name__)
-app = cors(app, allow_origin="*")
 
-active_calls = {} 
 
 class GeminiTwilioBridge:
     def __init__(self):
@@ -39,12 +39,11 @@ class GeminiTwilioBridge:
 
         # ---- Unique per-call identifiers ----
         self.call_uuid = str(uuid4())
-        self.call_sid = None
         self.transcriptions = []
         self.last_sent_index = 0
+        self.unsent_transcriptions = []
         self.stream_sid = None
         self.custom_params = {}
-        self.transfer_requested = False
 
         # ---- Create per-call WAV file ----
         os.makedirs("recordings", exist_ok=True)
@@ -61,10 +60,8 @@ class GeminiTwilioBridge:
 
         # ---- System instruction ----
         self.system_instruction = """
-        You are a professional AI assistant for Aldar Exchange.
-        If a customer asks to speak with a human or requests human assistance, respond with:
-        "I'll transfer you to one of our representatives. Please hold for a moment."
-        Then immediately call the request_human_transfer function.
+        You are a professional AI assistant trained in customer service and sales communication.
+        Respond concisely (1–3 lines) based only on the uploaded company profile.
         """
         self.get_system_instruction()
 
@@ -74,59 +71,62 @@ class GeminiTwilioBridge:
             "thinking_config": {"thinking_budget": 0},
             "output_audio_transcription": {},
             "input_audio_transcription": {},
-            "speech_config": {
-                "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
-            },
-            "systemInstruction": self.system_instruction,
-            "tools": [{"function_declarations": [
-                {
-                    "name": "request_human_transfer",
-                    "description": "Transfer the call to a human representative when customer requests to speak with a person",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
+             "speech_config": {
+                    "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
                 },
-                {
-                    "name": "get_exchange_rate",
-                    "description": "Get the current exchange rate for a specific rate type. Use type=1 for standard rates.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "rate_type": {
-                                "type": "integer",
-                                "description": "The rate type code (e.g., 1 for standard rate)"
+            "systemInstruction":self.system_instruction,
+
+            "tools":[{"function_declarations":[
+                        {
+                            "name": "get_exchange_rate",
+                            "description": "Get the current exchange rate for a specific rate type. Use type=1 for standard rates.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "rate_type": {
+                                        "type": "integer",
+                                        "description": "The rate type code (e.g., 1 for standard rate)"
+                                    }
+                                },
+                                "required": ["rate_type"]
                             }
                         },
-                        "required": ["rate_type"]
-                    }
-                },
-                {
-                    "name": "get_branch_details",
-                    "description": "Get details of all Aldar Exchange branch locations",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                },
-                {
-                    "name": "calculate_exchange",
-                    "description": "Calculate currency conversion",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "transaction_type": {
-                                "type": "string",
-                                "enum": ["tt", "BUY", "SELL"]
-                            },
-                            "currency_code": {"type": "string"},
-                            "local_amount": {"type": "number"},
-                            "foreign_amount": {"type": "number"}
+                        {
+                            "name": "get_branch_details",
+                            "description": "Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {}
+                            }
                         },
-                        "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
-                    }
-                }
-            ]}]
+                        {
+                            "name": "calculate_exchange",
+                            "description": "Calculate currency conversion between QAR and foreign currency. Specify either local currency amount (QAR) or foreign currency amount, not both.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "transaction_type": {
+                                        "type": "string",
+                                        "description": "Transaction type: 'tt' for transfer, 'BUY' for buying currency, 'SELL' for selling currency",
+                                        "enum": ["tt", "BUY", "SELL"]
+                                    },
+                                    "currency_code": {
+                                        "type": "string",
+                                        "description": "3-letter ISO currency code (e.g., USD, EUR, GBP)"
+                                    },
+                                    "local_amount": {
+                                        "type": "number",
+                                        "description": "Amount in local currency (QAR). Use 0 if specifying foreign amount."
+                                    },
+                                    "foreign_amount": {
+                                        "type": "number",
+                                        "description": "Amount in foreign currency. Use 0 if specifying local amount."
+                                    }
+                                },
+                                "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
+                            }
+                        }
+                    ]}]
         }
 
     def _call_aldar_api(self, function_name, parameters):
@@ -144,6 +144,7 @@ class GeminiTwilioBridge:
                 response = requests.get(url)
                 response.raise_for_status()
                 branches = response.json()
+                # Wrap list in dictionary as Gemini expects dict response
                 return {"branches": branches, "total_count": len(branches)}
             
             elif function_name == "calculate_exchange":
@@ -160,6 +161,8 @@ class GeminiTwilioBridge:
             
         except requests.exceptions.RequestException as e:
             return {"error": f"API call failed: {str(e)}"}
+
+
 
     def get_system_instruction(self):
         try:
@@ -178,10 +181,9 @@ class GeminiTwilioBridge:
             init_url = f"{LOG_ENDPOINT}/{self.call_uuid}"
             payload = {
                 "call_uuid": self.call_uuid,
-                "call_sid": self.call_sid,
                 "file_name": self.filename,
                 "started_at": datetime.datetime.now().isoformat(),
-                "custom_params": self.custom_params
+                "custom_params":self.custom_params
             }
             print(f"📞 Initializing call session → {init_url}")
             async with aiohttp.ClientSession() as session:
@@ -193,44 +195,6 @@ class GeminiTwilioBridge:
         except Exception as e:
             print(f"❌ Error initializing call: {e}")
 
-    async def notify_admin_api(self, event_type, data=None):
-        """Notify the admin Flask server about call events"""
-        try:
-            payload = {
-                "call_uuid": self.call_uuid,
-                "call_sid": self.call_sid,
-                "event": event_type,
-                "customer_info": self.custom_params,
-                "data": data or {}
-            }
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{ADMIN_API_URL}/api/call-event",
-                    json=payload,
-                    ssl=False
-                ) as resp:
-                    if resp.status == 200:
-                        print(f"✅ Notified admin API: {event_type}")
-                    else:
-                        print(f"⚠️ Failed to notify admin API: {resp.status}")
-        except Exception as e:
-            print(f"❌ Error notifying admin API: {e}")
-
-    async def request_transfer_to_admin(self):
-        """Handle transfer request from Gemini"""
-        print(f"🔄 Transfer requested for call {self.call_uuid}")
-        self.transfer_requested = True
-        self.transcriptions.append({
-            "name": "system",
-            "transcription": "Customer requested human assistance - transfer initiated"
-        })
-        
-        # Notify admin server
-        await self.notify_admin_api("transfer_requested", {
-            "reason": "customer_request"
-        })
-
     async def twilio_audio_stream(self):
         """Handle incoming Twilio WebSocket audio stream."""
         while True:
@@ -241,23 +205,13 @@ class GeminiTwilioBridge:
 
                 if event == "start":
                     self.stream_sid = data["start"]["streamSid"]
-                    self.call_sid = data["start"]["callSid"]
                     self.custom_params = data["start"]["customParameters"]
-                    print(f"📡 Twilio stream started: {self.stream_sid}")
-                    print(f"📞 Call SID: {self.call_sid}")
-                    print(f"👤 Customer info: {self.custom_params}")
-                    
-                    active_calls[self.call_uuid] = self
+                    print(data)
+                    print(f"📡 Twilio stream started: {self.stream_sid} -> {self.custom_params}")
+
                     await self.initialize_call()
-                    
-                    # Notify admin server about new call
-                    await self.notify_admin_api("call_started")
 
                 elif event == "media":
-                    # Stop processing if transfer is requested
-                    if self.transfer_requested:
-                        continue
-
                     audio_b64 = data["media"]["payload"]
                     mulaw_bytes = base64.b64decode(audio_b64)
                     pcm_bytes = audioop.ulaw2lin(mulaw_bytes, 2)
@@ -267,9 +221,7 @@ class GeminiTwilioBridge:
 
                 elif event == "stop":
                     print("🛑 Twilio stream stopped.")
-                    await self.notify_admin_api("call_ended")
                     break
-                    
             except Exception as e:
                 print(f"❌ Error in twilio_audio_stream: {e}")
                 break
@@ -296,6 +248,7 @@ class GeminiTwilioBridge:
                 "chunk_index": self.last_sent_index,
             }
 
+            print(f"📤 Sending log chunk ({self.last_sent_index}–{len(self.transcriptions)}) → {chunk_url}")
             async with aiohttp.ClientSession() as session:
                 async with session.post(chunk_url, json=payload, ssl=False) as resp:
                     if resp.status == 200:
@@ -318,38 +271,28 @@ class GeminiTwilioBridge:
                     mime_type="audio/pcm;rate=16000"
                 ):
 
-                    # Stop processing if transfer requested
-                    if self.transfer_requested:
-                        print("🔄 Transfer in progress, stopping Gemini responses")
-                        # Close this stream gracefully
-                        break
 
                     if response.tool_call:
                         print("------ Function Called --------")
                         func_resps = []
+                        print(response.tool_call)
                         for fc in response.tool_call.function_calls:
-                            print(f"Function: {fc.name}")
-                            
-                            if fc.name == "request_human_transfer":
-                                await self.request_transfer_to_admin()
-                                function_response = types.FunctionResponse(
-                                    id=fc.id,
-                                    name=fc.name,
-                                    response={"status": "transfer_initiated", "message": "Transferring to representative"}
-                                )
-                            else:
-                                resp = self._call_aldar_api(function_name=fc.name, parameters=fc.args)
-                                function_response = types.FunctionResponse(
-                                    id=fc.id,
-                                    name=fc.name,
-                                    response=resp
-                                )
+                            resp = self._call_aldar_api(function_name=fc.name,parameters=fc.args)
+                            function_response = types.FunctionResponse(
+                                id=fc.id,
+                                name=fc.name,
+                                response=resp
+                            )
                             func_resps.append(function_response)
 
                         await session.send_tool_response(function_responses=func_resps)
 
+
+
+
+
                     # Handle Gemini -> Twilio audio
-                    if response.data and not self.transfer_requested:
+                    if response.data:
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
                         self.merged_wav.writeframes(pcm_16k)
 
@@ -360,6 +303,7 @@ class GeminiTwilioBridge:
                                 "streamSid": self.stream_sid,
                                 "media": {"payload": b64_audio}
                             }))
+                            print("🎧 Sent Gemini audio chunk to Twilio")
 
                     # Handle transcriptions
                     if response.server_content.input_transcription:
@@ -376,6 +320,7 @@ class GeminiTwilioBridge:
 
                     if response.server_content.output_transcription:
                         chunk = response.server_content.output_transcription.text
+                        print("🤖 Bot chunk:", chunk)
                         bot_buffer += " " + chunk.strip()
 
                     if response.server_content.model_turn:
@@ -385,7 +330,6 @@ class GeminiTwilioBridge:
                             bot_buffer = ""
                             if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                                 await self.send_log_chunk()
-                                
             except Exception as e:
                 print(f"❌ Error in gemini_session: {e}")
 
@@ -394,114 +338,16 @@ class GeminiTwilioBridge:
                     self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                 self.merged_wav.close()
                 await self.send_log_chunk(is_final=True)
+                await websocket.close(code=200)
+                print(f"🏁 Call session {self.call_uuid} ended cleanly.")
 
-                if self.call_uuid in active_calls:
-                    del active_calls[self.call_uuid]
-
-                # Don't close websocket if transferring - let Twilio handle it
-                if not self.transfer_requested:
-                    await websocket.close(code=200)
-                    
-                print(f"🏁 Call session {self.call_uuid} ended.")
-
-
-# ============= API ROUTES FOR ADMIN SERVER =============
-
-@app.route('/api/active-calls', methods=['GET'])
-async def get_active_calls():
-    """API endpoint for admin server to get active calls"""
-    calls_list = [
-        {
-            "call_uuid": uuid,
-            "call_sid": bridge.call_sid,
-            "customer_info": bridge.custom_params,
-            "transfer_requested": bridge.transfer_requested,
-            "stream_sid": bridge.stream_sid
-        }
-        for uuid, bridge in active_calls.items()
-    ]
-    from quart import jsonify
-    return jsonify({"calls": calls_list})
-
-
-@app.route('/api/get-call-info/<call_uuid>', methods=['GET'])
-async def get_call_info(call_uuid):
-    """Get specific call information"""
-    from quart import jsonify
-    
-    if call_uuid not in active_calls:
-        return jsonify({"error": "Call not found"}), 404
-    
-    bridge = active_calls[call_uuid]
-    return jsonify({
-        "call_uuid": call_uuid,
-        "call_sid": bridge.call_sid,
-        "customer_info": bridge.custom_params,
-        "transfer_requested": bridge.transfer_requested,
-        "stream_sid": bridge.stream_sid,
-        "transcriptions": bridge.transcriptions
-    })
-
-
-# ============= WEBSOCKET ENDPOINT =============
 
 @app.websocket('/')
 async def media_stream():
-    """Main WebSocket endpoint for customer Twilio Media Stream (Gemini)"""
-    print("🚀 Customer Twilio WebSocket connected.")
+    """Main WebSocket endpoint for Twilio Media Stream."""
+    print("🚀 Twilio WebSocket connected.")
     bridge = GeminiTwilioBridge()
     await bridge.gemini_session()
-
-
-@app.websocket('/admin-stream/<call_uuid>')
-async def admin_stream(call_uuid):
-    """WebSocket endpoint for admin audio stream"""
-    print(f"👔 Admin stream connected for call {call_uuid}")
-    
-    if call_uuid not in active_calls:
-        print(f"❌ Call {call_uuid} not found")
-        await websocket.close(1000)
-        return
-    
-    bridge = active_calls[call_uuid]
-    stream_sid = None
-    
-    try:
-        # Notify that admin joined
-        bridge.transcriptions.append({
-            "name": "system",
-            "transcription": "Admin joined the call"
-        })
-        
-        while True:
-            message = await websocket.receive()
-            data = json.loads(message)
-            event = data.get("event")
-            
-            if event == "start":
-                stream_sid = data["start"]["streamSid"]
-                print(f"📡 Admin stream started: {stream_sid}")
-            
-            elif event == "media":
-                # Receive admin audio and record it
-                audio_b64 = data["media"]["payload"]
-                mulaw_bytes = base64.b64decode(audio_b64)
-                pcm_bytes = audioop.ulaw2lin(mulaw_bytes, 2)
-                pcm_16k, _ = audioop.ratecv(pcm_bytes, 2, 1, 8000, 16000, None)
-                bridge.merged_wav.writeframes(pcm_16k)
-            
-            elif event == "stop":
-                print("🛑 Admin stream stopped")
-                bridge.transcriptions.append({
-                    "name": "system",
-                    "transcription": "Admin left the call"
-                })
-                break
-                
-    except Exception as e:
-        print(f"❌ Error in admin stream: {e}")
-    finally:
-        print(f"👔 Admin stream ended for {call_uuid}")
 
 
 if __name__ == "__main__":

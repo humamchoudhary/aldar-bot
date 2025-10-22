@@ -326,7 +326,9 @@
       // Initialize Twilio Device
       async function initDevice() {
         try {
-          const response = await fetch("/call/token");
+          const response = await fetch(
+            `/call/token${elements.nameInput.value}-${elements.qidInput.value}`,
+          );
 
           if (!response.ok) {
             throw new Error(`Failed to fetch token: ${response.status}`);

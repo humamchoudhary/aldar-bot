@@ -117,7 +117,23 @@
         <!-- Call Detail Section -->
         {% include "components/call.html" %}
     </div>
+    <!-- Operator Status Widget -->
+    <div id="operator-status-widget"
+         class="fixed bottom-4 right-4 bg-[var(--sec-bg-color)] border border-[var(--border-color)] rounded-2xl shadow-lg p-4 flex flex-col gap-2 min-w-[220px]">
+        <div class="flex flex-row items-center justify-between">
+            <span class="font-semibold text-sm text-[var(--sec-text)]">Operator Status:</span>
+            <span id="operator-status" class="text-sm text-blue-500">Initializing...</span>
+        </div>
+        <div class="flex flex-row justify-between mt-2">
+            <button id="endCallBtn"
+                    class="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition"
+                    onclick="endCall()">End</button>
+        </div>
+    </div>
 </div>
+
+
+
 
 <script>
 function toggleDropdown() {
@@ -317,220 +333,87 @@ function handleDeleteResponse(event, callId) {
         });
     }
 }
-
-
-let adminWs = null;
-let serverBaseUrl = '';
-let activeCallUuid = null;
-let audioContext = null;
-let mediaStream = null;
-let isMuted = false;
-
-
-
-function connectToServer() {
-    const serverUrl = "https://al-dar-call.go-globe.dev";
-    serverBaseUrl = serverUrl.replace('ws://', 'http://').replace('wss://', 'https://');
-    
-    // Connect WebSocket
-    adminWs = new WebSocket(serverUrl + '/admin');
-    
-    adminWs.onopen = () => {
-        console.log('✅ Connected to server');
-    };
-    
-    adminWs.onmessage = (event) => {
-        console.log(event)
-        const data = JSON.parse(event.data);
-        handleServerMessage(data);
-    };
-    
-    adminWs.onerror = (error) => {
-        console.error('Connection error:', error);
-        document.getElementById('connectionStatus').textContent = '❌ Error';
-    };
-    
-    adminWs.onclose = () => {
-        document.getElementById('connectionStatus').textContent = '🔌 Disconnected';
-    };
-}
-
-
-
-
-function handleServerMessage(data) {
-    switch(data.type) {
-            
-        case 'takeover_success':
-            console.log('✅ Takeover successful');
-            activeCallUuid = data.call_uuid;
-            document.getElementById('customerName').textContent = 
-                data.customer_info.name || 'Unknown';
-            document.getElementById('callControl').style.display = 'block';
-            break;
-            
-        case 'customer_audio':
-            // Customer is speaking - you receive their audio here
-            playCustomerAudio(data.audio);
-            break;
-            
-        case 'takeover_ended':
-            console.log('Call returned to AI');
-            cleanupCall();
-            break;
-            
-        case 'error':
-            alert('Error: ' + data.message);
-            break;
-    }
-}
-
-
-async function joinCall(callUuid) {
- 
-    if (!adminWs || adminWs.readyState !== WebSocket.OPEN) {
-        alert('Not connected to server. Please wait for connection.');
-        return;
-    }
-    try {
-        // Get microphone access
-        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // Setup audio processing
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioContext.createMediaStreamSource(mediaStream);
-        const processor = audioContext.createScriptProcessor(4096, 1, 1);
-        
-        source.connect(processor);
-        processor.connect(audioContext.destination);
-        
-        // Send admin audio to server
-        processor.onaudioprocess = (e) => {
-            if (!isMuted && adminWs && adminWs.readyState === WebSocket.OPEN) {
-                const inputData = e.inputBuffer.getChannelData(0);
-                const pcm16 = convertFloat32ToPCM16(inputData);
-                const base64Audio = arrayBufferToBase64(pcm16);
-                
-                adminWs.send(JSON.stringify({
-                    type: 'admin_audio',
-                    audio: base64Audio
-                }));
-            }
-        };
-        
-        // Send join request to server
-        adminWs.send(JSON.stringify({
-            action: 'join_call',
-            call_uuid: callUuid
-        }));
-        
-    } catch (error) {
-        console.error('Failed to join call:', error);
-        alert('Microphone access required: ' + error.message);
-    }
-}
-
-// End takeover and return to AI
-function endTakeover() {
-    if (adminWs && activeCallUuid) {
-        adminWs.send(JSON.stringify({
-            type: 'end_takeover'
-        }));
-    }
-    cleanupCall();
-}
-
-// Toggle mute
-function toggleMute() {
-    isMuted = !isMuted;
-    console.log(isMuted ? '🔇 Muted' : '🔊 Unmuted');
-}
-
-// Cleanup after call ends
-function cleanupCall() {
-    if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-    }
-    if (audioContext) {
-        audioContext.close();
-        audioContext = null;
-    }
-    activeCallUuid = null;
-    isMuted = false;
-    document.getElementById('callControl').style.display = 'none';
-    loadActiveCalls(); // Refresh list
-}
-
-// Play customer audio (optional - if you want to hear customer)
-function playCustomerAudio(base64Audio) {
-    console.log('Received customer audio');
-
-    // 1. Create an AudioContext (or reuse an existing one)
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-    // 2. Decode the base64 string back into binary data (ArrayBuffer)
-    // Assumes the base64 string represents binary audio data (e.g., from a WAV/MP3 file)
-    const audioData = atob(base64Audio);
-    const bufferLength = audioData.length;
-    const arrayBuffer = new ArrayBuffer(bufferLength);
-    const view = new Uint8Array(arrayBuffer);
-
-    for (let i = 0; i < bufferLength; i++) {
-        view[i] = audioData.charCodeAt(i);
-    }
-
-    // 3. Decode the audio data into an AudioBuffer
-    audioContext.decodeAudioData(arrayBuffer,
-        (audioBuffer) => {
-            // Success callback
-            console.log('Audio decoded successfully.');
-
-            // 4. Create a source node
-            const source = audioContext.createBufferSource();
-
-            // 5. Set the buffer for the source
-            source.buffer = audioBuffer;
-
-            // 6. Connect the source to the speakers (destination)
-            source.connect(audioContext.destination);
-
-            // 7. Start playing the audio immediately
-            source.start(0); // Start at time 0
-        },
-        (e) => {
-            // Error callback
-            console.error("Error decoding audio data:", e);
-        }
-    );
-}
-
-// Audio conversion helpers
-function convertFloat32ToPCM16(float32Array) {
-    const pcm16 = new Int16Array(float32Array.length);
-    for (let i = 0; i < float32Array.length; i++) {
-        const s = Math.max(-1, Math.min(1, float32Array[i]));
-        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-    }
-    return pcm16.buffer;
-}
-
-function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-}
-
-
-window.addEventListener('DOMContentLoaded', () => {
-    connectToServer();
-});
-
-
-
 </script>
+
+
+<script src="static/js/twilio.min.js"></script>
+
+
+<script>
+let device = null;
+let activeCall = null;
+
+// 🧩 Initialize Twilio Device for Operator
+async function initOperatorDevice() {
+  updateOperatorStatus("Initializing...");
+  try {
+    const res = await fetch("/call/token?identity=operator"); // Backend must serve token
+    const data = await res.json();
+
+    device = new Twilio.Device(data.token, {
+      codecPreferences: ["opus", "pcmu"],
+      fakeMicInput: false,
+      enableRingingState: true
+    });
+
+    device.on("ready", () => updateOperatorStatus("Idle"));
+    device.on("error", (err) => updateOperatorStatus(`Error: ${err.message}`));
+    device.on("disconnect", () => updateOperatorStatus("Idle"));
+    device.on("incoming", handleIncomingCall);
+
+  } catch (e) {
+    updateOperatorStatus("Initialization failed");
+    console.error("Twilio init error:", e);
+  }
+}
+
+// 📞 Handle incoming call event
+function handleIncomingCall(call) {
+  console.log("Incoming call to operator:", call);
+  activeCall = call;
+  updateOperatorStatus("Incoming call...");
+  
+  // Optionally, show Accept button or auto-accept for testing:
+  // call.accept();
+}
+
+// 🚀 Join a conference (called when operator presses a button)
+async function initiateCall(conferenceName) {
+  if (!device) {
+    console.warn("Device not ready");
+    return;
+  }
+  updateOperatorStatus("Connecting...");
+  try {
+    const call = await device.connect({ params: { To: conferenceName } });
+    activeCall = call;
+    updateOperatorStatus(`Connected (${conferenceName})`);
+  } catch (e) {
+    updateOperatorStatus("Connection failed");
+    console.error(e);
+  }
+}
+
+// 🛑 End the active call
+function endCall() {
+  if (activeCall) {
+    activeCall.disconnect();
+    activeCall = null;
+  }
+  updateOperatorStatus("Idle");
+}
+
+// 🟢 Helper to update UI text
+function updateOperatorStatus(text) {
+  const el = document.getElementById("operator-status");
+  if (el) el.textContent = text;
+}
+
+// Initialize when page loads
+document.addEventListener("DOMContentLoaded", initOperatorDevice);
+</script>
+
+
+
 
 {% endblock %}
