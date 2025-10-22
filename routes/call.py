@@ -63,7 +63,7 @@ def get_voice():
 
         op_dial = response.dial()
         op_dial.conference(
-            f"{request.values.get('name', None)}-{request.values.get('qid', None)}",
+            f" {request.values.get("To")}",
           startConferenceOnEnter= True,
           endConferenceOnExit= True,            )
 
