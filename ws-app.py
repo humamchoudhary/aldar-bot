@@ -13,6 +13,7 @@ from google.genai import types
 from dotenv import load_dotenv
 import requests
 
+from quart_cors import cors
 # Load environment variables
 load_dotenv()
 
@@ -27,6 +28,7 @@ ADMIN_API_URL = os.getenv("ADMIN_API_URL", "https://admin.al-dar.go-globe.dev")
 LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))
 
 app = Quart(__name__)
+app = cors(app, allow_origin="*")
 
 active_calls = {} 
 
