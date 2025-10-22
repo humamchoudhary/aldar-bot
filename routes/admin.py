@@ -3062,14 +3062,120 @@ def get_all_calls():
 def get_call(call_id):
     call_service = CallService(current_app.db)
     call = call_service.get_full_call(call_id)
+
+    if request.headers.get("HX-Request"):
+        return render_template(
+            "components/call.html",
+            call=call,
+        )
+
+    calls = call_service.get_calls_with_limited_data(
+        admin_id=session.get("admin_id"),
+        limit=20,
+        skip=0
+    )
+    pprint(calls)
+    
+    # Get call counts for dropdown
+    call_counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
+    
     return render_template(
-        "components/call.html",
+        "admin/calls.html",
+        calls=calls,
         call=call,
+        call_counts=call_counts,
+        has_more=len(calls) == 20,
+        next_page=1,
+        current_filter='all'
     )
 
 @admin_bp.route("/call/<call_id>/audio")
 def send_audio_file(call_id):
     return send_file(f"recordings/call_{call_id}.wav", mimetype="audio/wav")
+
+
+@admin_bp.route("/calls/<filter>", methods=["GET"])
+@admin_required
+def filter_calls(filter):
+    """Filter calls by status with pagination."""
+    call_service = CallService(current_app.db)
+    
+    page = int(request.args.get('page', 0))
+    limit = 20
+    skip = page * limit
+    is_pagination = request.args.get('pagination', 'false') == 'true'
+    
+    # Map filter to status
+    filter_map = {
+        'all': 'all',
+        'ongoing': 'ongoing',
+        'ended': 'ended',
+        'in_progress': 'in_progress'
+    }
+    
+    filter_type = filter_map.get(filter, 'all')
+    
+    # Get filtered calls
+    calls = call_service.get_calls_with_limited_data(
+        admin_id=session.get("admin_id"),
+        limit=limit,
+        skip=skip,
+        filter_type=filter_type
+    )
+    
+    # Check if there are more calls
+    has_more = len(calls) == limit
+    
+    if is_pagination:
+        # Return only the call items for infinite scroll
+        return render_template(
+            "components/call-list-items.html",
+            calls=calls,
+            has_more=has_more,
+            next_page=page + 1,
+            current_filter=filter
+        )
+    else:
+        # Return the full call list container
+        return render_template(
+            "components/call-list.html",
+            calls=calls,
+            has_more=has_more,
+            next_page=page + 1,
+            current_filter=filter
+        )
+
+
+@admin_bp.route("/calls_list/", methods=["GET"])
+@admin_required
+def get_calls_list():
+    """Get calls list (used for real-time updates via Socket.IO)."""
+    call_service = CallService(current_app.db)
+    
+    calls = call_service.get_calls_with_limited_data(
+        admin_id=session.get("admin_id"),
+        limit=20,
+        skip=0
+    )
+    
+    return render_template(
+        "components/call-list.html",
+        calls=calls,
+        has_more=len(calls) == 20,
+        next_page=1,
+        current_filter='all'
+    )
+
+
+@admin_bp.route("/call-counts", methods=["GET"])
+@admin_required
+def get_call_counts():
+    """API endpoint to get call counts for all filters."""
+    call_service = CallService(current_app.db)
+    counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
+    return jsonify(counts)
+
+
 
 def register_admin_socketio_events(socketio):
     @socketio.on("admin_join")

@@ -6,7 +6,7 @@
     class="hidden"
     hx-get="/admin/call/{{ call.call_id }}"
     hx-target="#callarea"
-    hx-swap="innerHTML"
+    hx-swap="outerHTML"
     hx-trigger="click from:#call-{{ call.call_id }}"
     hx-push-url="true"
   ></div>
@@ -68,23 +68,6 @@
 
     <!-- Action Buttons -->
     <div class="flex flex-row gap-2">
-      {% if call.audio %}
-      <a
-        href="{{ call.audio }}"
-        target="_blank"
-        onclick="event.stopPropagation();"
-        class="flex items-center gap-3 px-2 py-2 hover:bg-[var(--border-color)] cursor-pointer transition-all duration-200 rounded-md"
-      >
-        <i
-          data-lucide="play-circle"
-          class="text-[var(--main-color)] size-[16px]"
-        ></i>
-        <span class="text-sm text-[var(--main-color)] hidden 2xl:inline"
-          >Play Recording</span
-        >
-      </a>
-      {% endif %}
-
       <div
         hx-post="/admin/call/{{ call.call_id }}/delete"
         hx-target="#call-{{ call.call_id }}"

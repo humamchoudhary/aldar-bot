@@ -32,6 +32,9 @@ LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))  # Send logs every 5 mess
 app = Quart(__name__)
 
 
+
+active_calls = {} 
+
 class GeminiTwilioBridge:
     def __init__(self):
         self.client = genai.Client(api_key=os.getenv("GEMINI_KEY"))
@@ -129,6 +132,10 @@ class GeminiTwilioBridge:
                     ]}]
         }
 
+
+        self.admin_mode = False
+        self.admin_ws = None
+    
     def _call_aldar_api(self, function_name, parameters):
         """Execute actual API calls to Aldar Exchange"""
         try:
@@ -208,7 +215,8 @@ class GeminiTwilioBridge:
                     self.custom_params = data["start"]["customParameters"]
                     print(data)
                     print(f"📡 Twilio stream started: {self.stream_sid} -> {self.custom_params}")
-
+                    
+                    active_calls[self.call_uuid] = self
                     await self.initialize_call()
 
                 elif event == "media":
@@ -218,6 +226,8 @@ class GeminiTwilioBridge:
                     pcm_16k, _ = audioop.ratecv(pcm_bytes, 2, 1, 8000, 16000, None)
                     self.merged_wav.writeframes(pcm_16k)
                     yield pcm_16k
+                    if self.admin_mode and self.admin_ws:
+                        await self.send_audio_to_admin(pcm_16k)
 
                 elif event == "stop":
                     print("🛑 Twilio stream stopped.")
@@ -225,6 +235,99 @@ class GeminiTwilioBridge:
             except Exception as e:
                 print(f"❌ Error in twilio_audio_stream: {e}")
                 break
+
+    async def send_audio_to_admin(self, pcm_data):
+        """Send customer audio to admin WebSocket."""
+        try:
+            b64_audio = base64.b64encode(pcm_data).decode('utf-8')
+            await self.admin_ws.send(json.dumps({
+                "type": "customer_audio",
+                "audio": b64_audio
+            }))
+        except Exception as e:
+            print(f"❌ Error sending audio to admin: {e}")
+
+    async def receive_admin_audio(self, audio_data):
+        """Receive audio from admin and send to customer via Twilio."""
+        try:
+            if self.stream_sid:
+                # Convert admin audio (PCM 16kHz) to Twilio format
+                pcm_8k, _ = audioop.ratecv(audio_data, 2, 1, 16000, 8000, None)
+                mulaw_data = audioop.lin2ulaw(pcm_8k, 2)
+                b64_audio = base64.b64encode(mulaw_data).decode("utf-8")
+                
+                await websocket.send(json.dumps({
+                    "event": "media",
+                    "streamSid": self.stream_sid,
+                    "media": {"payload": b64_audio}
+                }))
+                print("🎤 Sent admin audio to customer")
+        except Exception as e:
+            print(f"❌ Error sending admin audio: {e}")
+
+    async def admin_takeover(self, admin_websocket):
+        """Switch from Gemini to Admin mode."""
+        print(f"👔 Admin taking over call {self.call_uuid}")
+        self.admin_mode = True
+        self.admin_ws = admin_websocket
+        
+        # Notify admin
+        await self.admin_ws.send(json.dumps({
+            "type": "takeover_success",
+            "call_uuid": self.call_uuid,
+            "customer_info": self.custom_params
+        }))
+        
+        # Add transcription note
+        self.transcriptions.append({
+            "name": "system",
+            "transcription": "Admin has joined the call"
+        })
+        
+        # Keep admin connection alive and handle audio
+        try:
+            while True:
+                msg = await self.admin_ws.receive()
+                data = json.loads(msg)
+                
+                if data.get("type") == "admin_audio":
+                    # Admin is speaking, send to customer
+                    audio_b64 = data.get("audio")
+                    if audio_b64:
+                        pcm_data = base64.b64decode(audio_b64)
+                        await self.receive_admin_audio(pcm_data)
+                
+                elif data.get("type") == "end_takeover":
+                    print("👔 Admin ending takeover")
+                    await self.end_admin_takeover()
+                    break
+                    
+        except Exception as e:
+            print(f"❌ Admin connection error: {e}")
+            await self.end_admin_takeover()
+
+    async def end_admin_takeover(self):
+        """Return call to Gemini control."""
+        print(f"🤖 Returning call {self.call_uuid} to Gemini")
+        self.admin_mode = False
+        
+        if self.admin_ws:
+            try:
+                await self.admin_ws.send(json.dumps({
+                    "type": "takeover_ended"
+                }))
+            except:
+                pass
+            self.admin_ws = None
+        
+        self.transcriptions.append({
+            "name": "system",
+            "transcription": "Admin has left, AI resumed"
+        })
+
+
+
+
 
     def convert_audio_to_twilio_format(self, audio_data: bytes) -> str:
         """Convert Gemini PCM (24kHz) → 8kHz µ-law → base64 for Twilio."""
@@ -270,6 +373,10 @@ class GeminiTwilioBridge:
                     stream=self.twilio_audio_stream(),
                     mime_type="audio/pcm;rate=16000"
                 ):
+
+
+                    if self.admin_mode:
+                        continue 
 
 
                     if response.tool_call:
@@ -338,8 +445,50 @@ class GeminiTwilioBridge:
                     self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                 self.merged_wav.close()
                 await self.send_log_chunk(is_final=True)
+
+                if self.call_uuid in active_calls:
+                    del active_calls[self.call_uuid]
+
                 await websocket.close(code=200)
                 print(f"🏁 Call session {self.call_uuid} ended cleanly.")
+
+@app.websocket('/admin')
+async def admin_websocket():
+    """WebSocket endpoint for admin to join calls."""
+    print("👔 Admin WebSocket connected.")
+    try:
+        # Wait for admin to specify which call to join
+        init_msg = await websocket.receive()
+        data = json.loads(init_msg)
+        
+        if data.get("action") == "list_calls":
+            # Send list of active calls
+            calls_list = [
+                {
+                    "call_uuid": uuid,
+                    "customer_info": bridge.custom_params,
+                    "duration": "active"
+                }
+                for uuid, bridge in active_calls.items()
+            ]
+            await websocket.send(json.dumps({
+                "type": "active_calls",
+                "calls": calls_list
+            }))
+        
+        elif data.get("action") == "join_call":
+            call_uuid = data.get("call_uuid")
+            if call_uuid in active_calls:
+                bridge = active_calls[call_uuid]
+                await bridge.admin_takeover(websocket)
+            else:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": "Call not found"
+                }))
+    except Exception as e:
+        print(f"❌ Admin WebSocket error: {e}")
+
 
 
 @app.websocket('/')

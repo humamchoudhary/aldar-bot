@@ -115,175 +115,7 @@
         </div>
         
         <!-- Call Detail Section -->
-        <div id="callarea" class="{% if call %}w-2/3 flex{% else %}hidden{% endif %} h-[93vh] border-l border-[var(--border-color)] transition-all duration-300">
-            {% if call %}
-            <div class="flex flex-row w-full h-full">
-                <!-- Transcription Section (Middle) -->
-                <div class="flex flex-col w-2/3 h-full overflow-y-scroll call-detail-scroll p-6 relative">
-                    <div class="flex flex-col gap-4 mb-20">
-                        <!-- Audio Player -->
-                        <div class="sticky top-0 bg-[var(--main-bg-color)] z-10 pb-4 border-b border-[var(--border-color)]">
-                            <h3 class="text-xl font-bold mb-3">Call Recording</h3>
-                            <audio controls class="w-full">
-                                <source src="/call/{{ call.call_id }}/{{ call.audio.split('/')[-1] }}" type="audio/wav">
-                                Your browser does not support the audio element.
-                            </audio>
-                        </div>
-                        
-                        <!-- Transcription -->
-                        <div class="flex flex-col gap-3">
-                            <h3 class="text-xl font-bold mb-2">Transcription</h3>
-                            {% if call.transcription and call.transcription|length > 0 %}
-                                {% for message in call.transcription %}
-                                <div class="flex flex-col gap-1 p-4 rounded-lg {% if message.speaker == 'user' %}bg-blue-500/10{% else %}bg-green-500/10{% endif %}">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm font-bold {% if message.speaker == 'user' %}text-blue-500{% else %}text-green-500{% endif %}">
-                                            {% if message.speaker == 'user' %}
-                                                👤 Customer
-                                            {% else %}
-                                                🤖 AI Assistant
-                                            {% endif %}
-                                        </span>
-                                    </div>
-                                    <p class="text-[var(--sec-text)]">{{ message.transcription }}</p>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="flex items-center justify-center py-12 text-[var(--sec-text)] opacity-70">
-                                    <p>No transcription available yet</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Fixed Enter Call Button (Only if call is ongoing or in_progress) -->
-                    {% if call.status in ['ongoing', 'in_progress'] %}
-                    <div class="fixed bottom-6 left-[calc(33.33%+24px)] right-[calc(33.33%+24px)] z-20">
-                        <button 
-                            class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-                            onclick="enterCall('{{ call.call_id }}')"
-                        >
-                            <i data-lucide="phone-call" class="size-5"></i>
-                            <span>Enter Call</span>
-                        </button>
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <!-- User Data Section (Right) -->
-                <div class="flex flex-col w-1/3 h-full border-l border-[var(--border-color)] p-6 overflow-y-auto call-detail-scroll">
-                    <h3 class="text-xl font-bold mb-4">Call Information</h3>
-                    
-                    <div class="flex flex-col gap-4">
-                        <!-- Status Badge -->
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Status</span>
-                            {% if call.status == 'ongoing' %}
-                                <div class="px-4 py-2 bg-green-500/20 rounded-lg text-center">
-                                    <p class="text-sm font-bold text-green-500">● Ongoing</p>
-                                </div>
-                            {% elif call.status == 'in_progress' %}
-                                <div class="px-4 py-2 bg-yellow-500/20 rounded-lg text-center">
-                                    <p class="text-sm font-bold text-yellow-500">◐ In Progress</p>
-                                </div>
-                            {% elif call.status == 'ended' %}
-                                <div class="px-4 py-2 bg-blue-500/20 rounded-lg text-center">
-                                    <p class="text-sm font-bold text-blue-500">✓ Ended</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Caller Name -->
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Caller Name</span>
-                            <p class="text-base font-semibold">
-                                {{ call.userdata.name if call.userdata.name else 'Unknown Caller' }}
-                            </p>
-                        </div>
-                        
-                        <!-- Phone Number -->
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Phone Number</span>
-                            <p class="text-base font-semibold">
-                                {{ call.userdata.From if call.userdata.From else 'No number' }}
-                            </p>
-                        </div>
-                        
-                        <!-- Call ID -->
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Call ID</span>
-                            <p class="text-base font-mono text-sm break-all">{{ call.call_id }}</p>
-                        </div>
-                        
-                        <!-- Queue ID (if available) -->
-                        {% if call.userdata.qid %}
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Queue ID</span>
-                            <p class="text-base font-semibold">{{ call.userdata.qid }}</p>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Started At -->
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Started At</span>
-                            <p class="text-base">{{ call.started_at.strftime('%d %B %Y') }}</p>
-                            <p class="text-sm text-[var(--sec-text)]">{{ call.started_at.strftime('%H:%M:%S') }}</p>
-                        </div>
-                        
-                        <!-- Ended At (if available) -->
-                        {% if call.ended_at %}
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Ended At</span>
-                            <p class="text-base">{{ call.ended_at.strftime('%d %B %Y') }}</p>
-                            <p class="text-sm text-[var(--sec-text)]">{{ call.ended_at.strftime('%H:%M:%S') }}</p>
-                        </div>
-                        
-                        <!-- Duration -->
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Duration</span>
-                            <p class="text-base font-semibold">
-                                {{ ((call.ended_at - call.started_at).total_seconds() / 60) | round(1) }} minutes
-                            </p>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Message Count -->
-                        <div class="flex flex-col gap-2">
-                            <span class="text-sm text-[var(--sec-text)] opacity-70">Messages</span>
-                            <p class="text-base font-semibold">
-                                {{ call.transcription|length }} message{{ 's' if call.transcription|length != 1 else '' }}
-                            </p>
-                        </div>
-                        
-                        <!-- Additional Custom Parameters -->
-                        {% if call.userdata %}
-                            {% for key, value in call.userdata.items() %}
-                                {% if key not in ['From', 'name', 'qid'] and value %}
-                                <div class="flex flex-col gap-2">
-                                    <span class="text-sm text-[var(--sec-text)] opacity-70">{{ key|title }}</span>
-                                    <p class="text-base">{{ value }}</p>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col gap-3 mt-6 pt-6 border-t border-[var(--border-color)]">
-                        <button 
-                            hx-post="/admin/call/{{ call.call_id }}/delete"
-                            hx-confirm="Are you sure you want to delete this call?"
-                            hx-on::after-request="handleCallDelete('{{ call.call_id }}')"
-                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-all duration-200"
-                        >
-                            <i data-lucide="trash-2" class="size-4"></i>
-                            <span class="font-semibold">Delete Call</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
+        {% include "components/call.html" %}
     </div>
 </div>
 
@@ -485,6 +317,212 @@ function handleDeleteResponse(event, callId) {
         });
     }
 }
+
+
+let adminWs = null;
+let serverBaseUrl = '';
+let activeCallUuid = null;
+let audioContext = null;
+let mediaStream = null;
+let isMuted = false;
+
+
+
+function connectToServer() {
+    const serverUrl = null;
+    serverBaseUrl = serverUrl.replace('ws://', 'http://').replace('wss://', 'https://');
+    
+    // Connect WebSocket
+    adminWs = new WebSocket(serverUrl + '/admin');
+    
+    adminWs.onopen = () => {
+        console.log('✅ Connected to server');
+        document.getElementById('connectionStatus').textContent = '✅ Connected';
+        loadActiveCalls();
+    };
+    
+    adminWs.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleServerMessage(data);
+    };
+    
+    adminWs.onerror = (error) => {
+        console.error('Connection error:', error);
+        document.getElementById('connectionStatus').textContent = '❌ Error';
+    };
+    
+    adminWs.onclose = () => {
+        document.getElementById('connectionStatus').textContent = '🔌 Disconnected';
+    };
+}
+
+
+
+
+function handleServerMessage(data) {
+    switch(data.type) {
+            
+        case 'takeover_success':
+            console.log('✅ Takeover successful');
+            activeCallUuid = data.call_uuid;
+            document.getElementById('customerName').textContent = 
+                data.customer_info.name || 'Unknown';
+            document.getElementById('callControl').style.display = 'block';
+            break;
+            
+        case 'customer_audio':
+            // Customer is speaking - you receive their audio here
+            playCustomerAudio(data.audio);
+            break;
+            
+        case 'takeover_ended':
+            console.log('Call returned to AI');
+            cleanupCall();
+            break;
+            
+        case 'error':
+            alert('Error: ' + data.message);
+            break;
+    }
+}
+
+
+async function joinCall(callUuid) {
+    try {
+        // Get microphone access
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Setup audio processing
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        const processor = audioContext.createScriptProcessor(4096, 1, 1);
+        
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+        
+        // Send admin audio to server
+        processor.onaudioprocess = (e) => {
+            if (!isMuted && adminWs && adminWs.readyState === WebSocket.OPEN) {
+                const inputData = e.inputBuffer.getChannelData(0);
+                const pcm16 = convertFloat32ToPCM16(inputData);
+                const base64Audio = arrayBufferToBase64(pcm16);
+                
+                adminWs.send(JSON.stringify({
+                    type: 'admin_audio',
+                    audio: base64Audio
+                }));
+            }
+        };
+        
+        // Send join request to server
+        adminWs.send(JSON.stringify({
+            action: 'join_call',
+            call_uuid: callUuid
+        }));
+        
+    } catch (error) {
+        console.error('Failed to join call:', error);
+        alert('Microphone access required: ' + error.message);
+    }
+}
+
+// End takeover and return to AI
+function endTakeover() {
+    if (adminWs && activeCallUuid) {
+        adminWs.send(JSON.stringify({
+            type: 'end_takeover'
+        }));
+    }
+    cleanupCall();
+}
+
+// Toggle mute
+function toggleMute() {
+    isMuted = !isMuted;
+    console.log(isMuted ? '🔇 Muted' : '🔊 Unmuted');
+}
+
+// Cleanup after call ends
+function cleanupCall() {
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+    activeCallUuid = null;
+    isMuted = false;
+    document.getElementById('callControl').style.display = 'none';
+    loadActiveCalls(); // Refresh list
+}
+
+// Play customer audio (optional - if you want to hear customer)
+function playCustomerAudio(base64Audio) {
+    console.log('Received customer audio');
+
+    // 1. Create an AudioContext (or reuse an existing one)
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // 2. Decode the base64 string back into binary data (ArrayBuffer)
+    // Assumes the base64 string represents binary audio data (e.g., from a WAV/MP3 file)
+    const audioData = atob(base64Audio);
+    const bufferLength = audioData.length;
+    const arrayBuffer = new ArrayBuffer(bufferLength);
+    const view = new Uint8Array(arrayBuffer);
+
+    for (let i = 0; i < bufferLength; i++) {
+        view[i] = audioData.charCodeAt(i);
+    }
+
+    // 3. Decode the audio data into an AudioBuffer
+    audioContext.decodeAudioData(arrayBuffer,
+        (audioBuffer) => {
+            // Success callback
+            console.log('Audio decoded successfully.');
+
+            // 4. Create a source node
+            const source = audioContext.createBufferSource();
+
+            // 5. Set the buffer for the source
+            source.buffer = audioBuffer;
+
+            // 6. Connect the source to the speakers (destination)
+            source.connect(audioContext.destination);
+
+            // 7. Start playing the audio immediately
+            source.start(0); // Start at time 0
+        },
+        (e) => {
+            // Error callback
+            console.error("Error decoding audio data:", e);
+        }
+    );
+}
+
+// Audio conversion helpers
+function convertFloat32ToPCM16(float32Array) {
+    const pcm16 = new Int16Array(float32Array.length);
+    for (let i = 0; i < float32Array.length; i++) {
+        const s = Math.max(-1, Math.min(1, float32Array[i]));
+        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    return pcm16.buffer;
+}
+
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+
+
+
 </script>
 
 {% endblock %}
