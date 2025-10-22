@@ -310,12 +310,20 @@
           console.log("✅ Connected to server");
           statusEl.textContent = "Connected";
           indicatorEl.classList.add("connected");
-          loadActiveCalls();
+
+          // Wait a bit before requesting calls to ensure server is ready
+          setTimeout(() => {
+            loadActiveCalls();
+          }, 100);
         };
 
         adminWs.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          handleServerMessage(data);
+          try {
+            const data = JSON.parse(event.data);
+            handleServerMessage(data);
+          } catch (error) {
+            console.error("Error parsing message:", error);
+          }
         };
 
         adminWs.onerror = (error) => {
@@ -323,10 +331,15 @@
           statusEl.textContent = "Connection Error";
         };
 
-        adminWs.onclose = () => {
+        adminWs.onclose = (event) => {
+          console.log("WebSocket closed:", event.code, event.reason);
           statusEl.textContent = "Disconnected";
           indicatorEl.classList.remove("connected");
-          setTimeout(connectToServer, 3000); // Auto-reconnect
+
+          // Only auto-reconnect if we're not in an active call
+          if (!activeCallUuid) {
+            setTimeout(connectToServer, 3000);
+          }
         };
       }
 
