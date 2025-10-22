@@ -368,7 +368,7 @@
 
       async function initTwilioDevice() {
         try {
-          const response = await fetch(`${SERVER_BASE_URL}/admin/token`);
+          const response = await fetch(`/call/token`);
           const data = await response.json();
 
           twilioDevice = new Twilio.Device(data.token, {
