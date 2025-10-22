@@ -39,7 +39,7 @@ class CallService:
             "ended_at": None,
             "audio": data.get("file_name", f"call_{call_id}.wav"),
             "transcription": [],
-            "userdata": data.get("custom_parameters", {"From": "", "name": None, "qid": None})
+            "userdata": data.get("custom_params", {"From": "", "name": None, "qid": None})
         }
         
         self.call_collection.insert_one(call_doc)
