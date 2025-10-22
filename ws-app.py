@@ -15,7 +15,7 @@ import requests
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
 from twilio.rest import Client as TwilioClient
-
+from quart_cors import cors
 # Load environment variables
 load_dotenv()
 
@@ -37,6 +37,7 @@ LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))
 
 app = Quart(__name__)
 
+app = cors(app, allow_origin="*") 
 active_calls = {}
 
 class GeminiTwilioBridge:
