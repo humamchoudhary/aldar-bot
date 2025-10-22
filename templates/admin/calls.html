@@ -329,7 +329,7 @@ let isMuted = false;
 
 
 function connectToServer() {
-    const serverUrl = "https://al-dar-call.go-globe.dev/";
+    const serverUrl = "https://al-dar-call.go-globe.dev";
     serverBaseUrl = serverUrl.replace('ws://', 'http://').replace('wss://', 'https://');
     
     // Connect WebSocket
@@ -337,11 +337,10 @@ function connectToServer() {
     
     adminWs.onopen = () => {
         console.log('✅ Connected to server');
-        document.getElementById('connectionStatus').textContent = '✅ Connected';
-        loadActiveCalls();
     };
     
     adminWs.onmessage = (event) => {
+        console.log(event)
         const data = JSON.parse(event.data);
         handleServerMessage(data);
     };
