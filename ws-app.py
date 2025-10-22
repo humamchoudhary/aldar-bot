@@ -457,37 +457,46 @@ async def admin_websocket():
     """WebSocket endpoint for admin to join calls."""
     print("👔 Admin WebSocket connected.")
     try:
-        # Wait for admin to specify which call to join
-        init_msg = await websocket.receive()
-        data = json.loads(init_msg)
-        
-        if data.get("action") == "list_calls":
-            # Send list of active calls
-            calls_list = [
-                {
-                    "call_uuid": uuid,
-                    "customer_info": bridge.custom_params,
-                    "duration": "active"
-                }
-                for uuid, bridge in active_calls.items()
-            ]
-            await websocket.send(json.dumps({
-                "type": "active_calls",
-                "calls": calls_list
-            }))
-        
-        elif data.get("action") == "join_call":
-            call_uuid = data.get("call_uuid")
-            if call_uuid in active_calls:
-                bridge = active_calls[call_uuid]
-                await bridge.admin_takeover(websocket)
-            else:
+        while True:  # Keep connection alive
+            # Wait for admin messages
+            msg = await websocket.receive()
+            data = json.loads(msg)
+            
+            if data.get("action") == "list_calls":
+                # Send list of active calls
+                calls_list = [
+                    {
+                        "call_uuid": uuid,
+                        "customer_info": bridge.custom_params,
+                        "duration": "active"
+                    }
+                    for uuid, bridge in active_calls.items()
+                ]
                 await websocket.send(json.dumps({
-                    "type": "error",
-                    "message": "Call not found"
+                    "type": "active_calls",
+                    "calls": calls_list
                 }))
+                print(f"📋 Sent {len(calls_list)} active calls to admin")
+            
+            elif data.get("action") == "join_call":
+                call_uuid = data.get("call_uuid")
+                print(f"👔 Admin requesting to join call: {call_uuid}")
+                
+                if call_uuid in active_calls:
+                    bridge = active_calls[call_uuid]
+                    await bridge.admin_takeover(websocket)
+                    # admin_takeover will keep running until admin leaves
+                    break  # Exit the loop when admin disconnects
+                else:
+                    await websocket.send(json.dumps({
+                        "type": "error",
+                        "message": "Call not found or already ended"
+                    }))
+                    
     except Exception as e:
         print(f"❌ Admin WebSocket error: {e}")
+    finally:
+        print("👔 Admin WebSocket disconnected")
 
 
 
