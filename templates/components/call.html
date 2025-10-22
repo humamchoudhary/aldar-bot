@@ -73,7 +73,7 @@
       >
         <button
           class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-          onclick="joinCall('{{ call.call_id }}')"
+          onclick="initiateCall('{{  call.userdata.name }}-{{ call.userdata.qid}}')"
         >
           <i data-lucide="phone-call" class="size-5"></i>
           <span>Enter Call</span>
