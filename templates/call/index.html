@@ -327,7 +327,7 @@
       async function initDevice() {
         try {
           const response = await fetch(
-            `/call/token${elements.nameInput.value}-${elements.qidInput.value}`,
+            `/call/token?${elements.nameInput.value}-${elements.qidInput.value}`,
           );
 
           if (!response.ok) {
@@ -375,43 +375,49 @@
 
       // Make call
       async function makeCall() {
-        if (!device) {
-          updateStatus("Device not ready. Please refresh.", "error");
+        const name = elements.nameInput.value.trim();
+        const qid = elements.qidInput.value.trim();
+
+        if (!name || !qid) {
+          updateStatus("Please enter both name and Qatar ID", "error");
           return;
         }
 
-        // If user info not stored, get it from inputs
-        if (!userInfo.name || !userInfo.qid) {
-          const name = elements.nameInput.value.trim();
-          const qid = elements.qidInput.value.trim();
+        // Save and display user info
+        userInfo.name = name;
+        userInfo.qid = qid;
+        elements.displayName.textContent = userInfo.name;
+        elements.displayQid.textContent = userInfo.qid;
+        elements.userInfoSection.classList.add("hidden");
+        elements.userInfoDisplay.classList.add("active");
 
-          if (!name || !qid) {
-            updateStatus("Please enter both name and Qatar ID", "error");
-            return;
-          }
-
-          userInfo.name = name;
-          userInfo.qid = qid;
-
-          // Update display
-          elements.displayName.textContent = userInfo.name;
-          elements.displayQid.textContent = userInfo.qid;
-
-          // Hide input form, show display
-          elements.userInfoSection.classList.add("hidden");
-          elements.userInfoDisplay.classList.add("active");
-        }
-
+        // Fetch token and initialize device
         try {
-          elements.startBtn.disabled = true;
-          updateStatus("Connecting...", "info");
+          updateStatus("Initializing device...", "info");
+          const response = fetch(
+            `/call/token?name=${encodeURIComponent(name)}&qid=${encodeURIComponent(qid)}`,
+          );
 
-          // Pass user info to Twilio
+          if (!response.ok)
+            throw new Error(`Failed to fetch token (${response.status})`);
+          const data = await response.json();
+
+          device = new Twilio.Device(data.token, {
+            codecPreferences: ["opus", "pcmu"],
+            enableRingingState: true,
+          });
+
+          device.on("error", (error) => {
+            console.error("Device error:", error);
+            updateStatus(`Device error: ${error.message}`, "error");
+          });
+
+          await device.register();
+          updateStatus("Device ready. Connecting call...", "info");
+
+          // Connect the call
           activeCall = await device.connect({
-            params: {
-              name: userInfo.name,
-              qid: userInfo.qid,
-            },
+            params: { name, qid },
           });
 
           activeCall.on("accept", () => {
@@ -422,19 +428,15 @@
             startAudioVisualization();
           });
 
-          activeCall.on("disconnect", () => {
+          activeCall.on("disconnect", handleCallEnd);
+          activeCall.on("error", (err) => {
+            console.error("Call error:", err);
+            updateStatus(`Call error: ${err.message}`, "error");
             handleCallEnd();
           });
-
-          activeCall.on("error", (error) => {
-            console.error("Call error:", error);
-            updateStatus(`Call error: ${error.message}`, "error");
-            handleCallEnd();
-          });
-        } catch (error) {
-          console.error("Failed to start call:", error);
-          updateStatus(`Failed to connect: ${error.message}`, "error");
-          elements.startBtn.disabled = false;
+        } catch (err) {
+          console.error("Call setup failed:", err);
+          updateStatus(`Failed to start: ${err.message}`, "error");
         }
       }
 
@@ -583,7 +585,6 @@
       // Initialize on load
       document.addEventListener("DOMContentLoaded", () => {
         elements.startBtn.disabled = true;
-        initDevice();
       });
 
       // Cleanup on page unload
