@@ -133,6 +133,32 @@
         box-shadow: 0 4px 12px rgba(188, 155, 98, 0.3);
       }
 
+      .call-button.loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+      }
+
+      .call-button.loading::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.6);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        transform: translate(-50%, -50%);
+      }
+
+      @keyframes spin {
+        to {
+          transform: translate(-50%, -50%) rotate(360deg);
+        }
+      }
+
       .call-button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
@@ -377,21 +403,21 @@
           return;
         }
 
-        // Save and display user info
         userInfo.name = name;
         userInfo.qid = qid;
-        elements.displayName.textContent = userInfo.name;
-        elements.displayQid.textContent = userInfo.qid;
+
+        elements.displayName.textContent = name;
+        elements.displayQid.textContent = qid;
         elements.userInfoSection.classList.add("hidden");
         elements.userInfoDisplay.classList.add("active");
 
-        // Fetch token and initialize device
         try {
-          updateStatus("Initializing device...", "info");
-          const response = fetch(
+          showLoading();
+          updateStatus("Fetching token and initializing call...", "info");
+
+          const response = await fetch(
             `/call/token?name=${encodeURIComponent(name)}&qid=${encodeURIComponent(qid)}`,
           );
-
           if (!response.ok)
             throw new Error(`Failed to fetch token (${response.status})`);
           const data = await response.json();
@@ -409,12 +435,10 @@
           await device.register();
           updateStatus("Device ready. Connecting call...", "info");
 
-          // Connect the call
-          activeCall = await device.connect({
-            params: { name, qid },
-          });
+          activeCall = await device.connect({ params: { name, qid } });
 
           activeCall.on("accept", () => {
+            hideLoading();
             elements.startBtn.style.display = "none";
             elements.visualizer.classList.add("active");
             elements.endBtn.classList.add("active");
@@ -422,13 +446,19 @@
             startAudioVisualization();
           });
 
-          activeCall.on("disconnect", handleCallEnd);
+          activeCall.on("disconnect", () => {
+            hideLoading();
+            handleCallEnd();
+          });
+
           activeCall.on("error", (err) => {
+            hideLoading();
             console.error("Call error:", err);
             updateStatus(`Call error: ${err.message}`, "error");
             handleCallEnd();
           });
         } catch (err) {
+          hideLoading();
           console.error("Call setup failed:", err);
           updateStatus(`Failed to start: ${err.message}`, "error");
         }
@@ -446,6 +476,7 @@
         stopAudioVisualization();
         resetUI();
         updateStatus("Call ended. Ready to start new call.", "info");
+        elements.startBtn.disabled = false;
       }
 
       // Reset UI to ready state (but keep user info)
@@ -575,6 +606,18 @@
           elements.qidInput.focus();
         }
       });
+
+      function showLoading() {
+        elements.startBtn.classList.add("loading");
+        elements.startBtn.disabled = true;
+        elements.startBtn.textContent = "Connecting...";
+      }
+
+      function hideLoading() {
+        elements.startBtn.classList.remove("loading");
+        elements.startBtn.disabled = false;
+        elements.startBtn.textContent = "Start Call";
+      }
 
       // Initialize on load
       document.addEventListener("DOMContentLoaded", () => {
