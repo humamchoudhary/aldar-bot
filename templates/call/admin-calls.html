@@ -94,6 +94,11 @@
         transform: translateY(-2px);
       }
 
+      .call-item.pending-transfer {
+        border-color: #fbbf24;
+        background: #fef3c7;
+      }
+
       .call-info {
         flex: 1;
       }
@@ -108,6 +113,25 @@
         color: #666;
       }
 
+      .call-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-top: 5px;
+      }
+
+      .badge-ai {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+
+      .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
       .join-btn {
         background: #667eea;
         color: white;
@@ -119,8 +143,13 @@
         transition: background 0.3s;
       }
 
-      .join-btn:hover {
+      .join-btn:hover:not(:disabled) {
         background: #5568d3;
+      }
+
+      .join-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
       }
 
       .control-panel {
@@ -140,6 +169,32 @@
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 20px;
+      }
+
+      .waiting-message {
+        background: #fef3c7;
+        border: 2px solid #fbbf24;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .waiting-message .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #fbbf24;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       .controls {
@@ -259,6 +314,11 @@
           <div>QID: <span id="customerQid">-</span></div>
         </div>
 
+        <div id="waitingMessage" class="waiting-message" style="display: none">
+          <div class="spinner"></div>
+          <span>Transferring call... Please wait for customer to connect</span>
+        </div>
+
         <div class="audio-indicator">
           <div class="indicator">
             <div id="customerIndicator" class="indicator-circle"></div>
@@ -278,121 +338,79 @@
           >
             🎤 Mute
           </button>
-          <button class="control-btn end-btn" onclick="endTakeover()">
-            ❌ End & Return to AI
+          <button class="control-btn end-btn" onclick="endCall()">
+            ❌ End Call
           </button>
+        </div>
+
+        <div
+          id="callStatus"
+          style="text-align: center; margin-top: 15px; color: #666"
+        >
+          <small>Status: <span id="callState">Initializing...</span></small>
         </div>
       </div>
     </div>
 
+    <script src="https://sdk.twilio.com/js/client/v1.14/twilio.min.js"></script>
     <script>
-      let adminWs = null;
-      let activeCallUuid = null;
-      let audioContext = null;
-      let mediaStream = null;
-      let isMuted = false;
-      let audioProcessor = null;
-      let customerAudioQueue = [];
-      let isPlayingCustomerAudio = false;
+      let twilioDevice;
+      let activeCall;
+      let callSid = null;
+      let audioContext;
+      let analyser;
+      let micStream;
+      let remoteAnalyser;
+      let animationFrame;
+      let pollInterval;
 
-      const SERVER_URL = "wss://al-dar-call.go-globe.dev/admin";
+      const SERVER_BASE_URL = "https://al-dar-call.go-globe.dev";
 
-      function connectToServer() {
-        const statusEl = document.getElementById("connectionStatus");
-        const indicatorEl = document.getElementById("statusIndicator");
+      async function initTwilioDevice() {
+        try {
+          const response = await fetch(`${SERVER_BASE_URL}/admin/token`);
+          const data = await response.json();
 
-        statusEl.textContent = "Connecting...";
-        indicatorEl.classList.remove("connected");
+          twilioDevice = new Twilio.Device(data.token, {
+            codecPreferences: ["opus", "pcmu"],
+            enableRingingState: true,
+          });
 
-        adminWs = new WebSocket(SERVER_URL);
-
-        adminWs.onopen = () => {
-          console.log("✅ Connected to server");
-          statusEl.textContent = "Connected";
-          indicatorEl.classList.add("connected");
-
-          // Wait a bit before requesting calls to ensure server is ready
-          setTimeout(() => {
+          twilioDevice.on("registered", () => {
+            console.log("✅ Twilio Device registered");
+            updateConnectionStatus("Connected", true);
             loadActiveCalls();
-          }, 100);
-        };
+          });
 
-        adminWs.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            handleServerMessage(data);
-          } catch (error) {
-            console.error("Error parsing message:", error);
-          }
-        };
+          twilioDevice.on("error", (error) => {
+            console.error("Twilio Device error:", error);
+            updateConnectionStatus("Device Error", false);
+          });
 
-        adminWs.onerror = (error) => {
-          console.error("Connection error:", error);
-          statusEl.textContent = "Connection Error";
-        };
-
-        adminWs.onclose = (event) => {
-          console.log("WebSocket closed:", event.code, event.reason);
-          statusEl.textContent = "Disconnected";
-          indicatorEl.classList.remove("connected");
-
-          // Only auto-reconnect if we're not in an active call
-          if (!activeCallUuid) {
-            setTimeout(connectToServer, 3000);
-          }
-        };
-      }
-
-      function loadActiveCalls() {
-        if (adminWs && adminWs.readyState === WebSocket.OPEN) {
-          adminWs.send(
-            JSON.stringify({
-              action: "list_calls",
-            }),
-          );
+          await twilioDevice.register();
+        } catch (error) {
+          console.error("Failed to initialize Twilio Device:", error);
+          updateConnectionStatus("Initialization Failed", false);
         }
       }
 
-      function handleServerMessage(data) {
-        if (!data || !data.type) {
-          console.warn("Received message without type:", data);
-          return;
+      function updateConnectionStatus(text, connected) {
+        document.getElementById("connectionStatus").textContent = text;
+        const indicator = document.getElementById("statusIndicator");
+        if (connected) {
+          indicator.classList.add("connected");
+        } else {
+          indicator.classList.remove("connected");
         }
+      }
 
-        console.log("Received:", data.type);
-
-        switch (data.type) {
-          case "active_calls":
-            displayActiveCalls(data.calls);
-            break;
-
-          case "takeover_success":
-            console.log("✅ Takeover successful");
-            activeCallUuid = data.call_uuid;
-            document.getElementById("customerName").textContent =
-              data.customer_info?.name || "Unknown";
-            document.getElementById("customerQid").textContent =
-              data.customer_info?.qid || "Unknown";
-            document.getElementById("controlPanel").classList.add("active");
-            break;
-
-          case "customer_audio":
-            if (data.audio) {
-              playCustomerAudio(data.audio);
-            }
-            break;
-
-          case "takeover_ended":
-            console.log("Call returned to AI");
-            cleanupCall();
-            break;
-
-          case "error":
-            alert("Error: " + data.message);
-            break;
-
-          default:
-            console.warn("Unknown message type:", data.type);
+      async function loadActiveCalls() {
+        try {
+          const response = await fetch(`${SERVER_BASE_URL}/admin/active-calls`);
+          const data = await response.json();
+          displayActiveCalls(data.calls || []);
+        } catch (error) {
+          console.error("Failed to load active calls:", error);
         }
       }
 
@@ -405,257 +423,259 @@
         }
 
         listEl.innerHTML = calls
-          .map(
-            (call) => `
-                <div class="call-item">
-                    <div class="call-info">
-                        <strong>${call.customer_info?.name || "Unknown"}</strong>
-                        <small>QID: ${call.customer_info?.qid || "N/A"}</small>
+          .map((call) => {
+            const isPending = call.transfer_requested;
+            const badgeClass = isPending ? "badge-pending" : "badge-ai";
+            const badgeText = isPending ? "⏳ Transfer Pending" : "🤖 With AI";
+            const itemClass = isPending
+              ? "call-item pending-transfer"
+              : "call-item";
+            const btnDisabled = isPending ? "" : "";
+
+            return `
+                    <div class="${itemClass}">
+                        <div class="call-info">
+                            <strong>${call.customer_info?.name || "Unknown"}</strong>
+                            <small>QID: ${call.customer_info?.qid || "N/A"}</small>
+                            <div class="call-badge ${badgeClass}">${badgeText}</div>
+                        </div>
+                        <button class="join-btn" onclick="joinCall('${call.call_uuid}', '${call.call_sid}')" ${btnDisabled}>
+                            ${isPending ? "📞 Answer" : "👋 Request Transfer"}
+                        </button>
                     </div>
-                    <button class="join-btn" onclick="joinCall('${call.call_uuid}')">
-                        Join Call
-                    </button>
-                </div>
-            `,
-          )
+                `;
+          })
           .join("");
       }
 
-      async function joinCall(callUuid) {
-        if (!adminWs || adminWs.readyState !== WebSocket.OPEN) {
-          alert("Not connected to server");
-          return;
-        }
-
+      async function joinCall(callUuid, twilioCallSid) {
         try {
-          // Get microphone access
-          mediaStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000,
+          // First, request transfer from Gemini to admin
+          const response = await fetch(
+            `${SERVER_BASE_URL}/admin/request-transfer`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                call_uuid: callUuid,
+                call_sid: twilioCallSid,
+              }),
+            },
+          );
+
+          const data = await response.json();
+
+          if (data.success) {
+            // Show waiting UI
+            document.getElementById("controlPanel").classList.add("active");
+            document.getElementById("customerName").textContent =
+              data.customer_info?.name || "Unknown";
+            document.getElementById("customerQid").textContent =
+              data.customer_info?.qid || "Unknown";
+            document.getElementById("waitingMessage").style.display = "block";
+            document.getElementById("callState").textContent =
+              "Transfer requested...";
+
+            callSid = twilioCallSid;
+
+            // Poll for call status
+            startPollingCallStatus(callUuid);
+
+            // Refresh the calls list to show pending state
+            loadActiveCalls();
+          } else {
+            alert("Failed to request transfer: " + data.error);
+          }
+        } catch (error) {
+          console.error("Failed to join call:", error);
+          alert("Error: " + error.message);
+        }
+      }
+
+      function startPollingCallStatus(callUuid) {
+        if (pollInterval) clearInterval(pollInterval);
+
+        pollInterval = setInterval(async () => {
+          try {
+            const response = await fetch(
+              `${SERVER_BASE_URL}/admin/call-status/${callUuid}`,
+            );
+            const data = await response.json();
+
+            if (data.status === "ready_for_admin") {
+              // Call is ready, now connect via Twilio Device
+              clearInterval(pollInterval);
+              await connectToCall(callUuid);
+            }
+          } catch (error) {
+            console.error("Error polling call status:", error);
+          }
+        }, 1000);
+      }
+
+      async function connectToCall(callUuid) {
+        try {
+          document.getElementById("callState").textContent = "Connecting...";
+
+          activeCall = await twilioDevice.connect({
+            params: {
+              call_uuid: callUuid,
+              admin_join: "true",
             },
           });
 
-          // Setup audio context and processing
-          audioContext = new (window.AudioContext || window.webkitAudioContext)(
-            {
-              sampleRate: 48000,
-            },
-          );
+          activeCall.on("accept", () => {
+            console.log("✅ Connected to customer");
+            document.getElementById("waitingMessage").style.display = "none";
+            document.getElementById("callState").textContent = "Connected";
+            startAudioVisualization();
+          });
 
-          const source = audioContext.createMediaStreamSource(mediaStream);
-          audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+          activeCall.on("disconnect", () => {
+            console.log("Call disconnected");
+            handleCallEnd();
+          });
 
-          source.connect(audioProcessor);
-          audioProcessor.connect(audioContext.destination);
-
-          // Send admin audio to server (resample to 16kHz)
-          audioProcessor.onaudioprocess = (e) => {
-            if (!isMuted && adminWs && adminWs.readyState === WebSocket.OPEN) {
-              const inputData = e.inputBuffer.getChannelData(0);
-
-              // Resample from 48kHz to 16kHz
-              const resampled = resampleAudio(inputData, 48000, 16000);
-
-              // Convert to PCM16
-              const pcm16 = convertFloat32ToPCM16(resampled);
-              const base64Audio = arrayBufferToBase64(pcm16);
-
-              adminWs.send(
-                JSON.stringify({
-                  type: "admin_audio",
-                  audio: base64Audio,
-                }),
-              );
-
-              // Visual indicator
-              const volume = getAudioVolume(inputData);
-              const indicator = document.getElementById("adminIndicator");
-              if (volume > 0.01) {
-                indicator.classList.add("speaking");
-              } else {
-                indicator.classList.remove("speaking");
-              }
-            }
-          };
-
-          // Send join request
-          adminWs.send(
-            JSON.stringify({
-              action: "join_call",
-              call_uuid: callUuid,
-            }),
-          );
-
-          console.log("✅ Joined call:", callUuid);
+          activeCall.on("error", (error) => {
+            console.error("Call error:", error);
+            alert("Call error: " + error.message);
+            handleCallEnd();
+          });
         } catch (error) {
-          console.error("Failed to join call:", error);
-          alert("Microphone access required: " + error.message);
+          console.error("Failed to connect:", error);
+          alert("Connection failed: " + error.message);
+          handleCallEnd();
         }
       }
 
-      function playCustomerAudio(base64Audio) {
-        if (!audioContext) {
-          audioContext = new (window.AudioContext ||
-            window.webkitAudioContext)();
+      function handleCallEnd() {
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
         }
 
-        try {
-          // Decode base64 to PCM16 data
-          const binaryString = atob(base64Audio);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
+        stopAudioVisualization();
+        document.getElementById("controlPanel").classList.remove("active");
+        document.getElementById("waitingMessage").style.display = "none";
+        activeCall = null;
+        callSid = null;
+        loadActiveCalls();
+      }
 
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-
-          // Convert PCM16 to Float32
-          const pcm16 = new Int16Array(bytes.buffer);
-          const float32 = new Float32Array(pcm16.length);
-
-          for (let i = 0; i < pcm16.length; i++) {
-            float32[i] = pcm16[i] / 32768.0;
-          }
-
-          // Create audio buffer (16kHz from server)
-          const audioBuffer = audioContext.createBuffer(
-            1,
-            float32.length,
-            16000,
-          );
-          audioBuffer.getChannelData(0).set(float32);
-
-          // Play audio
-          const source = audioContext.createBufferSource();
-          source.buffer = audioBuffer;
-          source.connect(audioContext.destination);
-          source.start(0);
-
-          // Visual indicator
-          const indicator = document.getElementById("customerIndicator");
-          indicator.classList.add("speaking");
-          setTimeout(() => {
-            indicator.classList.remove("speaking");
-          }, 300);
-        } catch (error) {
-          console.error("Error playing customer audio:", error);
+      async function endCall() {
+        if (activeCall) {
+          activeCall.disconnect();
         }
+        handleCallEnd();
       }
 
       function toggleMute() {
-        isMuted = !isMuted;
-        const btn = document.getElementById("muteBtn");
+        if (activeCall) {
+          const isMuted = activeCall.isMuted();
+          activeCall.mute(!isMuted);
 
-        if (isMuted) {
-          btn.textContent = "🔇 Unmute";
-          btn.classList.add("muted");
+          const btn = document.getElementById("muteBtn");
+          if (!isMuted) {
+            btn.textContent = "🔇 Unmute";
+            btn.classList.add("muted");
+          } else {
+            btn.textContent = "🎤 Mute";
+            btn.classList.remove("muted");
+          }
+        }
+      }
+
+      async function startAudioVisualization() {
+        try {
+          audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+
+          // Get microphone input
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          const micSource = audioContext.createMediaStreamSource(micStream);
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          micSource.connect(analyser);
+
+          // Get remote audio
+          if (activeCall && activeCall._mediaStream) {
+            const remoteSource = audioContext.createMediaStreamSource(
+              activeCall._mediaStream,
+            );
+            remoteAnalyser = audioContext.createAnalyser();
+            remoteAnalyser.fftSize = 256;
+            remoteSource.connect(remoteAnalyser);
+          }
+
+          animate();
+        } catch (error) {
+          console.warn("Audio visualization unavailable:", error);
+        }
+      }
+
+      function animate() {
+        animationFrame = requestAnimationFrame(animate);
+
+        const micData = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(micData);
+        const micVolume =
+          micData.reduce((a, b) => a + b, 0) / micData.length / 255;
+
+        let remoteVolume = 0;
+        if (remoteAnalyser) {
+          const remoteData = new Uint8Array(remoteAnalyser.frequencyBinCount);
+          remoteAnalyser.getByteFrequencyData(remoteData);
+          remoteVolume =
+            remoteData.reduce((a, b) => a + b, 0) / remoteData.length / 255;
+        }
+
+        const threshold = 0.1;
+        const adminIndicator = document.getElementById("adminIndicator");
+        const customerIndicator = document.getElementById("customerIndicator");
+
+        if (micVolume > threshold) {
+          adminIndicator.classList.add("speaking");
         } else {
-          btn.textContent = "🎤 Mute";
-          btn.classList.remove("muted");
+          adminIndicator.classList.remove("speaking");
         }
 
-        console.log(isMuted ? "🔇 Muted" : "🔊 Unmuted");
+        if (remoteVolume > threshold) {
+          customerIndicator.classList.add("speaking");
+        } else {
+          customerIndicator.classList.remove("speaking");
+        }
       }
 
-      function endTakeover() {
-        if (adminWs && activeCallUuid) {
-          adminWs.send(
-            JSON.stringify({
-              type: "end_takeover",
-            }),
-          );
+      function stopAudioVisualization() {
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
         }
-        cleanupCall();
-      }
-
-      function cleanupCall() {
-        if (audioProcessor) {
-          audioProcessor.disconnect();
-          audioProcessor = null;
+        if (micStream) {
+          micStream.getTracks().forEach((track) => track.stop());
+          micStream = null;
         }
-
-        if (mediaStream) {
-          mediaStream.getTracks().forEach((track) => track.stop());
-          mediaStream = null;
-        }
-
         if (audioContext) {
           audioContext.close();
           audioContext = null;
         }
-
-        activeCallUuid = null;
-        isMuted = false;
-
-        document.getElementById("controlPanel").classList.remove("active");
-        document.getElementById("muteBtn").textContent = "🎤 Mute";
-        document.getElementById("muteBtn").classList.remove("muted");
-
-        loadActiveCalls();
-      }
-
-      // Audio utility functions
-      function resampleAudio(audioData, fromRate, toRate) {
-        const ratio = fromRate / toRate;
-        const newLength = Math.round(audioData.length / ratio);
-        const result = new Float32Array(newLength);
-
-        for (let i = 0; i < newLength; i++) {
-          const srcIndex = i * ratio;
-          const srcIndexFloor = Math.floor(srcIndex);
-          const srcIndexCeil = Math.min(
-            srcIndexFloor + 1,
-            audioData.length - 1,
-          );
-          const t = srcIndex - srcIndexFloor;
-
-          result[i] =
-            audioData[srcIndexFloor] * (1 - t) + audioData[srcIndexCeil] * t;
-        }
-
-        return result;
-      }
-
-      function convertFloat32ToPCM16(float32Array) {
-        const pcm16 = new Int16Array(float32Array.length);
-        for (let i = 0; i < float32Array.length; i++) {
-          const s = Math.max(-1, Math.min(1, float32Array[i]));
-          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-        }
-        return pcm16.buffer;
-      }
-
-      function arrayBufferToBase64(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
-      }
-
-      function getAudioVolume(audioData) {
-        let sum = 0;
-        for (let i = 0; i < audioData.length; i++) {
-          sum += audioData[i] * audioData[i];
-        }
-        return Math.sqrt(sum / audioData.length);
+        analyser = null;
+        remoteAnalyser = null;
       }
 
       // Initialize on load
       window.addEventListener("DOMContentLoaded", () => {
-        connectToServer();
+        initTwilioDevice();
+        // Refresh calls every 5 seconds
+        setInterval(loadActiveCalls, 5000);
       });
 
-      // Cleanup on page unload
       window.addEventListener("beforeunload", () => {
-        cleanupCall();
-        if (adminWs) {
-          adminWs.close();
+        if (activeCall) {
+          activeCall.disconnect();
         }
+        stopAudioVisualization();
       });
     </script>
   </body>
