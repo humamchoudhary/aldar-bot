@@ -20,7 +20,7 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_API_KEY = os.getenv("TWILIO_API_KEY")
 TWILIO_API_SECRET = os.getenv("TWILIO_API_SECRET")
 TWILIO_TWIML_APP_SID = os.getenv("TWILIO_TWIML_APP_SID")
-
+from pprint import pprint
 
 @call_bp.route('/')
 def index():
@@ -66,6 +66,8 @@ def get_voice():
             f"{request.values.get('name', None)}-{request.values.get('qid', None)}",
           startConferenceOnEnter= True,
           endConferenceOnExit= True,            )
+
+        pprint(str(response))
         return Response(str(response), mimetype="text/xml")
 
 
@@ -95,7 +97,7 @@ def get_voice():
 
 
     # Print or return the TwiML
-    print(str(response))
+    pprint(str(response))
 
     return Response(str(response), mimetype="text/xml")
 
