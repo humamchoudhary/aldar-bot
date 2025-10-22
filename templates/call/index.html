@@ -364,13 +364,7 @@
       function checkEnableStartButton() {
         const hasName = elements.nameInput.value.trim() !== "";
         const hasQid = elements.qidInput.value.trim() !== "";
-        const deviceReady = device && device.state === "registered";
-        const hasStoredInfo = userInfo.name && userInfo.qid;
-
-        elements.startBtn.disabled = !(
-          deviceReady &&
-          (hasStoredInfo || (hasName && hasQid))
-        );
+        elements.startBtn.disabled = !(hasName && hasQid);
       }
 
       // Make call
@@ -584,7 +578,8 @@
 
       // Initialize on load
       document.addEventListener("DOMContentLoaded", () => {
-        elements.startBtn.disabled = false;
+        updateStatus("Enter your name and Qatar ID to start.", "info");
+        checkEnableStartButton(); // enable when inputs are ready
       });
 
       // Cleanup on page unload
