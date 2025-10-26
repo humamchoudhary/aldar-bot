@@ -63,7 +63,7 @@ class Admin:
 
     @classmethod
     def from_dict(cls, data):
-        print(data)
+        # print(data)
         admin = cls(
             username=data.get("username"),
             password_hash=data.get("password_hash"),
@@ -84,13 +84,13 @@ class Admin:
 
         # Store the original created_at in UTC (default to current UTC time if not provided)
         created_at = data.get("created_at")
-        # print(created_at)
+        # # print(created_at)
 
         if created_at is None:
             created_at = datetime.utcnow()
         elif type(created_at) == dict:
             created_at = datetime.fromisoformat(created_at.get("$date"))
-        # print(created_at)
+        # # print(created_at)
         # Ensure it's timezone-aware UTC
         if created_at.tzinfo is None:
             created_at = created_at.replace(tzinfo=timezone.utc)

@@ -56,15 +56,15 @@
         <!-- Three Dot Menu -->
             
 <div class="flex flex-row gap-2">
-    {% if not chat.exported %}
-    <div 
-        onclick="event.stopPropagation();exportChat('{{ chat.room_id }}')"
-        class="flex items-center gap-3 px-2 py-2 hover:bg-[var(--border-color)] cursor-pointer transition-all duration-200 rounded-md"
-    >
-        <i data-lucide="square-arrow-out-up-right" class="text-[var(--main-color)] size-[16px]"></i>
-        <span class="text-sm text-[var(--main-color)] hidden 2xl:inline">Export To ERP</span>
-    </div>
-    {% endif %}
+    <!-- {% if not chat.exported %} -->
+    <!-- <div  -->
+    <!--     onclick="event.stopPropagation();exportChat('{{ chat.room_id }}')" -->
+    <!--     class="flex items-center gap-3 px-2 py-2 hover:bg-[var(--border-color)] cursor-pointer transition-all duration-200 rounded-md" -->
+    <!-- > -->
+    <!--     <i data-lucide="square-arrow-out-up-right" class="text-[var(--main-color)] size-[16px]"></i> -->
+    <!--     <span class="text-sm text-[var(--main-color)] hidden 2xl:inline">Export To ERP</span> -->
+    <!-- </div> -->
+    <!-- {% endif %} -->
     
     {% if not chat.archived %}
     <div 

@@ -55,7 +55,7 @@ class AdminService:
             {"admin_id": admin_id},
             {"_id": 0, "expo_token": 1}  # only return expo_token field
         )
-        print(admin_id)
+        # print(admin_id)
         if admin and "expo_token" in admin:
             return admin["expo_token"]
         return []

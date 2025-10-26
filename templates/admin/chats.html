@@ -89,17 +89,17 @@
             Admin Chats <span class="float-right">({{ chat_counts.active or chats|selectattr('admin_required', 'equalto', true)|list|length }})</span>
         </div>
         
-        <div 
-            hx-get="/admin/chats/exported?page=0"
-            hx-target="#chat_list_container"
-            hx-trigger="click"
-            hx-on:click="selectOption(this, 'Exported Chats', '{{ chat_counts.exported or chats|selectattr("exported", "equalto", true)|list|length }}')"
-            hx-indicator="#loading-indicator"
-            class="dropdown-option px-[18px] py-[8px] text-[14px] hover:bg-[var(--border-color)] cursor-pointer flex flex-row gap-2 flex-nowrap justify-between"
-            data-value="exported"
-        >
-            Exported Chats <span class="float-right">({{ chat_counts.exported or chats|selectattr('exported', 'equalto', true)|list|length }})</span>
-        </div>
+        <!-- <div  -->
+        <!--     hx-get="/admin/chats/exported?page=0" -->
+        <!--     hx-target="#chat_list_container" -->
+        <!--     hx-trigger="click" -->
+        <!--     hx-on:click="selectOption(this, 'Exported Chats', '{{ chat_counts.exported or chats|selectattr("exported", "equalto", true)|list|length }}')" -->
+        <!--     hx-indicator="#loading-indicator" -->
+        <!--     class="dropdown-option px-[18px] py-[8px] text-[14px] hover:bg-[var(--border-color)] cursor-pointer flex flex-row gap-2 flex-nowrap justify-between" -->
+        <!--     data-value="exported" -->
+        <!-- > -->
+        <!--     Exported Chats <span class="float-right">({{ chat_counts.exported or chats|selectattr('exported', 'equalto', true)|list|length }})</span> -->
+        <!-- </div> -->
         
 
 <!--    

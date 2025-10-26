@@ -169,7 +169,7 @@ def filter_logs():
     # Regular admins can't filter by other admin_ids
     current_admin_id = session.get(
         "admin_id") if admin.role != "superadmin" else None
-    print(message_search)
+    # printmessage_search)
     logs = logs_service.search_logs_advanced(
         levels=level_enums or None,
         tags=tag_enums or None,
@@ -307,12 +307,12 @@ def reset_password(token):
 
     # Handle POST request for password reset
     data = request.json
-    # print(data)
+    # # printdata)
     new_password = data.get("password")
     confirm_password = data.get("confirm_password")
-    # # print(dict(request.form))
-    # print(new_password)
-    # print(confirm_password)
+    # # # printdict(request.form))
+    # # printnew_password)
+    # # printconfirm_password)
 
     if not new_password or not confirm_password:
         return jsonify({"error": "Both password fields are required"}), 400
@@ -374,7 +374,7 @@ def login():
             500,
         )
     mail = Mail(current_app)
-    # print(f"TEMP 2FA CODE: {token_info['code']}")
+    # # printf"TEMP 2FA CODE: {token_info['code']}")
     # Send the 2FA code via email
     status = send_email(
         admin.email,
@@ -461,7 +461,7 @@ def onboard():
         return render_template("admin/onboarding.html")
     else:
         data = request.json
-        # print(data)
+        # # printdata)
         admin_id = session.get("admin_id")
         admin_service = AdminService(current_app.db)
         admin_service.update_admin_login(
@@ -663,7 +663,7 @@ def filter_chats(filter):
     # Batch fetch users to reduce individual queries
     user_ids = [c.user_id for c in chats]
     users_dict = user_service.get_users_by_ids(user_ids)  # Single query for all users
-    # print(users_dict)
+    # # printusers_dict)
     
     # Build chat data with usernames
     chats_data = [
@@ -688,7 +688,7 @@ def filter_chats(filter):
             "next_page": page + 1,
             "current_filter": filter
         })
-    pprint(chats_data)    
+    # p# printchats_data)    
     return render_template(template, **context)
 
 import json
@@ -696,7 +696,7 @@ def get_country_id(file_path, target_country):
     with open(file_path, 'r') as f:
         data = json.load(f)
     for entry in data:
-        print(entry.get('short_name'))
+        # printentry.get('short_name'))
         if entry.get('short_name',"").lower() == target_country.lower():
             return entry.get('country_id')
     return None 
@@ -716,8 +716,8 @@ def export_chat(room_id):
             "Content-Type": "application/x-www-form-urlencoded",
             "authtoken": f"{os.environ.get('ERP_TOKEN')}",
         }
-        print(user.country)
-        print(get_country_id('tblcountries.json',user.country))
+        # printuser.country)
+        # printget_country_id('tblcountries.json',user.country))
         data = {
             "name": user.name,
             "company": user.company,
@@ -739,8 +739,8 @@ def export_chat(room_id):
         }
 
         r = requests.post(erp_url, headers=headers, data=data)
-        print(f"DATA: {data}")
-        print(r)
+        # printf"DATA: {data}")
+        # printr)
         if r.status_code == 200:
 
             data = r.json()
@@ -752,7 +752,7 @@ def export_chat(room_id):
             return f"Error from ERP: {r.status_code}, {r.json().get('message','Internal Server error').replace('<p>',"").replace('</p>',"")}",202
 
         else:
-            # print(r.json())
+            # # printr.json())
             return f"Error from ERP: {r.status_code}, {r.json().get('message','Internal Server error').replace('<p>',"").replace('</p>',"")}",500
         return "success", 200
 
@@ -802,14 +802,14 @@ def receive_audio_blob(chat_id):
         audio_file = request.files['audio']
         audio_bytes = audio_file.read()  # Get bytes from file
         
-        print(f"Received audio: {len(audio_bytes)} bytes")
+        # printf"Received audio: {len(audio_bytes)} bytes")
         
         # RESET FILE POINTER to beginning so we can save it
         audio_file.seek(0)
         
         # Transcribe audio
         resp = current_app.bot.transcribe(audio_bytes)
-        print(resp)
+        # printresp)
 
         # Get admin info from session
         admin_service = AdminService(current_app.db)
@@ -829,7 +829,7 @@ def receive_audio_blob(chat_id):
                 return "Chat not found", 404
             return jsonify({"error": "Chat not found"}), 404
 
-        print(f"Transcription: {resp}")
+        # printf"Transcription: {resp}")
 
         # Add message as admin (using admin name instead of user name)
         new_message = chat_service.add_message(chat.room_id, admin.username, resp, type="audio")
@@ -866,13 +866,13 @@ import os
 @admin_bp.route("/chat/<chat_id>/audio_file/<message_id>")
 @admin_required
 def audio_file(chat_id, message_id):
-    print(chat_id)
+    # printchat_id)
     # Directory where audio files for this chat are stored
     base_dir = os.path.join('files', chat_id)
     
     # Construct full file path (you could store actual filenames in a DB instead)
     file_path = os.path.join(base_dir, f"{message_id}.wav")
-    print(file_path)
+    # printfile_path)
     
     # Make sure the file exists
     if not os.path.exists(file_path):
@@ -894,8 +894,8 @@ def send_message(room_id):
         #     return "<h1>Unauthorized</h1>", 401
 
         message = request.form.get("message")
-        # # print(rf'{message}')
-        # # print(f'{room_id}')
+        # # # printrf'{message}')
+        # # # printf'{room_id}')
         if not message:
             return "", 302
         chat_service = ChatService(current_app.db)
@@ -927,7 +927,7 @@ def send_message(room_id):
         return "", 200
     except Exception as e:
         return f"{e}", 500
-        # # print(e)
+        # # # printe)
 
 
 @admin_bp.route("/files/")
@@ -1064,7 +1064,7 @@ import pdfplumber
 #         except Exception as e:
 #             file.seek(0)
 #             file.save(file_path)
-#             print(f"PDF text extraction error: {e}")
+#             # printf"PDF text extraction error: {e}")
 #             file_items.append(
 #                 render_template("components/file_item.html", file=unique_filename)
 #             )
@@ -1124,7 +1124,7 @@ def upload_file():
             except Exception as e:
                 file.seek(0)
                 file.save(file_path)
-                print(f"PDF text extraction error: {e}")
+                # printf"PDF text extraction error: {e}")
                 file_items.append(
                     render_template("components/file_item.html", file=unique_filename)
                 )
@@ -1176,7 +1176,7 @@ def upload_file():
             except Exception as e:
                 file.seek(0)
                 file.save(file_path)
-                print(f"XLSX extraction error: {e}")
+                # printf"XLSX extraction error: {e}")
                 file_items.append(
                     render_template("components/file_item.html", file=unique_filename)
                 )
@@ -1575,7 +1575,7 @@ def upload_logo(file_name):
         current_app.config["SETTINGS"]["logo"][f_type] = os.path.join(
             "/static", "img", filename
         )
-        # # # print(current_app.config)
+        # # # # printcurrent_app.config)
         return f"File saved at {file_path}", 200
 
     return "Invalid file type", 400
@@ -1600,8 +1600,8 @@ def upload_sound():
         # current_app.config["SETTINGS"]["logo"][f_type] = os.path.join(
         #     "/static", "img", filename
         # )
-        # # # print(current_app.config)
-        print( f"File saved at {file_path}")
+        # # # # printcurrent_app.config)
+        # print f"File saved at {file_path}")
         return f"File saved at {file_path}", 200
 
     return "Invalid file type", 400
@@ -1685,7 +1685,7 @@ def set_2fa_duration():
 
     admin_service = AdminService(current_app.db)
     current_admin = admin_service.get_admin_by_id(session.get("admin_id"))
-    print(current_app.config['SETTINGS'])
+    # printcurrent_app.config['SETTINGS'])
     if current_admin.role == "superadmin":
         if not current_app.config['SETTINGS'].get('2fa', None):
 
@@ -1930,24 +1930,24 @@ def scrape_urls(urls,admin_id):
         res = scrape_web(url, rotate_user_agents=True, random_delay=True)
         if res and "text" in res:
             lines = str(res["text"])
-            # # # print(lines)
+            # # # # printlines)
             lines = re.sub(r"\s+", " ", lines).strip()
             # Create a filename from the URL
             if res["url"].endswith("/"):
                 res["url"] = res["url"][:-1]
-                # # print(res['url'])
-            # # print(res['url'].endswith('/'))
+                # # # printres['url'])
+            # # # printres['url'].endswith('/'))
             filename = "*".join(res["url"].split("/")[2:])
             if not filename:
                 # Use domain if path is empty
                 filename = urlparse(res["url"]).netloc
             filepath = f"{os.getcwd()}/user_data/{admin_id}/files/{filename}.txt"
-            print(filepath)
+            # printfilepath)
             with open(filepath, "w") as f:
-                # # # print(f"Saving content to {f.name}")
+                # # # # printf"Saving content to {f.name}")
                 # if len(lines) > 500:
-                # # # print(lines)
-                # # # print(filepath)
+                # # # # printlines)
+                # # # # printfilepath)
                 f.write(lines)
 
 
@@ -1966,7 +1966,7 @@ def scrape():
     thread = threading.Thread(target=scrape_urls, args=(all_urls,admin_id,))
     thread.start()
     # Now scrape all the collected URLs
-    print(all_urls)
+    # printall_urls)
     return "", 200
 
 
@@ -2002,7 +2002,7 @@ def process_sitemap_url(url):
     try:
         response = requests.get(url, timeout=30)
         if response.status_code != 200:
-            # # print(f"Failed to fetch {url}: Status code {response.status_code}")
+            # # # printf"Failed to fetch {url}: Status code {response.status_code}")
             return [url]  # Return original URL if we can't process it
 
         content_type = response.headers.get("Content-Type", "").lower()
@@ -2016,7 +2016,7 @@ def process_sitemap_url(url):
         return [url]
 
     except Exception as e:
-        # # print(f"Error processing {url}: {str(e)}")
+        # # # printf"Error processing {url}: {str(e)}")
         return [url]  # Include the original URL if processing fails
 
 
@@ -2037,7 +2037,7 @@ def extract_urls_from_sitemap(sitemap_content, base_url):
                 if loc_elem is not None and loc_elem.text:
                     # Recursively process this sitemap
                     child_sitemap_url = loc_elem.text.strip()
-                    # # print(f"Found child sitemap: {child_sitemap_url}")
+                    # # # printf"Found child sitemap: {child_sitemap_url}")
                     child_urls = process_sitemap_url(child_sitemap_url)
                     urls.extend(child_urls)
         # Handle regular sitemap
@@ -2049,10 +2049,10 @@ def extract_urls_from_sitemap(sitemap_content, base_url):
                     page_url = loc_elem.text.strip()
                     urls.append(page_url)
     except Exception as e:
-        # # print(f"Error parsing sitemap from {base_url}: {str(e)}")
+        # # # printf"Error parsing sitemap from {base_url}: {str(e)}")
         # Fall back to regex-based extraction if XML parsing fails
         urls.extend(re.findall(r"<loc>(.*?)</loc>", sitemap_content))
-    # # # print(f"Extracted {len(urls)} URLs from sitemap")
+    # # # # printf"Extracted {len(urls)} URLs from sitemap")
     return urls
 
 
@@ -2081,10 +2081,10 @@ def get_all_chats():
         limit=20,
         skip=0
     )
-    # print(chats)   
+    # # printchats)   
     # Get chat counts for header
 
-    pprint(chats)
+    # p# printchats)
     chat_counts = chat_service.get_chat_counts_by_filter(session.get('admin_id'))
     return render_template(
         "admin/chats.html",
@@ -2104,8 +2104,8 @@ def delete_chat(room_id):
     # current_index = next((i for i, chat in enumerate(chats_all) if chat.room_id == room_id), None)
     # next_chat = chats_all[current_index + 1] if current_index is not None and current_index + 1 < len(chats_all) else None
     #
-    # # print(chat_service.get_chat_by_room_id(room_id).to_dict())
-    print(f"Deleted: {chat_service.delete([room_id])}")
+    # # # printchat_service.get_chat_by_room_id(room_id).to_dict())
+    # printf"Deleted: {chat_service.delete([room_id])}")
 
     # if next_chat and "/admin/chats" not in request.headers.get('Hx-Current-Url'):
     #     return f"/admin/chat/{next_chat.room_id}" ,203
@@ -2119,7 +2119,7 @@ def delete_chats():
     if not data.get("chat_ids"):
         return "", 200
     chats = data["chat_ids"]
-    print(chats)
+    # printchats)
     try:
         chat_service = ChatService(current_app.db)
         chats_all = chat_service.get_all_chats(session.get('admin_id'))
@@ -2127,8 +2127,8 @@ def delete_chats():
         chats_all.sort(key=lambda x: x.updated_at, reverse=True)
         current_index = next((i for i, chat in enumerate(chats) if chat.id == chats), None)
         next_chat = chats[current_index + 1] if current_index is not None and current_index + 1 < len(chats) else None
-        print(f"next_chat: {next_chat}")
-        print(request.__dict__)
+        # printf"next_chat: {next_chat}")
+        # printrequest.__dict__)
         chat_service.delete(chats)
         return "", 200
     except Exception as e:
@@ -2401,7 +2401,7 @@ def create_admin():
     elif request.method == "POST":
         try:
             form_data = request.form.to_dict()
-            # # print(form_data)
+            # # # printform_data)
             admin_service = AdminService(current_app.db)
             admin = admin_service.create_admin(
                 username=form_data["username"],
@@ -2421,7 +2421,7 @@ def create_admin():
                 return "", 200
             return "Error", 500
         except Exception as e:
-            # print(e)
+            # # printe)
             return f"Error: {e}", 500
 
 
@@ -2505,7 +2505,7 @@ def contact():
         SMTP_USER = os.environ.get('SMTP_TO')
         form_data = request.json
         mail = Mail(current_app)
-        print(dict(form_data.items()))
+        # printdict(form_data.items()))
         send_email(SMTP_USER, f"Go Bot Contact query from: {form_data['name']}", message="New contact", mail=mail,html_message=render_template('email/contact.html',name=form_data['name'],email=form_data['email'],phone=form_data['phone'],subject=form_data['subject'],message=form_data['message'],admin_id=session.get('admin_id'),time=datetime.now()))
         return jsonify({
                     'success': True,
@@ -2539,11 +2539,11 @@ def save_user_crawler(admin_id: str, crawler: DatabaseCrawler):
     os.makedirs(user_dir, exist_ok=True)
     
     db_path = os.path.join(user_dir, 'db_connection.pkl')
-    print(crawler)
-    print(db_path)
+    # printcrawler)
+    # printdb_path)
 
-    print(f"crawler: {crawler}")
-    print(f"crawler.connectors: {crawler.connectors}")
+    # printf"crawler: {crawler}")
+    # printf"crawler.connectors: {crawler.connectors}")
 
     with open(db_path, 'wb') as f:
         pickle.dump(crawler, f)
@@ -2553,7 +2553,7 @@ def save_user_crawler(admin_id: str, crawler: DatabaseCrawler):
 def database_homepage():
     admin_id = session.get('admin_id')
     crawler =get_user_crawler(admin_id) 
-    print(f"{crawler}")
+    # printf"{crawler}")
     # path = os.path.join('user_data',admin_id,"db_connection.pkl") 
     # if os.path.exists(path):
     #     with open(path, 'rb') as file:
@@ -2615,7 +2615,7 @@ def test_database_connection():
         
         return jsonify(result)
     except Exception as e:
-        print(f"Error testing connection: {str(e)}")
+        # printf"Error testing connection: {str(e)}")
         return jsonify({
             'status': 'failed',
             'database_type': data.get('type', 'unknown'),
@@ -2712,8 +2712,8 @@ def test_connection(connection_name):
         # data = connection.test_connection()
         data = crawler.test_connection(connection_name)
         # crawler.connectors[connection_name] = connection
-        # print(f"{connection}")
-        # print(f"{crawler}")
+        # # printf"{connection}")
+        # # printf"{crawler}")
         save_user_crawler(admin_id,crawler)
         return data, 200 if data['status'] == 'success' else 500
     
@@ -2780,9 +2780,9 @@ def get_table_data():
                 query = f"SELECT * FROM {data['table']} LIMIT {limit}"
         
         # Execute the query
-        print(data['connection'])
+        # printdata['connection'])
         result = crawler.execute_query(data['connection'], query, data['table'])
-        print(result)
+        # printresult)
         
         # Apply limit if not already applied in query (for MongoDB)
         if 'limit' not in query.lower() and len(result['data']) > limit:
@@ -2814,7 +2814,7 @@ def save_data():
     """Save selected data to backend"""
     admin_id = session.get('admin_id')
     data = request.json
-    print(data)
+    # printdata)
     
     if not all(key in data for key in ['connection', 'table']):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -2898,7 +2898,7 @@ def get_saved_data():
                 'query': data[0].get('_query') if data and isinstance(data, list) and len(data) > 0 else None
             })
         except Exception as e:
-            print(f"Error processing {filename}: {str(e)}")
+            # printf"Error processing {filename}: {str(e)}")
             continue
     
     return jsonify({
@@ -2947,14 +2947,14 @@ def get_saved_tables():
                     'query': query,'data':saved_data['data']
                 })
             except Exception as e:
-                print(f"Error processing {filename}: {str(e)}")
+                # printf"Error processing {filename}: {str(e)}")
                 continue
-        print(tables)
+        # printtables)
         
         return jsonify({'tables': tables})
     
     except Exception as e:
-        print(f"Error in get_saved_tables: {str(e)}")
+        # printf"Error in get_saved_tables: {str(e)}")
         return jsonify({'error': str(e)}), 500
 @admin_bp.route('/delete_database_connection/<connection_name>',methods=['DELETE'])
 @admin_required
@@ -3032,7 +3032,7 @@ from  pprint import pprint
 
 ####################################### CALL #############################################
 
-@admin_bp.route("/calls", methods=["GET"])
+@admin_bp.route("/calls/", methods=["GET"])
 @admin_required
 def get_all_calls():
     """Main calls page with initial data."""
@@ -3044,7 +3044,7 @@ def get_all_calls():
         limit=20,
         skip=0
     )
-    pprint(calls)
+    # p# printcalls)
     
     # Get call counts for dropdown
     call_counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
@@ -3074,7 +3074,7 @@ def get_call(call_id):
         limit=20,
         skip=0
     )
-    pprint(calls)
+    # p# printcalls)
     
     # Get call counts for dropdown
     call_counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
@@ -3088,6 +3088,17 @@ def get_call(call_id):
         next_page=1,
         current_filter='all'
     )
+
+
+@admin_bp.route("/call/<call_id>/delete",methods=["POST"])
+def delete_call(call_id):
+    print("delete call")
+    call_service = CallService(current_app.db)
+    if call_service.delete_call(call_id):
+        return "",200
+    return "",500
+    
+
 
 @admin_bp.route("/call/<call_id>/audio")
 def send_audio_file(call_id):
@@ -3180,14 +3191,14 @@ def get_call_counts():
 def register_admin_socketio_events(socketio):
     @socketio.on("admin_join")
     def on_admin_join(data):
-        print(dict(session))
+        # printdict(session))
         sid = request.cookies.get("sessionId")
-        print("Custom sessionId from cookie:", sid)
-        print("admin joined")
-        print(session.sid)
-        print(session.get("admin_id"))
+        # print"Custom sessionId from cookie:", sid)
+        # print"admin joined")
+        # printsession.sid)
+        # printsession.get("admin_id"))
         if session.get("role") != "admin":
-            print('ret')
+            # print'ret')
             return
 
         chat_service = ChatService(current_app.db)
@@ -3196,11 +3207,11 @@ def register_admin_socketio_events(socketio):
         room = data.get("room")
         if not room:
             return
-        print([join_room(chat.room_id) for chat in chats])
-        print(room)
+        # print[join_room(chat.room_id) for chat in chats])
+        # printroom)
         join_room(room)
         join_room("admin")  # Join the admin room for broadcasts
-        # # print('admin joined')
+        # # # print'admin joined')
         emit("status", {"msg": "Admin has joined the room."}, room=room)
 
     @socketio.on("admin_required")
@@ -3210,6 +3221,6 @@ def register_admin_socketio_events(socketio):
         print(f"ADMIN REQUIRED: {data}")
     @socketio.on("new_message")
     def on_new_message(data):
-        print("New Message")
-        print(data)
+        # print"New Message")
+        # printdata)
         print(dict(session))
