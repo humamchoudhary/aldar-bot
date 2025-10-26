@@ -215,7 +215,7 @@
                 <span class="text-xs text-[var(--sec-text)] uppercase tracking-wide">Current Status</span>
                 <span id="call-duration" class="text-xs text-[var(--sec-text)] font-mono hidden">00:00</span>
             </div>
-            <p id="operator-status" class="text-base font-medium text-[var(--text-color)]">Initializing...</p>
+            <p id="operator-status" class="text-base font-medium text-[var(--text-color)]">Stand By</p>
         </div>
         
         <!-- Active Conference Info -->
@@ -587,6 +587,11 @@ function endCall() {
     isMuted = false;
     isOnHold = false;
     updateOperatorStatus("Ready - Waiting for calls", "idle");
+    {% if call %}
+        
+    fetch(`{{backend_url}}/call/${callId}/end`, {
+     method: "POST"})    {% endif %}
+
 }
 
 // Initialize when page loads

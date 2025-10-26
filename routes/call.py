@@ -178,6 +178,13 @@ def initialize_call(call_uuid):
         }), 500
 
 
+
+@call_bp.route('/<call_uuid>/send_chunk', methods=['POST'])
+def end_call(call_uuid):
+
+    call_service = CallService(current_app.db)
+    call_service.end_call(call_uuid)
+
 @call_bp.route('/log/<call_uuid>/send_chunk', methods=['POST'])
 def receive_chunk(call_uuid):
     """

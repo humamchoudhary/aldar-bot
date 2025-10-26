@@ -61,7 +61,7 @@ class CallService:
     
     def end_call(self, call_id):
         """End a call."""
-        self.call_collection.update_one(
+        result = self.call_collection.update_one(
             {"call_id": call_id},
             {
                 "$set": {
@@ -70,6 +70,9 @@ class CallService:
                 }
             }
         )
+
+        return result.modified_count > 0
+
     
     def get_calls_with_limited_data(self, admin_id=None, limit=20, skip=0, filter_type='all'):
         """
