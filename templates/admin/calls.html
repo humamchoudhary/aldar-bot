@@ -546,11 +546,10 @@ async function initOperatorDevice() {
 
         device = new Twilio.Device(data.token, {
             codecPreferences: ["opus", "pcmu"],
-            fakeMicInput: false,
             enableRingingState: true
         });
 
-        device.on("ready", () => updateOperatorStatus("Ready - Waiting for calls", "idle"));
+        device.on("registered", () => updateOperatorStatus("Ready - Waiting for calls", "idle"));
         device.on("error", (err) => updateOperatorStatus(`Error: ${err.message}`, "error"));
         device.on("disconnect", () => {
             updateOperatorStatus("Ready - Waiting for calls", "idle");
@@ -582,6 +581,9 @@ async function initiateCall(conferenceName) {
         console.warn("Device not ready");
         return;
     }
+
+          await device.register();
+
     updateOperatorStatus("Connecting...", "connecting");
     try {
         const call = await device.connect({ params: { To: conferenceName } });
