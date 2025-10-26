@@ -125,7 +125,23 @@ class GeminiTwilioBridge:
                                 },
                                 "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
                             }
-                        }
+                        },
+
+   {
+                            "name": "transfer_to_human_operator",
+                            "description": "Transfer the call to a human operator when the user requests to speak with a person, representative, or human agent. Use this when user explicitly asks to talk to someone or cannot be helped by the AI.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "description": "Brief reason for the transfer (e.g., 'customer requested human agent', 'complex query requiring human assistance')"
+                                    }
+                                },
+                                "required": ["reason"]
+                            }}
+
+
                     ]}]
         }
 
@@ -277,6 +293,10 @@ class GeminiTwilioBridge:
                         func_resps = []
                         print(response.tool_call)
                         for fc in response.tool_call.function_calls:
+                            if fc.name == "transfer_to_human_operator":
+                                print("Tranfer to human")
+                                session.close();
+
                             resp = self._call_aldar_api(function_name=fc.name,parameters=fc.args)
                             function_response = types.FunctionResponse(
                                 id=fc.id,

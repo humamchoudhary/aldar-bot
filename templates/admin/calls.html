@@ -34,6 +34,76 @@
 }
 </style>
 
+
+
+<style>
+#operator-status-widget {
+    z-index: 9999;
+    max-width: 350px;
+}
+
+#operator-status-widget.minimized #widget-content {
+    display: none;
+}
+
+#operator-status-widget.minimized {
+    min-width: auto;
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.33);
+    }
+    80%, 100% {
+        opacity: 0;
+    }
+}
+
+#status-pulse.active {
+    animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Status dot colors */
+.status-idle #status-dot { background-color: #9CA3AF; }
+.status-idle #status-pulse { background-color: #9CA3AF; }
+
+.status-connecting #status-dot { background-color: #F59E0B; }
+.status-connecting #status-pulse { background-color: #F59E0B; }
+
+.status-connected #status-dot { background-color: #10B981; }
+.status-connected #status-pulse { background-color: #10B981; }
+
+.status-incoming #status-dot { background-color: #3B82F6; }
+.status-incoming #status-pulse { background-color: #3B82F6; }
+
+.status-error #status-dot { background-color: #EF4444; }
+.status-error #status-pulse { background-color: #EF4444; }
+
+/* Quality bars animation */
+.quality-excellent .quality-bar:nth-child(1),
+.quality-excellent .quality-bar:nth-child(2),
+.quality-excellent .quality-bar:nth-child(3),
+.quality-excellent .quality-bar:nth-child(4) {
+    background-color: #10B981;
+}
+
+.quality-good .quality-bar:nth-child(1),
+.quality-good .quality-bar:nth-child(2),
+.quality-good .quality-bar:nth-child(3) {
+    background-color: #10B981;
+}
+
+.quality-fair .quality-bar:nth-child(1),
+.quality-fair .quality-bar:nth-child(2) {
+    background-color: #F59E0B;
+}
+
+.quality-poor .quality-bar:nth-child(1) {
+    background-color: #EF4444;
+}
+</style>
+
+
 <div class="flex flex-col w-full h-full items-center justify-center">
     <div class="flex flex-row w-full min-h-[80vh]">
         <!-- Call List Section -->
@@ -219,7 +289,7 @@
 </div>
 
 
-
+    <script src="/static/js/twilio.min.js"></script>
 
 <script>
 function toggleDropdown() {
@@ -301,198 +371,243 @@ function updateCallCounts() {
         .catch(error => console.error('Error updating call counts:', error));
 }
 
-function enterCall(callId) {
-    // Implement your call entry logic here
-    console.log('Entering call:', callId);
-    // You might want to open a new window, redirect, or trigger a WebRTC connection
-    window.open(`/admin/call/${callId}/join`, '_blank');
+let callDurationInterval = null;
+let callStartTime = null;
+let isMuted = false;
+let isOnHold = false;
+
+function toggleWidgetMinimize() {
+    const widget = document.getElementById('operator-status-widget');
+    const icon = document.getElementById('minimize-icon');
+    
+    widget.classList.toggle('minimized');
+    
+    if (widget.classList.contains('minimized')) {
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>';
+    } else {
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>';
+    }
 }
 
-function handleCallDelete(callId) {
-    // Remove the call from the list
-    const callItem = document.getElementById(`call-${callId}`);
-    if (callItem) {
-        callItem.remove();
+function updateOperatorStatus(text, statusType = 'idle') {
+    const el = document.getElementById("operator-status");
+    const widget = document.getElementById("operator-status-widget");
+    const endBtn = document.getElementById("endCallBtn");
+    const acceptBtn = document.getElementById("acceptCallBtn");
+    const audioControls = document.getElementById("audio-controls");
+    const conferenceInfo = document.getElementById("active-conference-info");
+    const connectionQuality = document.getElementById("connection-quality");
+    const statusPulse = document.getElementById("status-pulse");
+    
+    if (el) el.textContent = text;
+    
+    // Remove all status classes
+    widget.classList.remove('status-idle', 'status-connecting', 'status-connected', 'status-incoming', 'status-error');
+    
+    // Add appropriate status class
+    widget.classList.add(`status-${statusType}`);
+    
+    // Show/hide pulse animation
+    if (statusType === 'connected' || statusType === 'incoming' || statusType === 'connecting') {
+        statusPulse.classList.add('active');
+    } else {
+        statusPulse.classList.remove('active');
     }
     
-    // Hide the call detail area
-    const callarea = document.getElementById('callarea');
-    callarea.classList.add('hidden');
-    callarea.innerHTML = '';
-    
-    // Update URL
-    history.pushState({}, '', '/admin/calls');
-    
-    // Update counts
-    updateCallCounts();
+    // Handle button states and visibility
+    if (statusType === 'incoming') {
+        acceptBtn.classList.remove('hidden');
+        endBtn.disabled = false;
+        audioControls.classList.add('hidden');
+        conferenceInfo.classList.add('hidden');
+        stopCallDuration();
+    } else if (statusType === 'connected') {
+        acceptBtn.classList.add('hidden');
+        endBtn.disabled = false;
+        audioControls.classList.remove('hidden');
+        conferenceInfo.classList.remove('hidden');
+        connectionQuality.classList.remove('hidden');
+        startCallDuration();
+    } else if (statusType === 'connecting') {
+        acceptBtn.classList.add('hidden');
+        endBtn.disabled = false;
+        audioControls.classList.add('hidden');
+        conferenceInfo.classList.add('hidden');
+        stopCallDuration();
+    } else {
+        acceptBtn.classList.add('hidden');
+        endBtn.disabled = true;
+        audioControls.classList.add('hidden');
+        conferenceInfo.classList.add('hidden');
+        connectionQuality.classList.add('hidden');
+        stopCallDuration();
+    }
 }
 
-window.addEventListener("DOMContentLoaded", function () {
-    const socket = io();
-
-    socket.on("new_call", function (data) {
-        htmx.ajax('GET', '/admin/calls_list/', '#call_list_container');
-        updateCallCounts();
-    });
-
-    socket.on("call_status_change", function (data) {
-        htmx.ajax('GET', '/admin/calls_list/', '#call_list_container');
-        updateCallCounts();
-        
-        // Reload call detail if currently viewing the changed call
-        const currentPath = window.location.pathname;
-        if (currentPath.includes('/call/') && currentPath.includes(data.call_id)) {
-            htmx.ajax('GET', currentPath, '#callarea');
-        }
-    });
-});
-
-document.body.addEventListener('htmx:afterSwap', (event) => {
-    if (!event.detail.isOOBSwap && window.lucide) {
-        lucide.createIcons();
-    }
+function startCallDuration() {
+    callStartTime = Date.now();
+    const durationEl = document.getElementById('call-duration');
+    durationEl.classList.remove('hidden');
     
-    const url = event.detail.pathInfo.requestPath;
-    if (url.startsWith("/admin/call/")) {
-        const callId = url.split("/").splice(-1)[0];
-        const socket = io();
+    callDurationInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        durationEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }, 1000);
+}
 
-        socket.on("connect", function () {
-            console.log('Socket connected for call:', callId);
-            socket.emit("admin_join_call", { call_id: callId });
-        });
-
-        socket.on("new_message", function (data) {
-            if (data.call_id === callId) {
-                // Reload the call detail to show new transcription
-                htmx.ajax('GET', `/admin/call/${callId}`, '#callarea');
-            }
-        });
+function stopCallDuration() {
+    if (callDurationInterval) {
+        clearInterval(callDurationInterval);
+        callDurationInterval = null;
     }
-});
+    const durationEl = document.getElementById('call-duration');
+    durationEl.classList.add('hidden');
+    durationEl.textContent = '00:00';
+}
 
-document.body.addEventListener("htmx:afterSwap", function (evt) {
-    if (evt.detail.target.id === "callarea") {
-        // Remove highlight class from all call rows
-        document.querySelectorAll(".call-row").forEach(el => {
-            el.classList.remove("bg-[var(--sec-bg-color)]");
-        });
-
-        // Get the new call ID from URL
-        const callId = window.location.pathname.split("/").pop();
-        
-        const activeRow = document.getElementById("call-" + callId);
-        if (activeRow) {
-            activeRow.classList.add("bg-[var(--sec-bg-color)]");
-        }
-    }
-});
-
-function handleDeleteResponse(event, callId) {
-    const status = event.detail.xhr.status;
-    console.log('Delete response status:', status);
-
-    const callItem = document.getElementById(`call-${callId}`);
-    if (callItem) {
-        callItem.remove();
-    }
-
-    updateCallCounts();
-
-    if (window.location.pathname.includes(`/call/${callId}`)) {
-        const callArea = document.getElementById('callarea');
-        if (callArea) {
-            callArea.classList.add('hidden');
-            callArea.innerHTML = '';
-        }
-        history.pushState({}, '', '/admin/calls');
-    }
-
-    if (status === 203) {
-        const url = event.detail.xhr.responseText.trim();
-        console.log('Redirecting to:', url);
-
-        history.pushState({}, '', url);
-        htmx.ajax('GET', url, {
-            target: '#callarea',
-            swap: 'innerHTML',
-        });
+function updateConferenceName(name) {
+    const conferenceNameEl = document.getElementById('conference-name');
+    if (conferenceNameEl) {
+        conferenceNameEl.textContent = name || 'Unknown Conference';
     }
 }
-</script>
 
+function toggleMute() {
+    if (!activeCall) return;
+    
+    isMuted = !isMuted;
+    activeCall.mute(isMuted);
+    
+    const muteBtn = document.getElementById('muteBtn');
+    const muteText = document.getElementById('mute-text');
+    const muteIcon = document.getElementById('mute-icon');
+    
+    if (isMuted) {
+        muteBtn.classList.remove('bg-[var(--border-color)]');
+        muteBtn.classList.add('bg-red-500', 'text-white');
+        muteText.textContent = 'Unmute';
+        muteIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>';
+    } else {
+        muteBtn.classList.add('bg-[var(--border-color)]');
+        muteBtn.classList.remove('bg-red-500', 'text-white');
+        muteText.textContent = 'Mute';
+        muteIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>';
+    }
+}
 
-<script src="/static/js/twilio.min.js"></script>
+function toggleHold() {
+    // Implement hold functionality if supported by Twilio
+    isOnHold = !isOnHold;
+    const holdBtn = document.getElementById('holdBtn');
+    const holdText = document.getElementById('hold-text');
+    
+    if (isOnHold) {
+        holdBtn.classList.remove('bg-[var(--border-color)]');
+        holdBtn.classList.add('bg-yellow-500', 'text-white');
+        holdText.textContent = 'Resume';
+    } else {
+        holdBtn.classList.add('bg-[var(--border-color)]');
+        holdBtn.classList.remove('bg-yellow-500', 'text-white');
+        holdText.textContent = 'Hold';
+    }
+}
 
+function acceptIncomingCall() {
+    if (activeCall) {
+        activeCall.accept();
+    }
+}
 
-<script>
-let device = null;
-let activeCall = null;
+function updateConnectionQuality(quality) {
+    const qualityBars = document.getElementById('quality-bars');
+    if (!qualityBars) return;
+    
+    qualityBars.className = 'flex gap-1';
+    
+    if (quality >= 4) {
+        qualityBars.classList.add('quality-excellent');
+    } else if (quality >= 3) {
+        qualityBars.classList.add('quality-good');
+    } else if (quality >= 2) {
+        qualityBars.classList.add('quality-fair');
+    } else {
+        qualityBars.classList.add('quality-poor');
+    }
+}
 
-// 🧩 Initialize Twilio Device for Operator
+// Enhanced Twilio Device initialization
 async function initOperatorDevice() {
-  updateOperatorStatus("Initializing...");
-  try {
-    const res = await fetch("/call/token?identity=operator"); // Backend must serve token
-    const data = await res.json();
+    updateOperatorStatus("Initializing...", "connecting");
+    try {
+        const res = await fetch("/call/token?identity=operator");
+        const data = await res.json();
 
-    device = new Twilio.Device(data.token, {
-      codecPreferences: ["opus", "pcmu"],
-      fakeMicInput: false,
-      enableRingingState: true
-    });
+        device = new Twilio.Device(data.token, {
+            codecPreferences: ["opus", "pcmu"],
+            fakeMicInput: false,
+            enableRingingState: true
+        });
 
-    device.on("ready", () => updateOperatorStatus("Idle"));
-    device.on("error", (err) => updateOperatorStatus(`Error: ${err.message}`));
-    device.on("disconnect", () => updateOperatorStatus("Idle"));
-    device.on("incoming", handleIncomingCall);
+        device.on("ready", () => updateOperatorStatus("Ready - Waiting for calls", "idle"));
+        device.on("error", (err) => updateOperatorStatus(`Error: ${err.message}`, "error"));
+        device.on("disconnect", () => {
+            updateOperatorStatus("Ready - Waiting for calls", "idle");
+            isMuted = false;
+            isOnHold = false;
+        });
+        device.on("incoming", handleIncomingCall);
 
-  } catch (e) {
-    updateOperatorStatus("Initialization failed");
-    console.error("Twilio init error:", e);
-  }
+    } catch (e) {
+        updateOperatorStatus("Initialization failed", "error");
+        console.error("Twilio init error:", e);
+    }
 }
 
-// 📞 Handle incoming call event
 function handleIncomingCall(call) {
-  console.log("Incoming call to operator:", call);
-  activeCall = call;
-  updateOperatorStatus("Incoming call...");
-  
-  // Optionally, show Accept button or auto-accept for testing:
-  // call.accept();
-}
-
-// 🚀 Join a conference (called when operator presses a button)
-async function initiateCall(conferenceName) {
-  if (!device) {
-    console.warn("Device not ready");
-    return;
-  }
-  updateOperatorStatus("Connecting...");
-  try {
-    const call = await device.connect({ params: { To: conferenceName } });
+    console.log("Incoming call to operator:", call);
     activeCall = call;
-    updateOperatorStatus(`Connected (${conferenceName})`);
-  } catch (e) {
-    updateOperatorStatus("Connection failed");
-    console.error(e);
-  }
+    updateOperatorStatus("Incoming call...", "incoming");
+    
+    // Update conference name if available
+    const params = call.customParameters;
+    if (params && params.conferenceName) {
+        updateConferenceName(params.conferenceName);
+    }
 }
 
-// 🛑 End the active call
+async function initiateCall(conferenceName) {
+    if (!device) {
+        console.warn("Device not ready");
+        return;
+    }
+    updateOperatorStatus("Connecting...", "connecting");
+    try {
+        const call = await device.connect({ params: { To: conferenceName } });
+        activeCall = call;
+        updateConferenceName(conferenceName);
+        updateOperatorStatus(`Connected`, "connected");
+        
+        // Simulate connection quality updates
+        setInterval(() => {
+            const quality = Math.floor(Math.random() * 2) + 3; // Random quality 3-4
+            updateConnectionQuality(quality);
+        }, 5000);
+    } catch (e) {
+        updateOperatorStatus("Connection failed", "error");
+        console.error(e);
+    }
+}
+
 function endCall() {
-  if (activeCall) {
-    activeCall.disconnect();
-    activeCall = null;
-  }
-  updateOperatorStatus("Idle");
-}
-
-// 🟢 Helper to update UI text
-function updateOperatorStatus(text) {
-  const el = document.getElementById("operator-status");
-  if (el) el.textContent = text;
+    if (activeCall) {
+        activeCall.disconnect();
+        activeCall = null;
+    }
+    isMuted = false;
+    isOnHold = false;
+    updateOperatorStatus("Ready - Waiting for calls", "idle");
 }
 
 // Initialize when page loads
