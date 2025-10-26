@@ -589,7 +589,7 @@ function endCall() {
     updateOperatorStatus("Ready - Waiting for calls", "idle");
     {% if call %}
         
-    fetch(`{{backend_url}}/call/${callId}/end`, {
+    fetch(`{{backend_url}}/call/{{call.call_Id}}/end`, {
      method: "POST"})    {% endif %}
 
 }
