@@ -240,14 +240,6 @@
                     </svg>
                     <span id="mute-text">Mute</span>
                 </button>
-                <button id="holdBtn" 
-                        onclick="toggleHold()"
-                        class="flex-1 bg-[var(--border-color)] hover:bg-opacity-80 text-[var(--text-color)] px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span id="hold-text">Hold</span>
-                </button>
             </div>
         </div>
         
@@ -479,6 +471,7 @@ function toggleMute() {
     
     isMuted = !isMuted;
     activeCall.mute(isMuted);
+    console.log(`Call Mute status: ${isMuted}`)
     
     const muteBtn = document.getElementById('muteBtn');
     const muteText = document.getElementById('mute-text');
@@ -497,22 +490,6 @@ function toggleMute() {
     }
 }
 
-function toggleHold() {
-    // Implement hold functionality if supported by Twilio
-    isOnHold = !isOnHold;
-    const holdBtn = document.getElementById('holdBtn');
-    const holdText = document.getElementById('hold-text');
-    
-    if (isOnHold) {
-        holdBtn.classList.remove('bg-[var(--border-color)]');
-        holdBtn.classList.add('bg-yellow-500', 'text-white');
-        holdText.textContent = 'Resume';
-    } else {
-        holdBtn.classList.add('bg-[var(--border-color)]');
-        holdBtn.classList.remove('bg-yellow-500', 'text-white');
-        holdText.textContent = 'Hold';
-    }
-}
 
 function acceptIncomingCall() {
     if (activeCall) {
