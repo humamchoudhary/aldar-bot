@@ -229,7 +229,7 @@ def receive_chunk(call_uuid):
         
         # If this is the final chunk, mark call as ended
         if is_final:
-            call_service.end_call(call_uuid)
+            # call_service.end_call(call_uuid)
             print(f"\n🏁 CALL COMPLETED: {call_uuid[:8]}...")
             print("=" * 60 + "\n")
         
