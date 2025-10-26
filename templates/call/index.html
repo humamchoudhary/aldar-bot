@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Twilio Voice Call</title>
+
+    <script src="{{ url_for('static', filename='js/fontLoader.js') }}"></script>
+    <script>
+      const fontFiles = {{ font_files | safe }};
+      const fontFolder = "{{ url_for('static', filename='font/alverata') }}";
+      loadFonts(fontFiles, fontFolder);
+    </script>
+
     <style>
       :root {
         --sec-bg-color: #f0f4f8;
@@ -11,7 +19,7 @@
         --bg-color: #ffffff;
         --border-color: #d0d7de;
         --sec-text: #333244;
-        --font-family: "NeueHaas", sans-serif;
+        --font-family: "Alverata", sans-serif;
       }
 
       * {
@@ -19,7 +27,7 @@
       }
 
       body {
-        font-family: "NeueHaas", sans-serif;
+        font-family: "Alverata", sans-serif;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -73,7 +81,7 @@
         border: 2px solid var(--border-color);
         border-radius: 8px;
         font-size: 1rem;
-        font-family: "NeueHaas", sans-serif;
+        font-family: "Alverata", sans-serif;
         transition: border-color 0.3s ease;
       }
 
@@ -123,7 +131,7 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.3s ease;
-        font-family: "NeueHaas", sans-serif;
+        font-family: "Alverata", sans-serif;
         min-width: 140px;
         width: 100%;
       }
@@ -251,7 +259,7 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.3s ease;
-        font-family: "NeueHaas", sans-serif;
+        font-family: "Alverata", sans-serif;
         width: 100%;
       }
 

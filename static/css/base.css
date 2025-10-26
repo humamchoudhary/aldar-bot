@@ -17,8 +17,12 @@
   --goglobe-input-color: #6a638c; /* softer midtone violet-gray input field */
 
   /* Font & layout constants (unchanged) */
-  --goglobe-heading-font-family: "NeueHaas", sans-serif;
-  --goglobe-body-font-family: "NeueHaas", sans-serif;
+  --goglobe-heading-font-family: "Alverata", sans-serif;
+  --goglobe-body-font-family: "Alverata", sans-serif;
   --goglobe-left-panel-width: 250px;
   --goglobe-header-height: 80px;
+}
+
+:dir(rtl) {
+  font-family: "HelveticaNeueLTArabic", serif;
 }

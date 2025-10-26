@@ -2,89 +2,120 @@
     // Configuration - Update these values as needed
     const config = {
         backendUrl: '{{backend_url}}',
-        fontFiles: {{ font_files | safe }},
-        fontFolder: '{{settings["backend_url"]}}{{ url_for("static", filename="font/NeueHaas") }}'
+        fontFiles: {{ font_files | safe
+}},
+fontFolder: '{{settings["backend_url"]}}{{ url_for("static", filename="font/alverata") }}'
     };
 
-    // Function to load headers and dependencies
-    function loadHeaders() {
-        return new Promise((resolve, reject) => {
-            const charsetMeta = document.createElement('meta');
-            charsetMeta.httpEquiv = 'Content-Type';
-            charsetMeta.content = 'text/html; charset=utf-8';
-            document.head.appendChild(charsetMeta);
+// Function to load headers and dependencies
+function loadHeaders() {
+    return new Promise((resolve, reject) => {
+        const charsetMeta = document.createElement('meta');
+        charsetMeta.httpEquiv = 'Content-Type';
+        charsetMeta.content = 'text/html; charset=utf-8';
+        document.head.appendChild(charsetMeta);
 
-            const htmxConfigMeta = document.createElement('meta');
-            htmxConfigMeta.name = 'htmx-config';
-            htmxConfigMeta.content = '{"selfRequestsOnly":false, "withCredentials": true}';
-            document.head.appendChild(htmxConfigMeta);
+        const htmxConfigMeta = document.createElement('meta');
+        htmxConfigMeta.name = 'htmx-config';
+        htmxConfigMeta.content = '{"selfRequestsOnly":false, "withCredentials": true}';
+        document.head.appendChild(htmxConfigMeta);
 
-            const cssLink = document.createElement('link');
-            cssLink.rel = 'stylesheet';
-            cssLink.href = `${config.backendUrl}/static/css/output.css`;
-            document.head.appendChild(cssLink);
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = `${config.backendUrl}/static/css/output.css`;
+        document.head.appendChild(cssLink);
 
-            const htmxScript = document.createElement('script');
-            htmxScript.src = 'https://unpkg.com/htmx.org@2.0.4';
-            htmxScript.crossOrigin = 'anonymous';
-            htmxScript.onload = () => {
-                console.log('HTMX loaded successfully');
 
-                if (typeof htmx !== 'undefined') {
-                    htmx.config.selfRequestsOnly = false;
-                    htmx.config.withCredentials = true;
-                    htmx.process(document.body);
-                    console.log('HTMX initialized with config:', htmx.config);
-                }
+        const bodystyle = document.createElement("style");
+        bodystyle.innerHTML = `
+        body{
+            font-family:"Alverata", sans-serif;         }
+        `;
 
-                const socketScript = document.createElement('script');
-                socketScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js';
-                socketScript.onload = () => {
-                    console.log('Socket.IO loaded successfully');
-                    window.fontFiles = config.fontFiles;
-                    window.fontFolder = config.fontFolder;
+        document.head.appendChild(bodystyle);
 
-                    const fontLoaderScript = document.createElement('script');
-                    fontLoaderScript.src = config.backendUrl + '/static/js/fontLoader.js';
-                    fontLoaderScript.onload = () => {
-                        console.log('Font loader loaded successfully');
-                        setTimeout(resolve, 100);
-                    };
-                    fontLoaderScript.onerror = () => {
-                        console.warn('Font loader failed to load, continuing anyway');
-                        setTimeout(resolve, 100);
-                    };
-                    document.head.appendChild(fontLoaderScript);
+
+
+        const htmxScript = document.createElement('script');
+        htmxScript.src = 'https://unpkg.com/htmx.org@2.0.4';
+        htmxScript.crossOrigin = 'anonymous';
+        htmxScript.onload = () => {
+            console.log('HTMX loaded successfully');
+
+            if (typeof htmx !== 'undefined') {
+                htmx.config.selfRequestsOnly = false;
+                htmx.config.withCredentials = true;
+                htmx.process(document.body);
+                console.log('HTMX initialized with config:', htmx.config);
+            }
+
+            const socketScript = document.createElement('script');
+            socketScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js';
+            socketScript.onload = () => {
+                console.log('Socket.IO loaded successfully');
+                window.fontFiles = config.fontFiles;
+                window.fontFolder = config.fontFolder;
+
+                const fontLoaderScript = document.createElement('script');
+                fontLoaderScript.src = config.backendUrl + '/static/js/fontLoader.js';
+                fontLoaderScript.onload = () => {
+                    console.log('Font loader loaded successfully');
+
+                    // If fontLoader.js defines `loadFonts()`, call it here
+                    if (typeof loadFonts === 'function') {
+                        loadFonts(window.fontFiles, window.fontFolder);
+                        console.log('Fonts are being loaded...');
+                    }
+
+                    // Continue initialization if needed
+                    setTimeout(resolve, 100);
                 };
-                socketScript.onerror = () => {
-                    console.warn('Socket.IO failed to load, continuing anyway');
-                    window.fontFiles = config.fontFiles;
-                    window.fontFolder = config.fontFolder;
-
-                    const fontLoaderScript = document.createElement('script');
-                    fontLoaderScript.src = config.backendUrl + '/static/js/fontLoader.js';
-                    fontLoaderScript.onload = () => {
-                        console.log('Font loader loaded successfully');
-                        setTimeout(resolve, 100);
-                    };
-                    fontLoaderScript.onerror = () => {
-                        console.warn('Font loader failed to load, continuing anyway');
-                        setTimeout(resolve, 100);
-                    };
-                    document.head.appendChild(fontLoaderScript);
+                fontLoaderScript.onerror = () => {
+                    console.warn('Font loader failed to load, continuing anyway');
+                    setTimeout(resolve, 100);
                 };
-                document.head.appendChild(socketScript);
-            };
-            htmxScript.onerror = () => {
-                reject(new Error('Failed to load HTMX'));
-            };
-            document.head.appendChild(htmxScript);
-        });
-    }
+                document.head.appendChild(fontLoaderScript);
 
-    // Function to initialize the chatbot
-    function initializeChatbot() {
-        const insertHtml = `
+
+
+            };
+            socketScript.onerror = () => {
+                console.warn('Socket.IO failed to load, continuing anyway');
+                window.fontFiles = config.fontFiles;
+                window.fontFolder = config.fontFolder;
+
+                const fontLoaderScript = document.createElement('script');
+                fontLoaderScript.src = config.backendUrl + '/static/js/fontLoader.js';
+                fontLoaderScript.onload = () => {
+                    console.log('Font loader loaded successfully');
+
+                    // If fontLoader.js defines `loadFonts()`, call it here
+                    if (typeof loadFonts === 'function') {
+                        loadFonts(window.fontFiles, window.fontFolder);
+                        console.log('Fonts are being loaded...');
+                    }
+
+                    // Continue initialization if needed
+                    setTimeout(resolve, 100);
+                };
+                fontLoaderScript.onerror = () => {
+                    console.warn('Font loader failed to load, continuing anyway');
+                    setTimeout(resolve, 100);
+                };
+                document.head.appendChild(fontLoaderScript);
+            };
+            document.head.appendChild(socketScript);
+        };
+        htmxScript.onerror = () => {
+            reject(new Error('Failed to load HTMX'));
+        };
+        document.head.appendChild(htmxScript);
+    });
+}
+
+// Function to initialize the chatbot
+function initializeChatbot() {
+    const insertHtml = `
   <style>
   @keyframes pulse-glow {
     0% {
@@ -136,7 +167,7 @@
     border: 2px solid #bc9b62;
     border-radius: 12px;
     padding: 12px 20px;
-    font-family: "NeueHaas", sans-serif;
+    font-family: "Alverata", sans-serif;
     font-size: 0.95rem;
     font-weight: 500;
     color: #333244;
@@ -481,297 +512,326 @@
 </div>
     `;
 
-        document.body.insertAdjacentHTML("beforeend", insertHtml);
+    document.body.insertAdjacentHTML("beforeend", insertHtml);
 
-        const chatContainer = document.getElementById("chat-container");
-        if (typeof htmx !== 'undefined') {
-            htmx.process(chatContainer);
-            console.log('HTMX processed chatbot elements');
+    const chatContainer = document.getElementById("chat-container");
+    if (typeof htmx !== 'undefined') {
+        htmx.process(chatContainer);
+        console.log('HTMX processed chatbot elements');
+    }
+
+    // Cookie functions
+    const setCookie = (name, value, days = 365) => {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + ";" + expires + ";path=/";
+    };
+
+    const getCookie = (name) => {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    };
+
+    // Initialize chatbot functionality
+    const baseURL = config.backendUrl;
+    const chatBtn = document.getElementById("chat-button");
+    const actionButtonsContainer = document.getElementById("action-buttons-container");
+    const chatActionBtn = document.getElementById("chat-action-btn");
+    const callActionBtn = document.getElementById("call-action-btn");
+    const closeBtn = document.getElementById("close-chat");
+    const chatHeader = document.querySelector('.chat-header');
+    const dragHandle = document.querySelector('.drag-handle');
+
+    let isChatOpen = false;
+    let isActionMenuOpen = false;
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    let originalPosition = { bottom: '20px', right: '20px' };
+    let autoOpenTriggered = false;
+    const CHAT_CLOSED_COOKIE = 'chatbot_closed';
+
+    function trackEvent(eventName, params = {}) {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+            event: eventName,
+            page_path: window.location.pathname,
+            ...params,
+        });
+        console.log("Event pushed:", eventName, params);
+    }
+
+    // Drag functionality
+    const startDrag = (e) => {
+        if (e.target.closest('#return-chat') || e.target.closest('#close-chat')) {
+            return;
         }
 
-        // Cookie functions
-        const setCookie = (name, value, days = 365) => {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            const expires = "expires=" + date.toUTCString();
-            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        isDragging = true;
+        chatContainer.classList.add('dragging');
+
+        originalPosition = {
+            bottom: chatContainer.style.bottom || '20px',
+            right: chatContainer.style.right || '20px'
         };
 
-        const getCookie = (name) => {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        const rect = chatContainer.getBoundingClientRect();
+        dragOffset.x = e.clientX - rect.left;
+        dragOffset.y = e.clientY - rect.top;
+
+        chatContainer.style.position = 'fixed';
+        chatContainer.style.bottom = 'auto';
+        chatContainer.style.right = 'auto';
+        chatContainer.style.left = rect.left + 'px';
+        chatContainer.style.top = rect.top + 'px';
+
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', stopDrag);
+        document.body.style.userSelect = 'none';
+    };
+
+    const handleDrag = (e) => {
+        if (!isDragging) return;
+
+        const newX = e.clientX - dragOffset.x;
+        const newY = e.clientY - dragOffset.y;
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const containerWidth = chatContainer.offsetWidth;
+        const containerHeight = chatContainer.offsetHeight;
+
+        const constrainedX = Math.max(0, Math.min(newX, viewportWidth - containerWidth));
+        const constrainedY = Math.max(0, Math.min(newY, viewportHeight - containerHeight));
+
+        chatContainer.style.left = constrainedX + 'px';
+        chatContainer.style.top = constrainedY + 'px';
+    };
+
+    const stopDrag = () => {
+        isDragging = false;
+        chatContainer.classList.remove('dragging');
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', stopDrag);
+        document.body.style.userSelect = '';
+    };
+
+    const resetPosition = () => {
+        chatContainer.style.position = 'fixed';
+        chatContainer.style.bottom = originalPosition.bottom;
+        chatContainer.style.right = originalPosition.right;
+    };
+
+    const wasChatClosedByUser = () => {
+        return getCookie(CHAT_CLOSED_COOKIE) === 'true';
+    };
+
+    // Open chat function
+    // Replace your existing openChat function with this:
+    const openChat = () => {
+        chatBtn.classList.add("chat-button-hidden");
+        actionButtonsContainer.classList.remove("show");
+        isActionMenuOpen = false;
+
+        // Reset container height to default (remove call interface sizing)
+        chatContainer.style.height = '';
+        chatContainer.style.maxHeight = '500px';
+
+        // Get chatbox element
+        const chatbox = document.getElementById('chatbox');
+
+        // Check if call interface is loaded (iframe exists)
+        if (chatbox.querySelector('iframe')) {
+            // Clear the iframe and reload chat interface
+            chatbox.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px;">
+                <svg class="spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="animation: spin 1s linear infinite; color: #f0f4f8; width: 25px; height: 25px;">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        `;
+
+            // Trigger HTMX to reload chat interface
+            if (typeof htmx !== 'undefined') {
+                htmx.ajax('GET', `${baseURL}/min/`, {
+                    target: '#chatbox',
+                    swap: 'innerHTML'
+                });
             }
-            return null;
-        };
-
-        // Initialize chatbot functionality
-        const baseURL = config.backendUrl;
-        const chatBtn = document.getElementById("chat-button");
-        const actionButtonsContainer = document.getElementById("action-buttons-container");
-        const chatActionBtn = document.getElementById("chat-action-btn");
-        const callActionBtn = document.getElementById("call-action-btn");
-        const closeBtn = document.getElementById("close-chat");
-        const chatHeader = document.querySelector('.chat-header');
-        const dragHandle = document.querySelector('.drag-handle');
-        
-        let isChatOpen = false;
-        let isActionMenuOpen = false;
-        let isDragging = false;
-        let dragOffset = { x: 0, y: 0 };
-        let originalPosition = { bottom: '20px', right: '20px' };
-        let autoOpenTriggered = false;
-        const CHAT_CLOSED_COOKIE = 'chatbot_closed';
-
-        function trackEvent(eventName, params = {}) {
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({
-                event: eventName,
-                page_path: window.location.pathname,
-                ...params,
-            });
-            console.log("Event pushed:", eventName, params);
         }
 
-        // Drag functionality
-        const startDrag = (e) => {
-            if (e.target.closest('#return-chat') || e.target.closest('#close-chat')) {
-                return;
+        setTimeout(() => {
+            chatContainer.classList.add("chat-container-open");
+            isChatOpen = true;
+            const audio = new Audio(baseURL + "/static/sounds/pop-up.wav");
+            audio.play().catch(() => { });
+            if (typeof scrollToBottom === 'function') {
+                scrollToBottom();
             }
+        }, 150);
+    };
 
-            isDragging = true;
-            chatContainer.classList.add('dragging');
+    // Unified auto-open function
+    const autoOpenChat = (triggerType) => {
+        if (isChatOpen || autoOpenTriggered || wasChatClosedByUser()) {
+            return;
+        }
 
-            originalPosition = {
-                bottom: chatContainer.style.bottom || '20px',
-                right: chatContainer.style.right || '20px'
-            };
+        autoOpenTriggered = true;
+        console.log(`Auto-opening chat via ${triggerType} trigger`);
+        trackEvent(`gobot_${triggerType}`, {});
+        openChat();
+    };
 
-            const rect = chatContainer.getBoundingClientRect();
-            dragOffset.x = e.clientX - rect.left;
-            dragOffset.y = e.clientY - rect.top;
+    // Scroll trigger (60% down the page)
+    const initScrollTrigger = () => {
+        let scrollTriggerFired = false;
 
-            chatContainer.style.position = 'fixed';
-            chatContainer.style.bottom = 'auto';
-            chatContainer.style.right = 'auto';
-            chatContainer.style.left = rect.left + 'px';
-            chatContainer.style.top = rect.top + 'px';
+        const checkScroll = () => {
+            if (scrollTriggerFired || autoOpenTriggered) return;
 
-            document.addEventListener('mousemove', handleDrag);
-            document.addEventListener('mouseup', stopDrag);
-            document.body.style.userSelect = 'none';
-        };
+            const scrollPercentage = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
 
-        const handleDrag = (e) => {
-            if (!isDragging) return;
-
-            const newX = e.clientX - dragOffset.x;
-            const newY = e.clientY - dragOffset.y;
-
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const containerWidth = chatContainer.offsetWidth;
-            const containerHeight = chatContainer.offsetHeight;
-
-            const constrainedX = Math.max(0, Math.min(newX, viewportWidth - containerWidth));
-            const constrainedY = Math.max(0, Math.min(newY, viewportHeight - containerHeight));
-
-            chatContainer.style.left = constrainedX + 'px';
-            chatContainer.style.top = constrainedY + 'px';
-        };
-
-        const stopDrag = () => {
-            isDragging = false;
-            chatContainer.classList.remove('dragging');
-            document.removeEventListener('mousemove', handleDrag);
-            document.removeEventListener('mouseup', stopDrag);
-            document.body.style.userSelect = '';
-        };
-
-        const resetPosition = () => {
-            chatContainer.style.position = 'fixed';
-            chatContainer.style.bottom = originalPosition.bottom;
-            chatContainer.style.right = originalPosition.right;
-        };
-
-        const wasChatClosedByUser = () => {
-            return getCookie(CHAT_CLOSED_COOKIE) === 'true';
-        };
-
-        // Open chat function
-        const openChat = () => {
-            chatBtn.classList.add("chat-button-hidden");
-            actionButtonsContainer.classList.remove("show");
-            isActionMenuOpen = false;
-
-            setTimeout(() => {
-                chatContainer.classList.add("chat-container-open");
-                isChatOpen = true;
-                const audio = new Audio(baseURL + "/static/sounds/pop-up.wav");
-                audio.play().catch(() => { });
-                if (typeof scrollToBottom === 'function') {
-                    scrollToBottom();
-                }
-            }, 150);
-        };
-
-        // Unified auto-open function
-        const autoOpenChat = (triggerType) => {
-            if (isChatOpen || autoOpenTriggered || wasChatClosedByUser()) {
-                return;
-            }
-
-            autoOpenTriggered = true;
-            console.log(`Auto-opening chat via ${triggerType} trigger`);
-            trackEvent(`gobot_${triggerType}`, {});
-            openChat();
-        };
-
-        // Scroll trigger (60% down the page)
-        const initScrollTrigger = () => {
-            let scrollTriggerFired = false;
-
-            const checkScroll = () => {
-                if (scrollTriggerFired || autoOpenTriggered) return;
-
-                const scrollPercentage = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-
-                if (scrollPercentage >= 60) {
-                    scrollTriggerFired = true;
-                    autoOpenChat('scroll');
-                    window.removeEventListener('scroll', checkScroll);
-                }
-            };
-
-            let scrollTimeout;
-            const throttledScroll = () => {
-                if (!scrollTimeout) {
-                    scrollTimeout = setTimeout(() => {
-                        checkScroll();
-                        scrollTimeout = null;
-                    }, 100);
-                }
-            };
-
-            window.addEventListener('scroll', throttledScroll);
-            setTimeout(checkScroll, 1000);
-        };
-
-        // Time trigger (45 seconds)
-        const initTimeTrigger = () => {
-            setTimeout(() => {
-                autoOpenChat('timer');
-            }, 45000);
-        };
-
-        const initAutoOpenTriggers = () => {
-            if (!wasChatClosedByUser()) {
-                initScrollTrigger();
-                initTimeTrigger();
-            } else {
-                console.log('Chat auto-open disabled - user previously closed the chat');
+            if (scrollPercentage >= 60) {
+                scrollTriggerFired = true;
+                autoOpenChat('scroll');
+                window.removeEventListener('scroll', checkScroll);
             }
         };
 
-        // Add drag event listeners
-        chatHeader.addEventListener('mousedown', startDrag);
-        dragHandle.addEventListener('mousedown', startDrag);
-
-        // Resize functionality
-        let isResizing = false;
-        let currentResizer = null;
-        let startX, startY, startWidth, startHeight;
-
-        const initResize = (e, direction) => {
-            e.preventDefault();
-            e.stopPropagation();
-            isResizing = true;
-            currentResizer = direction;
-            startX = e.clientX;
-            startY = e.clientY;
-            startWidth = parseInt(window.getComputedStyle(chatContainer).width, 10);
-            startHeight = parseInt(window.getComputedStyle(chatContainer).height, 10);
-
-            chatContainer.classList.add('resized');
-
-            document.addEventListener("mousemove", handleResize);
-            document.addEventListener("mouseup", stopResize);
-            document.body.style.userSelect = "none";
-        };
-
-        const handleResize = (e) => {
-            if (!isResizing) return;
-
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-
-            if (currentResizer === "nw") {
-                let newWidth = startWidth - (e.clientX - startX);
-                let newHeight = startHeight - (e.clientY - startY);
-
-                newWidth = Math.max(300, Math.min(newWidth, viewportWidth * 0.8));
-                newHeight = Math.max(300, Math.min(newHeight, viewportHeight * 0.8));
-
-                chatContainer.style.width = newWidth + "px";
-                chatContainer.style.height = newHeight + "px";
-            } else if (currentResizer === "n") {
-                let newHeight = startHeight - (e.clientY - startY);
-                newHeight = Math.max(300, Math.min(newHeight, viewportHeight * 0.8));
-                chatContainer.style.height = newHeight + "px";
-            } else if (currentResizer === "w") {
-                let newWidth = startWidth - (e.clientX - startX);
-                newWidth = Math.max(300, Math.min(newWidth, viewportWidth * 0.8));
-                chatContainer.style.width = newWidth + "px";
+        let scrollTimeout;
+        const throttledScroll = () => {
+            if (!scrollTimeout) {
+                scrollTimeout = setTimeout(() => {
+                    checkScroll();
+                    scrollTimeout = null;
+                }, 100);
             }
         };
 
-        const stopResize = () => {
-            isResizing = false;
-            currentResizer = null;
-            document.removeEventListener("mousemove", handleResize);
-            document.removeEventListener("mouseup", stopResize);
-            document.body.style.userSelect = "";
-        };
+        window.addEventListener('scroll', throttledScroll);
+        setTimeout(checkScroll, 1000);
+    };
 
-        document.getElementById("resize-nw").addEventListener("mousedown", (e) => initResize(e, "nw"));
-        document.getElementById("resize-n").addEventListener("mousedown", (e) => initResize(e, "n"));
-        document.getElementById("resize-w").addEventListener("mousedown", (e) => initResize(e, "w"));
-        document.querySelector(".resize-indicator").addEventListener("mousedown", (e) => initResize(e, "nw"));
+    // Time trigger (45 seconds)
+    const initTimeTrigger = () => {
+        setTimeout(() => {
+            autoOpenChat('timer');
+        }, 45000);
+    };
 
-        // Chat button click - Show action menu
-        chatBtn.onclick = () => {
-            if (!isChatOpen && !isActionMenuOpen) {
-                actionButtonsContainer.classList.add("show");
-                isActionMenuOpen = true;
-            }
-        };
+    const initAutoOpenTriggers = () => {
+        if (!wasChatClosedByUser()) {
+            initScrollTrigger();
+            initTimeTrigger();
+        } else {
+            console.log('Chat auto-open disabled - user previously closed the chat');
+        }
+    };
 
-        // Chat action button - Open chat
-        chatActionBtn.onclick = () => {
-            trackEvent("gobot_click");
-            openChat();
-        };
+    // Add drag event listeners
+    chatHeader.addEventListener('mousedown', startDrag);
+    dragHandle.addEventListener('mousedown', startDrag);
 
-        // Call action button - Open call interface
-        callActionBtn.onclick = () => {
-            trackEvent("gobot_call_click");
-            actionButtonsContainer.classList.remove("show");
-            isActionMenuOpen = false;
-            
-            // Hide chat button and open call interface
-            chatBtn.classList.add("chat-button-hidden");
-            
-            setTimeout(() => {
-                // Set container height for call interface
-                chatContainer.style.height = '650px';
-                chatContainer.style.maxHeight='80vh';
-                
-                // Load call interface into chatbox
-                const chatbox = document.getElementById('chatbox');
-                chatbox.innerHTML = `
+    // Resize functionality
+    let isResizing = false;
+    let currentResizer = null;
+    let startX, startY, startWidth, startHeight;
+
+    const initResize = (e, direction) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        currentResizer = direction;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = parseInt(window.getComputedStyle(chatContainer).width, 10);
+        startHeight = parseInt(window.getComputedStyle(chatContainer).height, 10);
+
+        chatContainer.classList.add('resized');
+
+        document.addEventListener("mousemove", handleResize);
+        document.addEventListener("mouseup", stopResize);
+        document.body.style.userSelect = "none";
+    };
+
+    const handleResize = (e) => {
+        if (!isResizing) return;
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        if (currentResizer === "nw") {
+            let newWidth = startWidth - (e.clientX - startX);
+            let newHeight = startHeight - (e.clientY - startY);
+
+            newWidth = Math.max(300, Math.min(newWidth, viewportWidth * 0.8));
+            newHeight = Math.max(300, Math.min(newHeight, viewportHeight * 0.8));
+
+            chatContainer.style.width = newWidth + "px";
+            chatContainer.style.height = newHeight + "px";
+        } else if (currentResizer === "n") {
+            let newHeight = startHeight - (e.clientY - startY);
+            newHeight = Math.max(300, Math.min(newHeight, viewportHeight * 0.8));
+            chatContainer.style.height = newHeight + "px";
+        } else if (currentResizer === "w") {
+            let newWidth = startWidth - (e.clientX - startX);
+            newWidth = Math.max(300, Math.min(newWidth, viewportWidth * 0.8));
+            chatContainer.style.width = newWidth + "px";
+        }
+    };
+
+    const stopResize = () => {
+        isResizing = false;
+        currentResizer = null;
+        document.removeEventListener("mousemove", handleResize);
+        document.removeEventListener("mouseup", stopResize);
+        document.body.style.userSelect = "";
+    };
+
+    document.getElementById("resize-nw").addEventListener("mousedown", (e) => initResize(e, "nw"));
+    document.getElementById("resize-n").addEventListener("mousedown", (e) => initResize(e, "n"));
+    document.getElementById("resize-w").addEventListener("mousedown", (e) => initResize(e, "w"));
+    document.querySelector(".resize-indicator").addEventListener("mousedown", (e) => initResize(e, "nw"));
+
+    // Chat button click - Show action menu
+    chatBtn.onclick = () => {
+        if (!isChatOpen && !isActionMenuOpen) {
+            actionButtonsContainer.classList.add("show");
+            isActionMenuOpen = true;
+        }
+    };
+
+    // Chat action button - Open chat
+    chatActionBtn.onclick = () => {
+        trackEvent("gobot_click");
+        openChat();
+    };
+
+    // Call action button - Open call interface
+    callActionBtn.onclick = () => {
+        trackEvent("gobot_call_click");
+        actionButtonsContainer.classList.remove("show");
+        isActionMenuOpen = false;
+
+        // Hide chat button and open call interface
+        chatBtn.classList.add("chat-button-hidden");
+
+        setTimeout(() => {
+            // Set container height for call interface
+            chatContainer.style.height = '650px';
+            chatContainer.style.maxHeight = '80vh';
+
+            // Load call interface into chatbox
+            const chatbox = document.getElementById('chatbox');
+            chatbox.innerHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px;">
                         <iframe 
                             src="${baseURL}/call" 
@@ -780,111 +840,111 @@
                         ></iframe>
                     </div>
                 `;
-                
-                chatContainer.classList.add("chat-container-open");
-                isChatOpen = true;
-                const audio = new Audio(baseURL + "/static/sounds/pop-up.wav");
-                audio.play().catch(() => { });
+
+            chatContainer.classList.add("chat-container-open");
+            isChatOpen = true;
+            const audio = new Audio(baseURL + "/static/sounds/pop-up.wav");
+            audio.play().catch(() => { });
+        }, 150);
+    };
+
+    // Close button
+    closeBtn.onclick = () => {
+        if (isChatOpen) {
+            setCookie(CHAT_CLOSED_COOKIE, 'true', 30);
+            resetPosition();
+
+            chatContainer.classList.add("chat-container-closing");
+            setTimeout(() => {
+                chatBtn.classList.remove("chat-button-hidden");
+                chatBtn.classList.add("chat-button-visible");
             }, 150);
-        };
 
-        // Close button
-        closeBtn.onclick = () => {
-            if (isChatOpen) {
-                setCookie(CHAT_CLOSED_COOKIE, 'true', 30);
-                resetPosition();
-
-                chatContainer.classList.add("chat-container-closing");
-                setTimeout(() => {
-                    chatBtn.classList.remove("chat-button-hidden");
-                    chatBtn.classList.add("chat-button-visible");
-                }, 150);
-
-                setTimeout(() => {
-                    chatContainer.classList.remove("chat-container-open", "chat-container-closing");
-                    chatBtn.classList.remove("chat-button-visible");
-                    isChatOpen = false;
-                }, 400);
-            }
-        };
-
-        // Close action menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (isActionMenuOpen && 
-                !actionButtonsContainer.contains(e.target) && 
-                !chatBtn.contains(e.target)) {
-                actionButtonsContainer.classList.remove("show");
-                isActionMenuOpen = false;
-            }
-        });
-
-        document.body.addEventListener("htmx:afterSwap", (evt) => {
-            if (evt.target.id === "chatbox") {
-                const anchors = evt.target.querySelectorAll("a[href^='/']");
-                anchors.forEach((a) => {
-                    const original = a.getAttribute("href");
-                    a.setAttribute("hx-get", baseURL + original);
-                    a.setAttribute("hx-target", "#chatbox");
-                    a.setAttribute("hx-swap", "innerHTML");
-                    a.removeAttribute("href");
-                });
-
-                if (typeof htmx !== 'undefined') {
-                    htmx.process(evt.target);
-                }
-            }
-        });
-
-        const addUnsetClass = (el) => {
-            if (el.className && typeof el.className === "string") {
-                // Add any class manipulation logic here if needed
-            }
-        };
-
-        const processChatContentElements = () => {
-            const chatContent = document.querySelector('[style*="flex: 1; overflow: auto;"]');
-            if (!chatContent) return;
-            chatContent.querySelectorAll("*").forEach(addUnsetClass);
-
-            new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === 1) {
-                            addUnsetClass(node);
-                            node.querySelectorAll("*").forEach(addUnsetClass);
-                        }
-                    });
-                });
-            }).observe(chatContent, { childList: true, subtree: true });
-        };
-
-        document.body.addEventListener("htmx:afterSwap", (evt) => {
-            if (evt.detail.target.id === "chatbox") {
-                setTimeout(() => {
-                    processChatContentElements();
-                    if (typeof htmx !== 'undefined') {
-                        htmx.process(evt.detail.target);
-                    }
-                }, 0);
-            }
-        });
-
-        processChatContentElements();
-        initAutoOpenTriggers();
-
-        console.log('Chatbot initialized successfully');
-    }
-
-    // Main execution
-    function init() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                loadHeaders().then(initializeChatbot).catch(console.error);
-            });
-        } else {
-            loadHeaders().then(initializeChatbot).catch(console.error);
+            setTimeout(() => {
+                chatContainer.classList.remove("chat-container-open", "chat-container-closing");
+                chatBtn.classList.remove("chat-button-visible");
+                isChatOpen = false;
+            }, 400);
         }
-    }
+    };
 
-    init();
-})();
+    // Close action menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (isActionMenuOpen &&
+            !actionButtonsContainer.contains(e.target) &&
+            !chatBtn.contains(e.target)) {
+            actionButtonsContainer.classList.remove("show");
+            isActionMenuOpen = false;
+        }
+    });
+
+    document.body.addEventListener("htmx:afterSwap", (evt) => {
+        if (evt.target.id === "chatbox") {
+            const anchors = evt.target.querySelectorAll("a[href^='/']");
+            anchors.forEach((a) => {
+                const original = a.getAttribute("href");
+                a.setAttribute("hx-get", baseURL + original);
+                a.setAttribute("hx-target", "#chatbox");
+                a.setAttribute("hx-swap", "innerHTML");
+                a.removeAttribute("href");
+            });
+
+            if (typeof htmx !== 'undefined') {
+                htmx.process(evt.target);
+            }
+        }
+    });
+
+    const addUnsetClass = (el) => {
+        if (el.className && typeof el.className === "string") {
+            // Add any class manipulation logic here if needed
+        }
+    };
+
+    const processChatContentElements = () => {
+        const chatContent = document.querySelector('[style*="flex: 1; overflow: auto;"]');
+        if (!chatContent) return;
+        chatContent.querySelectorAll("*").forEach(addUnsetClass);
+
+        new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        addUnsetClass(node);
+                        node.querySelectorAll("*").forEach(addUnsetClass);
+                    }
+                });
+            });
+        }).observe(chatContent, { childList: true, subtree: true });
+    };
+
+    document.body.addEventListener("htmx:afterSwap", (evt) => {
+        if (evt.detail.target.id === "chatbox") {
+            setTimeout(() => {
+                processChatContentElements();
+                if (typeof htmx !== 'undefined') {
+                    htmx.process(evt.detail.target);
+                }
+            }, 0);
+        }
+    });
+
+    processChatContentElements();
+    initAutoOpenTriggers();
+
+    console.log('Chatbot initialized successfully');
+}
+
+// Main execution
+function init() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHeaders().then(initializeChatbot).catch(console.error);
+        });
+    } else {
+        loadHeaders().then(initializeChatbot).catch(console.error);
+    }
+}
+
+init();
+}) ();

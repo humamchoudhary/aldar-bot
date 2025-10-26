@@ -39,17 +39,28 @@ def get_font_data():
     # font_dir = os.path.join(
     #     app.static_folder, 'font/Proxima Nova Complete Collection')
 
-    font_dir = os.path.join(
-        app.static_folder, 'font/NeueHaas')
-
+    font_dir = os.path.join(app.static_folder, 'font','alverata')
     # Find all font files
     font_files = []
     for ext in ['ttf', 'otf', 'woff', 'woff2']:
         font_files.extend(glob.glob(os.path.join(font_dir, f'*.{ext}')))
-
     # Extract just the filenames
     font_files = [os.path.basename(f) for f in font_files]
+    return font_files
 
+
+def get_font_data_arabic():
+    # Path to your font directory
+    # font_dir = os.path.join(
+    #     app.static_folder, 'font/Proxima Nova Complete Collection')
+
+    font_dir = os.path.join(app.static_folder, 'font','alverata')
+    # Find all font files
+    font_files = []
+    for ext in ['ttf', 'otf', 'woff', 'woff2']:
+        font_files.extend(glob.glob(os.path.join(font_dir, f'*.{ext}')))
+    # Extract just the filenames
+    font_files = [os.path.basename(f) for f in font_files]
     return font_files
 
 

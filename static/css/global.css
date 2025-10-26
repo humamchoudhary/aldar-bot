@@ -15,7 +15,7 @@
   /* --border-color: #25323922; */
   --sec-text: #333244; /* Darker text for readability */
 
-  --font-family: "NeueHaas", sans-serif;
+  --font-family: "Alverata", sans-serif;
   --white: #000;
 }
 
@@ -25,8 +25,12 @@
   --bg-color: #0e1024; /* darker indigo-black for depth */
   --border-color: #2b2958; /* muted indigo-gray for subtle framing */
   --sec-text: #cfcbe0; /* soft lilac-gray for readable secondary text */
-  --font-family: "NeueHaas", sans-serif;
+  --font-family: "Alverata", sans-serif;
   --white: #ffffff; /* pure white highlight */
+}
+
+:dir(rtl) {
+  font-family: "HelveticaNeueLTArabic", serif;
 }
 
 html {
@@ -51,6 +55,10 @@ body {
   overflow-x: hidden;
 
   white-space: nowrap;
+}
+
+:dir(rtl) {
+  font-family: "HelveticaNeueLTArabic", serif;
 }
 
 @media (max-width: 900px) {

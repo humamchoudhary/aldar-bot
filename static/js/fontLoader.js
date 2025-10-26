@@ -13,15 +13,32 @@ function loadFonts(fontFiles, fontFolder) {
     const style = document.createElement("style");
     style.innerHTML = `
             @font-face {
-                font-family: 'NeueHaas';
+                font-family: 'Alverata';
                 src: url('${fontFolder}/${fileName}') format('${getFormat(fileName)}');
                 font-weight: ${fontWeight};
                 font-style: ${fontStyle};
                 font-display: swap;
             }
         `;
+    console.log(style);
     document.head.appendChild(style);
   });
+
+  let fontWeight = "400";
+  let fontStyle = "normal";
+
+  const style = document.createElement("style");
+  style.innerHTML = `
+            @font-face {
+                font-family: 'HelveticaNeueLTArabic';
+                src: url('/static/font/HelveticaNeueLTArabic-Roman.ttf') format('${getFormat("HelveticaNeueLTArabic-Roman.ttf'")}');
+                font-weight: ${fontWeight};
+                font-style: ${fontStyle};
+                font-display: swap;
+            }
+        `;
+
+  document.head.appendChild(style);
 }
 
 function getFormat(fileName) {
@@ -31,5 +48,3 @@ function getFormat(fileName) {
   if (fileName.endsWith(".woff2")) return "woff2";
   return "truetype"; // default
 }
-
-// loadFonts(fontFiles, fontFolder);
