@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 import wave
 
-from flask import Flask, current_app, render_template, request, jsonify
+from flask import Flask, current_app, render_template, request, jsonify, url_for
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
 from twilio.twiml.voice_response import VoiceResponse, Connect, Stream
@@ -50,6 +50,31 @@ def generate_token():
     
     return jsonify({'token': token.to_jwt()})
 
+
+@call_bp.route("/conference-status", methods=["POST"])
+def conference_status():
+    """Handle conference status callbacks from Twilio"""
+    print("Conference Status Callback:")
+    print(request.values)
+    
+    event = request.values.get('StatusCallbackEvent')
+    conference_sid = request.values.get('ConferenceSid')
+    participant_label = request.values.get('ParticipantLabel', 'Unknown')
+    call_sid = request.values.get('CallSid')
+    
+    # Log the event
+    print(f"Event: {event}, Conference: {conference_sid}, Participant: {participant_label}")
+    
+    # You can emit socket.io events here to update the admin dashboard
+    # socketio.emit('conference_event', {
+    #     'event': event,
+    #     'conference_sid': conference_sid,
+    #     'participant': participant_label,
+    #     'call_sid': call_sid
+    # })
+    
+    return Response(status=200)
+
 @call_bp.route("/voice")
 def get_voice():
     print(request.values)
@@ -63,9 +88,12 @@ def get_voice():
 
         op_dial = response.dial()
         op_dial.conference(
-            f" {request.values.get("To")}",
+            f"{request.values.get("To")}",
           startConferenceOnEnter= True,
-          endConferenceOnExit= True,            )
+          endConferenceOnExit= True,
+
+        status_callback_event="start end join leave mute hold speaker",
+        status_callback=url_for('call.conference_status', _external=True),          )
 
         pprint(str(response))
         return Response(str(response), mimetype="text/xml")
@@ -92,7 +120,10 @@ def get_voice():
     op_dial.conference(
         f"{request.values.get('name', None)}-{request.values.get('qid', None)}",
       startConferenceOnEnter= True,
-      endConferenceOnExit= True,            )
+      endConferenceOnExit= True,    
+
+        status_callback_event="start end join leave mute hold speaker",
+        status_callback=url_for('call.conference_status', _external=True),      )
 
 
 
