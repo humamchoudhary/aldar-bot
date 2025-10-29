@@ -36,7 +36,7 @@ def webhook():
         data = request.get_json()
         
         # Store data in g for after_request processing
-        g.webhook_data = data
+        # g.webhook_data = data
         
         # Return 200 immediately
         return jsonify({"status": "success"}), 200
