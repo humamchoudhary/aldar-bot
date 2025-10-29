@@ -481,7 +481,7 @@ def create_app(config_class=Config):
     @app.after_request
     def after_request(response):
         """Log request details after processing"""
-        if should_skip_logging(request.path) or not response:
+        if should_skip_logging(request.path):
             return response
 
         # Calculate response time
