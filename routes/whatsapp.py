@@ -149,7 +149,8 @@ def webhook():
                             from_number = message.get('from')
                             chat = wa_service.get_by_phone_no(from_number)
                             admin = AdminService(current_app.db).get_admin_by_id(DEFAULT_ADMIN_ID)
-                            current_app.bot.create_chat(from_number, admin)
+                            if not chat:
+                                current_app.bot.create_chat(from_number, admin)
                             
                             if not chat:
                                 wa_service.create(from_number)
