@@ -39,12 +39,12 @@ def webhook():
         # g.webhook_data = data
         
         # Return 200 immediately
-        return jsonify({"status": "success"}), 200
+        return "Success", 200
     
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return f"{e}", 500
 
 
 # @wa_bp.after_request
