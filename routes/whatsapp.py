@@ -136,7 +136,7 @@ def webhook():
         
         # Process in background thread
         thread = Thread(target=process_message)
-        thread.daemon = True
+        # thread.daemon = True
         thread.start()
         
         return jsonify({"status": "success"}), 200
@@ -151,6 +151,7 @@ def webhook():
 def handle_webhook_data(data):
     """Process webhook data asynchronously"""
     try:
+        print("handling in bg")
         # Get app context for background thread
         app = current_app._get_current_object()
         wa_service = WhatsappService(app.db)
