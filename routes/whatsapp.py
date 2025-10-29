@@ -51,20 +51,20 @@ def webhook():
 def process_webhook_after_response(response):
     """Process webhook data after sending response"""
     # Only process if we have webhook data stored
-    if hasattr(g, 'webhook_data'):
-        data = g.webhook_data
-        
-        # Process in a separate thread to avoid blocking
-        from threading import Thread
-        thread = Thread(target=process_webhook_data, args=(data,))
-        thread.daemon = True
-        thread.start()
-    
-    return response
-
-
-def process_webhook_data(data):
-    """Process webhook data asynchronously"""
+#     if hasattr(g, 'webhook_data'):
+    data = g.webhook_data
+#         
+#         # Process in a separate thread to avoid blocking
+#         from threading import Thread
+#         thread = Thread(target=process_webhook_data, args=(data,))
+#         thread.daemon = True
+#         thread.start()
+#     
+#     return response
+#
+#
+# def process_webhook_data(data):
+    # """Process webhook data asynchronously"""
     try:
         from flask import current_app
         
