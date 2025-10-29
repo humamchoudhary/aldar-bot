@@ -211,7 +211,7 @@ class Bot:
         history, system_instruction = self._load_chat(id)
         print("BOT RESPONDING ================== ")
         print(history)
-        print(system_instruction)
+        # print(system_instruction)
         
         # Recreate chat with loaded history
         chat = self.client.chats.create(
