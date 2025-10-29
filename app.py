@@ -497,7 +497,7 @@ def create_app(config_class=Config):
             client_ip = client_ip.split(',')[0].strip()
 
         # Format the log message
-        status_code = response.get("status_code",200)
+        status_code = response.status_code
         method = request.method
         path = request.path
         user_agent = request.headers.get(
