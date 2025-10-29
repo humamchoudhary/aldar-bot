@@ -209,8 +209,8 @@ class Bot:
         
         # Load chat history and system instruction
         history, system_instruction = self._load_chat(id)
-        print("BOT RESPONDING ================== ")
-        print(history)
+        # print("BOT RESPONDING ================== ")
+        # print(history)
         # print(system_instruction)
         
         # Recreate chat with loaded history
