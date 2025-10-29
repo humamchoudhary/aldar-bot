@@ -3,7 +3,6 @@ import requests
 import os
 from io import BytesIO
 from pydub import AudioSegment
-from threading import Thread, Lock
 
 from services.admin_service import AdminService
 from services.chat_service import ChatService
@@ -16,10 +15,6 @@ PHONE_NUMBER_ID = os.getenv('PHONE_NUMBER_ID')
 VERSION = 'v24.0'
 DEFAULT_ADMIN_ID = os.getenv("DEFAULT_ADMIN_ID")
 
-# Duplicate message prevention
-processed_messages = set()
-message_lock = Lock()
-
 
 @wa_bp.route('/webhook', methods=['GET'])
 def verify_webhook():
@@ -29,8 +24,10 @@ def verify_webhook():
     challenge = request.args.get('hub.challenge')
     
     if mode == 'subscribe' and token == VERIFY_TOKEN:
+        # print("Webhook verified successfully!")
         return challenge, 200
     else:
+        # print("Webhook verification failed!")
         return "Forbidden", 403
 
 
@@ -59,6 +56,10 @@ def convert_to_ogg_opus(audio_data):
     try:
         # Detect the audio format
         detected_format = detect_audio_format(audio_data)
+        # print(f"Detected audio format: {detected_format}")
+        
+        # Print first 16 bytes for debugging
+        # print(f"First 16 bytes: {audio_data[:16].hex()}")
         
         audio_buffer = BytesIO(audio_data)
         
@@ -73,6 +74,7 @@ def convert_to_ogg_opus(audio_data):
                     try:
                         audio_buffer.seek(0)
                         audio = AudioSegment.from_file(audio_buffer, format=fmt)
+                        # print(f"Successfully loaded as {fmt}")
                         break
                     except:
                         continue
@@ -80,6 +82,7 @@ def convert_to_ogg_opus(audio_data):
                 if audio is None:
                     raise ValueError("Could not detect audio format")
         except Exception as e:
+            # print(f"Error loading audio: {e}")
             # Try loading raw PCM data (common for some TTS APIs)
             try:
                 audio_buffer.seek(0)
@@ -89,6 +92,7 @@ def convert_to_ogg_opus(audio_data):
                     frame_rate=24000,  # Common TTS sample rate
                     channels=1
                 )
+                # print("Loaded as raw PCM data")
             except:
                 raise
         
@@ -112,7 +116,7 @@ def convert_to_ogg_opus(audio_data):
         return output_buffer.read()
     
     except Exception as e:
-        print(f"Error converting audio to OGG Opus: {e}")
+        # print(f"Error converting audio to OGG Opus: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -120,179 +124,95 @@ def convert_to_ogg_opus(audio_data):
 
 @wa_bp.route('/webhook', methods=['POST'])
 def webhook():
-    """Handle incoming WhatsApp messages - responds immediately to prevent retries"""
+    """Handle incoming WhatsApp messages"""
     try:
         data = request.get_json()
-        
-        # Immediately return 200 OK to prevent WhatsApp from retrying
-        def process_message():
-            """Process message in background thread"""
+        wa_service = WhatsappService(current_app.db)
+
+        # Send immediate success response
+        response = jsonify({"status": "success"})
+        response.status_code = 200
+
+        # Define the post-response processing function
+        @response.call_on_close
+        def process_in_background():
             try:
-                handle_webhook_data(data)
+                # Everything below runs AFTER response is sent
+                if data.get('object') == 'whatsapp_business_account':
+                    entries = data.get('entry', [])
+                    for entry in entries:
+                        changes = entry.get('changes', [])
+                        for change in changes:
+                            value = change.get('value', {})
+                            if 'messages' in value:
+                                messages = value['messages']
+                                for message in messages:
+                                    handle_message(message, wa_service)
             except Exception as e:
-                print(f"Error processing webhook in background: {e}")
                 import traceback
                 traceback.print_exc()
-        
-        # Process in background thread
-        thread = Thread(target=process_message)
-        # thread.daemon = True
-        thread.start()
-        
-        return jsonify({"status": "success"}), 200
-    
+
+        return response
+
     except Exception as e:
-        print(f"Error parsing webhook: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-def handle_webhook_data(data):
-    """Process webhook data asynchronously"""
-    try:
-        print("handling in bg")
-        # Get app context for background thread
-        app = current_app._get_current_object()
-        wa_service = WhatsappService(app.db)
-        
-        # Check if this is a message event
-        if data.get('object') == 'whatsapp_business_account':
-            entries = data.get('entry', [])
-            
-            for entry in entries:
-                changes = entry.get('changes', [])
-                
-                for change in changes:
-                    value = change.get('value', {})
-                    
-                    # Check if there are messages
-                    if 'messages' in value:
-                        messages = value['messages']
-                        
-                        for message in messages:
-                            process_single_message(message, wa_service, app)
-    
-    except Exception as e:
-        print(f"Error in handle_webhook_data: {e}")
-        import traceback
-        traceback.print_exc()
+def handle_message(message, wa_service):
+    from_number = message.get('from')
+    message_type = message.get('type')
+    admin = AdminService(current_app.db).get_admin_by_id(DEFAULT_ADMIN_ID)
+    chat = wa_service.get_by_phone_no(from_number)
 
+    if not chat:
+        current_app.bot.create_chat(from_number, admin)
+        wa_service.create(from_number)
 
-def process_single_message(message, wa_service, app):
-    """Process a single WhatsApp message with duplicate prevention"""
-    try:
-        message_id = message.get('id')
-        from_number = message.get('from')
-        
-        # Check if message already processed (duplicate prevention)
-        with message_lock:
-            if message_id in processed_messages:
-                print(f"Skipping duplicate message: {message_id}")
-                return
-            processed_messages.add(message_id)
-            
-            # Clean up old message IDs (keep last 1000 to prevent memory issues)
-            if len(processed_messages) > 1000:
-                # Remove oldest half
-                to_remove = list(processed_messages)[:500]
-                for msg_id in to_remove:
-                    processed_messages.discard(msg_id)
-        
-        print(f"Processing message {message_id} from {from_number}")
-        
-        # Get or create chat
-        chat = wa_service.get_by_phone_no(from_number)
-        admin = AdminService(app.db).get_admin_by_id(DEFAULT_ADMIN_ID)
-        
-        if not chat:
-            app.bot.create_chat(from_number, admin)
-            wa_service.create(from_number)
-            print(f"New user: {from_number}")
-        
-        message_type = message.get('type')
-        print(f"Message type: {message_type}")
-        
-        # Handle text messages
-        if message_type == 'text':
-            user_message = message.get('text', {}).get('body', '')
-            print(f"Received text message from {from_number}: {user_message}")
-            
-            wa_service.add_message(user_message, from_number, from_number, type="text")
-            
-            msg, usage = app.bot.respond(user_message, from_number)
-            print(f"Bot response: {msg}")
-            
-            wa_service.add_message(msg, from_number, "bot", type="text")
+    if message_type == 'text':
+        user_message = message.get('text', {}).get('body', '')
+        wa_service.add_message(user_message, from_number, from_number, type="text")
+
+        msg, usage = current_app.bot.respond(user_message, from_number)
+        wa_service.add_message(msg, from_number, "bot", type="text")
+        send_whatsapp_message(from_number, msg)
+
+    elif message_type == 'audio':
+        audio_data = message.get('audio', {})
+        audio_id = audio_data.get('id')
+
+        audio_bytes = download_whatsapp_media(audio_id)
+        if not audio_bytes:
+            send_whatsapp_message(from_number, "Sorry, I couldn't process your audio message.")
+            return
+
+        transcribed_text = current_app.bot.transcribe(audio_bytes)
+        message_id = wa_service.add_message(transcribed_text, from_number, from_number, type="audio")
+
+        save_path = os.path.join('files', f"{from_number}", f"{message_id}.ogg")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        with open(save_path, 'wb') as f:
+            f.write(audio_bytes)
+
+        msg, usage = current_app.bot.respond(transcribed_text, from_number)
+        audio_response = current_app.bot.generate_audio(msg)
+        ogg_audio = convert_to_ogg_opus(audio_response)
+
+        if ogg_audio:
+            bot_message_id = wa_service.add_message(msg, from_number, "bot", type="audio")
+            bot_audio_path = os.path.join('files', f"{from_number}", f"{bot_message_id}.ogg")
+            with open(bot_audio_path, 'wb') as f:
+                f.write(ogg_audio)
+            send_whatsapp_audio(from_number, ogg_audio)
+        else:
             send_whatsapp_message(from_number, msg)
-        
-        # Handle audio messages
-        elif message_type == 'audio':
-            audio_data = message.get('audio', {})
-            audio_id = audio_data.get('id')
-            audio_mime_type = audio_data.get('mime_type', 'audio/ogg')
-            print(f"Received audio message from {from_number}, audio_id: {audio_id}")
-            
-            # Download audio from WhatsApp
-            audio_bytes = download_whatsapp_media(audio_id)
-            
-            if audio_bytes:
-                print(f"Downloaded audio: {len(audio_bytes)} bytes")
-                
-                # Transcribe audio to text
-                transcribed_text = app.bot.transcribe(audio_bytes)
-                print(f"Transcribed text: {transcribed_text}")
-                
-                # Save user audio message
-                user_message_id = wa_service.add_message(transcribed_text, from_number, from_number, type="audio")
-                
-                # Save audio file
-                save_path = os.path.join('files', f"{from_number}", f"{user_message_id}.ogg")
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                
-                with open(save_path, 'wb') as f:
-                    f.write(audio_bytes)
-                print(f"Saved audio to: {save_path}")
-                
-                # Get bot response
-                msg, usage = app.bot.respond(transcribed_text, from_number)
-                print(f"Bot response: {msg}")
-                
-                # Generate audio response (raw format from Google API)
-                audio_response = app.bot.generate_audio(msg)
-                print(f"Generated audio response: {len(audio_response)} bytes")
-                
-                # Convert to OGG Opus format for WhatsApp
-                ogg_audio = convert_to_ogg_opus(audio_response)
-                
-                if ogg_audio:
-                    # Save bot audio message
-                    bot_message_id = wa_service.add_message(msg, from_number, "bot", type="audio")
-                    bot_audio_path = os.path.join('files', f"{from_number}", f"{bot_message_id}.ogg")
-                    
-                    # Save bot audio file
-                    with open(bot_audio_path, 'wb') as f:
-                        f.write(ogg_audio)
-                    print(f"Saved bot audio to: {bot_audio_path}")
-                    
-                    # Send audio response to user
-                    resp = send_whatsapp_audio(from_number, ogg_audio)
-                    print(f"Audio send response: {resp}")
-                else:
-                    print("Failed to convert audio to OGG Opus")
-                    send_whatsapp_message(from_number, msg)  # Fall back to text
-            else:
-                print(f"Failed to download audio from {from_number}")
-                send_whatsapp_message(from_number, "Sorry, I couldn't process your audio message.")
-        
-        # Mark message as read
-        mark_message_read(message_id)
-        print(f"Message {message_id} processed successfully")
-    
-    except Exception as e:
-        print(f"Error processing single message: {e}")
-        import traceback
-        traceback.print_exc()
+
+    # Mark as read
+    message_id = message.get('id')
+    mark_message_read(message_id)
+
+
 
 
 def download_whatsapp_media(media_id):
@@ -304,26 +224,26 @@ def download_whatsapp_media(media_id):
             "Authorization": f"Bearer {WHATSAPP_TOKEN}"
         }
         
-        print(f"Getting media URL for media_id: {media_id}")
-        response = requests.get(url, headers=headers, timeout=10)
+        # print(f"Getting media URL for media_id: {media_id}")
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         media_url = response.json().get('url')
         
         if not media_url:
-            print("No media URL found in response")
+            # print("No media URL found in response")
             return None
         
-        print(f"Media URL: {media_url}")
+        # print(f"Media URL: {media_url}")
         
         # Step 2: Download the actual media file
-        media_response = requests.get(media_url, headers=headers, timeout=30)
+        media_response = requests.get(media_url, headers=headers)
         media_response.raise_for_status()
         
-        print(f"Successfully downloaded media: {len(media_response.content)} bytes")
+        # print(f"Successfully downloaded media: {len(media_response.content)} bytes")
         return media_response.content
     
     except requests.exceptions.RequestException as e:
-        print(f"Error downloading media: {e}")
+        # print(f"Error downloading media: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -349,16 +269,16 @@ def send_whatsapp_audio(phone_number, audio_data):
             'messaging_product': 'whatsapp'
         }
         
-        print(f"Uploading audio to WhatsApp ({len(audio_data)} bytes)...")
-        upload_response = requests.post(upload_url, headers=headers, files=files, data=data, timeout=30)
+        # print(f"Uploading audio to WhatsApp ({len(audio_data)} bytes)...")
+        upload_response = requests.post(upload_url, headers=headers, files=files, data=data)
         upload_response.raise_for_status()
         media_id = upload_response.json().get('id')
         
         if not media_id:
-            print("Failed to upload audio - no media_id returned")
+            # print("Failed to upload audio - no media_id returned")
             return None
         
-        print(f"Audio uploaded successfully, media_id: {media_id}")
+        # print(f"Audio uploaded successfully, media_id: {media_id}")
         
         # Step 2: Send audio message
         send_url = f"https://graph.facebook.com/{VERSION}/{PHONE_NUMBER_ID}/messages"
@@ -377,14 +297,14 @@ def send_whatsapp_audio(phone_number, audio_data):
             }
         }
         
-        print(f"Sending audio message to {phone_number}...")
-        response = requests.post(send_url, headers=headers, json=payload, timeout=10)
+        # print(f"Sending audio message to {phone_number}...")
+        response = requests.post(send_url, headers=headers, json=payload)
         response.raise_for_status()
-        print(f"Audio sent successfully to {phone_number}")
+        # print(f"Audio sent successfully to {phone_number}")
         return response.json()
     
     except requests.exceptions.RequestException as e:
-        print(f"Error sending audio: {e}")
+        # print(f"Error sending audio: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -411,11 +331,11 @@ def send_whatsapp_message(phone_number, message):
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error sending message: {e}")
+        # print(f"Error sending message: {e}")
         return None
 
 
@@ -435,6 +355,6 @@ def mark_message_read(message_id):
     }
     
     try:
-        requests.post(url, headers=headers, json=payload, timeout=5)
+        requests.post(url, headers=headers, json=payload)
     except Exception as e:
         print(f"Error marking message as read: {e}")
