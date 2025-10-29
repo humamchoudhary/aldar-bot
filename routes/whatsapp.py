@@ -47,7 +47,7 @@ def webhook():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-@wa_bp.after_request
+# @wa_bp.after_request
 def process_webhook_after_response(response):
     """Process webhook data after sending response"""
     # Only process if we have webhook data stored
