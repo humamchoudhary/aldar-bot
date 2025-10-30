@@ -120,14 +120,11 @@ def get_voice():
     op_dial = response.dial()
     op_dial.conference(
         f"{request.values.get('name', None)}-{request.values.get('qid', None)}",
-      startConferenceOnEnter= True,
-      endConferenceOnExit= True,    
-
+          startConferenceOnEnter= True,
+          endConferenceOnExit= True,    
         status_callback_event="start end join leave mute hold speaker",
-        status_callback=url_for('call.conference_status', _external=True),      )
-
-
-
+        status_callback=url_for('call.conference_status', _external=True),
+        )
     # Print or return the TwiML
     pprint(str(response))
 
@@ -135,7 +132,10 @@ def get_voice():
 
 @call_bp.route("/get-files")
 def get_sys_files():
-    return current_app.bot._process_files(admin_id="4258fbdf-3f75-4446-91b5-1f3780a79c07")
+
+    admin_id = os.environ.get('DEFAULT_ADMIN_ID')
+
+    return current_app.bot._process_files(admin_id=admin_id)
     # return  current_app.bot._process_files(admin_id="f7fe50c3-bba5-4cc0-9551-69b433079521")
 
 
