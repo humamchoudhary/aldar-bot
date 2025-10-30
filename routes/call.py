@@ -82,7 +82,7 @@ def get_voice():
     # print(caller_number)
 
     response = VoiceResponse()
-    if request.values.get("To"):
+    if request.values.get("To") and request.values.get("From") == "client:operator":
         print("OPERATOR")
         # return operator call:
 
@@ -107,6 +107,7 @@ def get_voice():
     stream_gemini = connect_gemini.stream(url="wss://al-dar-call.go-globe.dev/")
 
     stream_gemini.parameter(name='From', value=f'{request.values.get('From', None)}')
+    stream_gemini.parameter(name='Caller', value=f'{request.values.get('Caller', None)}')
 
     stream_gemini.parameter(name='name', value=f'{request.values.get('name', None)}')
     stream_gemini.parameter(name='qid', value=f'{request.values.get('qid', None)}')
