@@ -1,3 +1,4 @@
+from services.whatsapp_service import WhatsappService
 from services.call_service import CallService
 from services.notification_service import NotificationService
 from flask_mail import Mail
@@ -866,19 +867,10 @@ import os
 @admin_bp.route("/chat/<chat_id>/audio_file/<message_id>")
 @admin_required
 def audio_file(chat_id, message_id):
-    # printchat_id)
-    # Directory where audio files for this chat are stored
-    base_dir = os.path.join('files', chat_id)
-    
-    # Construct full file path (you could store actual filenames in a DB instead)
+    base_dir = os.path.join('files', chat_id) 
     file_path = os.path.join(base_dir, f"{message_id}.wav")
-    # printfile_path)
-    
-    # Make sure the file exists
     if not os.path.exists(file_path):
         abort(404, description="Audio file not found")
-    
-    # Serve the file safely
     return send_from_directory(base_dir, f"{message_id}.wav", mimetype="audio/wav")
 
 
@@ -3059,6 +3051,7 @@ def get_all_calls():
     )
 
 @admin_bp.route("/call/<call_id>")
+@admin_required
 def get_call(call_id):
     call_service = CallService(current_app.db)
     call = call_service.get_full_call(call_id)
@@ -3074,7 +3067,6 @@ def get_call(call_id):
         limit=20,
         skip=0
     )
-    # p# printcalls)
     
     # Get call counts for dropdown
     call_counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
@@ -3091,6 +3083,7 @@ def get_call(call_id):
 
 
 @admin_bp.route("/call/<call_id>/delete",methods=["POST"])
+@admin_required
 def delete_call(call_id):
     print("delete call")
     call_service = CallService(current_app.db)
@@ -3101,6 +3094,7 @@ def delete_call(call_id):
 
 
 @admin_bp.route("/call/<call_id>/audio")
+@admin_required
 def send_audio_file(call_id):
     return send_file(f"recordings/call_{call_id}.wav", mimetype="audio/wav")
 
@@ -3186,19 +3180,58 @@ def get_call_counts():
     counts = call_service.get_call_counts_by_filter(session.get('admin_id'))
     return jsonify(counts)
 
+@admin_bp.route("/whatsapp/")
+@admin_required
+def dashboard():
+     
+    wa_service = WhatsappService(current_app.db)
+    chats = wa_service.get_all_chats()
+    # print(chats)
+    return render_template("admin/whatsapp.html",chats=chats)
+
+@admin_bp.route("/whatsapp/<phone_no>")
+@admin_required
+def get_wa_chat(phone_no):
+     
+    wa_service = WhatsappService(current_app.db)
+    chat = wa_service.get_by_phone_no(phone_no)
+    if request.headers.get("HX-Request"):
+        return render_template("components/whatsapp-chat-area.html",chat=chat)
+
+    chats = wa_service.get_all_chats()
+    return render_template("admin/whatsapp.html",chat=chat,chats=chats)
+
+
+@admin_bp.route("/whatsapp/get-all-chats")
+def whatsapp_chats():
+    wa_service = WhatsappService(current_app.db)
+    chats = wa_service.get_all_chats()
+    pass 
+
+@admin_bp.route("/whatsapp/<phone_no>/toggle_admin_enable")
+@admin_required
+def toggle_admin(phone_no):
+    wa_service = WhatsappService(current_app.db)
+    if wa_service.toggle_enabled_admin(phone_no):
+        return "",200
+    return "",500
+
+
+@admin_bp.route("/whatsapp/<phone_no>/audio_file/<message_id>/")
+@admin_required
+def wa_audio_file(phone_no, message_id):
+    base_dir = os.path.join('files', phone_no) 
+    file_path = os.path.join(base_dir, f"{message_id}.ogg")
+    print(file_path)
+    if not os.path.exists(file_path):
+        abort(404, description="Audio file not found")
+    return send_from_directory(base_dir, f"{message_id}.ogg", mimetype="audio/ogg")
 
 
 def register_admin_socketio_events(socketio):
     @socketio.on("admin_join")
     def on_admin_join(data):
-        # printdict(session))
-        sid = request.cookies.get("sessionId")
-        # print"Custom sessionId from cookie:", sid)
-        # print"admin joined")
-        # printsession.sid)
-        # printsession.get("admin_id"))
         if session.get("role") != "admin":
-            # print'ret')
             return
 
         chat_service = ChatService(current_app.db)
@@ -3207,20 +3240,14 @@ def register_admin_socketio_events(socketio):
         room = data.get("room")
         if not room:
             return
-        # print[join_room(chat.room_id) for chat in chats])
-        # printroom)
         join_room(room)
         join_room("admin")  # Join the admin room for broadcasts
-        # # # print'admin joined')
         emit("status", {"msg": "Admin has joined the room."}, room=room)
 
     @socketio.on("admin_required")
     def on_admin_required(data):
-        # if session.get('admin_id')
-        # room_id = data.get('r')
         print(f"ADMIN REQUIRED: {data}")
+
     @socketio.on("new_message")
     def on_new_message(data):
-        # print"New Message")
-        # printdata)
         print(dict(session))

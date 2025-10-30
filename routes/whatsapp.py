@@ -1,4 +1,4 @@
-from flask import Flask, current_app, request, jsonify
+from flask import Flask, current_app, render_template, request, jsonify
 import requests
 import os
 from io import BytesIO

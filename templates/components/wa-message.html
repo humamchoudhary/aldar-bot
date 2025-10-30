@@ -1,0 +1,52 @@
+<div
+  class="message flex w-full items-center w-full relative border border-[var(--border-color)] rounded-[5px] p-[16px] {% if message.sender != username and message.sender.lower() != 'bot' and message.sender.lower() != 'system' %}bg-[var(--sec-bg-color)]{% endif %}"
+>
+  <div
+    class="absolute -top-3 left-[30px] px-[15px] py-[4px] rounded-full {% if message.sender ==username %}bg-[var(--white)] text-[var(--bg-color)]{% elif message.sender.lower() =='bot' or message.sender.lower() == 'system' %}bg-[var(--sec-bg-color)]{% else %}bg-[#0095FF]{% endif %}"
+  >
+    <p class="text-[11px] uppercase">
+      {% if message.sender == username %} You {% else %} {{ message.sender }} {%
+      endif %}
+    </p>
+  </div>
+  <div
+    class="md-content"
+    style="
+      padding: 10px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 400;
+      font-family: var(--goglobe-heading-font-family);
+      background-color: {% if message.sender == username %}#cfcbe0{% else %}var(--goglobe-some-r-bg-color){% endif %};
+      color: var(--goglobe-heading-color);
+      border: 0.5px solid var(--goglobe-border-color);
+      width: 85%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      text-wrap:auto;
+    "
+  >
+    {% if message.type == 'audio' %}
+    <audio controls style="width: 100%">
+      <source
+        src="{{ url_for('admin.wa_audio_file', phone_no=chat.phone_no, message_id=message.id) }}"
+        type="audio/wav"
+      />
+      Your browser does not support the audio element.
+    </audio>
+
+    {% if message.message %}
+    <!-- Optional caption/transcription -->
+    <div
+      style="
+        font-size: 12px;
+        color: var(--goglobe-heading-color);
+        margin-top: 4px;
+        font-style: italic;
+      "
+    >
+      {{ message.message|markdown|safe }}
+    </div>
+    {% endif %} {% else %} {{ message.message|markdown|safe }} {% endif %}
+  </div>
+</div>

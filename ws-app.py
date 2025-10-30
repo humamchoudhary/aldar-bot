@@ -326,7 +326,7 @@ class GeminiTwilioBridge:
                             print("🎧 Sent Gemini audio chunk to Twilio")
 
                     # Handle transcriptions
-                    if response.server_content.input_transcription:
+                    if response.get("server_content").get("input_transcription"):
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
                         self.transcriptions.append({"name": "user", "transcription": user_text})

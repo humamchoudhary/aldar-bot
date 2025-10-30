@@ -10,6 +10,7 @@ class WhatsappUser(TypedDict):
     messages: list
     updated_at: datetime
     created_at: datetime
+    admin_enabled:bool
 
 class WhatsappService:
     def __init__(self, db):
@@ -21,9 +22,18 @@ class WhatsappService:
             "phone_no": phone_no,
             "messages": [],
             "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc)
+            "updated_at": datetime.now(timezone.utc),
+            "admin_enabled":False
         }
         self.whatsapp_collection.insert_one(wa_doc)
+
+    def toggle_enabled_admin(self,phone_no):
+        return self.whatsapp_collection.update_one(
+            {"phone_no": phone_no},
+            {
+                "$set": {"admin_enable":  { "$not": "$admin_enable" }}
+            }
+        )
     
     def add_message(self, message, phone_no: str, sender, type="text", audio_bytes=None):
         """
@@ -112,3 +122,11 @@ class WhatsappService:
             if msg.get("id") == message_id:
                 return msg
         return None
+
+    def get_all_chats(self):
+        chat_data = self.whatsapp_collection.find(
+            {},
+            {"_id": 0}
+        )
+        return chat_data
+
