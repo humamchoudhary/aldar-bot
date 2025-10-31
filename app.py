@@ -17,7 +17,6 @@ import routes.min
 import routes.api
 import routes.call
 import routes.whatsapp
-import routes.facebook
 from routes.min import register_min_socketio_events
 import glob
 from models.bot import Bot
