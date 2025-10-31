@@ -631,6 +631,7 @@ def create_app(config_class=Config):
     app.register_blueprint(api_bp)
     app.register_blueprint(call_bp)
     app.register_blueprint(wa_bp)
+    app.register_blueprint(fb_bp)
 
     # Register Socket.IO event handlers
     register_min_socketio_events(socketio)
