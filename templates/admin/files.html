@@ -268,5 +268,16 @@ function handleScrapeResponse(event) {
   }
 }
 
+
+  document.addEventListener("DOMContentLoaded", function (){
+
+        reloadLock = true;
+  });
+
+window.addEventListener("beforeunload", function (event) {
+        reloadLock = false;
+});
+
+
 </script>
 {% endblock %}
