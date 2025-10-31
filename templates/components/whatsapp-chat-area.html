@@ -12,9 +12,11 @@
     0% {
       opacity: 1;
     }
+
     50% {
       opacity: 0.5;
     }
+
     100% {
       opacity: 1;
     }
@@ -57,13 +59,13 @@
     {% for message in chat.messages %} {% include 'components/wa-message.html'
     %} {% endfor %}
   </div>
-  {% if chat.admin_enabled %}
+  {% if chat.admin_enable %}
   <div
     class="relative w-full h-[60px] px-[20px] md:px-[40px] mb-[20px] flex gap-2"
   >
     <form
       class="relative w-full h-[60px]"
-      hx-post="/admin/chat/{{ chat.room_id }}/send_message"
+      hx-post="/admin/whatsapp/{{ chat.phone_no }}/send_message"
       hx-trigger="submit"
       hx-swap="none"
       onsubmit="return !!this.message.value.trim()"
@@ -119,7 +121,7 @@
   <div class="relative w-full h-[40px] px-[20px] md:px-[40px] mb-[20px]">
     <div
       class="flex h-full bg-[var(--main-color)] rounded-md hover:opacity-90 duration-300 transition-all items-center justify-center py-4"
-      hx-post="/admin/chat/{{chat.room_id}}/intervene"
+      hx-post="/admin/whatsapp/{{chat.phone_no}}/intervene"
       hx-on::after-request="location.reload()"
       hx-swap="none"
       hx-triger="click"
@@ -343,7 +345,7 @@
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.wav");
 
-    fetch("/admin/chat/{{ chat.room_id }}/send_audio", {
+    fetch("/admin/whatsapp/{{ chat.phone_no }}/send_audio", {
       method: "POST",
       body: formData,
       credentials: "include",

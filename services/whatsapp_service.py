@@ -29,11 +29,11 @@ class WhatsappService:
 
     def toggle_enabled_admin(self,phone_no):
         return self.whatsapp_collection.update_one(
-            {"phone_no": phone_no},
-            {
-                "$set": {"admin_enable":  { "$not": "$admin_enable" }}
-            }
-        )
+    {"phone_no": phone_no},
+    [
+        {"$set": {"admin_enable": {"$not": "$admin_enable"}}}
+    ]
+)
     
     def add_message(self, message, phone_no: str, sender, type="text", audio_bytes=None):
         """
