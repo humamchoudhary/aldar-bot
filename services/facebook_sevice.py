@@ -3,7 +3,6 @@ import os
 from datetime import datetime, timezone
 from typing import TypedDict, Literal, Optional
 from pymongo.collection import Collection
-from bson import ObjectId
 
 class FacebookUser(TypedDict):
     sender_id: str

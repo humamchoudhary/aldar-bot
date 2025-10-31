@@ -137,7 +137,7 @@ def webhook():
     try:
         data = request.get_json()
         print("Received Facebook webhook data:", data)
-        # fb_service = FacebookService(current_app.db)
+        fb_service = FacebookService(current_app.db)
         
         if data.get('object') == 'page':
             entries = data.get('entry', [])
@@ -160,25 +160,25 @@ def webhook():
                             continue
                         
                         # Get or create chat
-                        # chat = fb_service.get_by_sender_id(sender_id)
+                        chat = fb_service.get_by_sender_id(sender_id)
                         admin = AdminService(current_app.db).get_admin_by_id(DEFAULT_ADMIN_ID)
                         
-                        # if not chat:
-                            # fb_service.create(sender_id)
-                        current_app.bot.create_chat(sender_id, admin)
-                        print(f"New Facebook user: {sender_id}")
+                        if not chat:
+                            fb_service.create(sender_id)
+                            current_app.bot.create_chat(sender_id, admin)
+                            print(f"New Facebook user: {sender_id}")
                         
                         # Handle text messages
                         if 'text' in message:
                             user_message = message['text']
                             print(f"Received text from {sender_id}: {user_message}")
                             
-                            # fb_service.add_message(user_message, sender_id, sender_id, type="text")
+                            fb_service.add_message(user_message, sender_id, sender_id, type="text")
                             
                             msg, usage = current_app.bot.respond(f"Message from facebook: {user_message}", sender_id)
                             print(f"Bot response: {msg}")
                             
-                            # fb_service.add_message(msg, sender_id, "bot", type="text")
+                            fb_service.add_message(msg, sender_id, "bot", type="text")
                             send_messenger_message(sender_id, msg)
                         
                         # Handle audio attachments
