@@ -157,7 +157,7 @@ def webhook():
     """Handle incoming WhatsApp messages"""
     try:
         data = request.get_json()
-        # print("Received webhook data:", data)
+        print("Received webhook data:", data)
         wa_service = WhatsappService(current_app.db)
         
         # Check if this is a message event
@@ -169,7 +169,6 @@ def webhook():
                 
                 for change in changes:
                     value = change.get('value', {})
-                    
                     # Check if there are messages
                     if 'messages' in value:
                         messages = value['messages']
@@ -192,10 +191,11 @@ def webhook():
                             
                             if not chat:
                                 wa_service.create(from_number)
-                                # print("New User")
+                                print("New User")
                             
                             message_type = message.get('type')
-                            # print(f"Message type: {message_type}")
+                            print(f"Message type: {message_type}")
+                            print(f"Message: {message}")
                             
                             # Handle text messages
                             if message_type == 'text':
@@ -393,6 +393,7 @@ def send_whatsapp_message(phone_number, message):
             "body": message
         }
     }
+    print(f"Send messgae: {payload} {headers}")
     
     try:
         response = requests.post(url, headers=headers, json=payload)

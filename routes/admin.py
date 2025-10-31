@@ -3186,6 +3186,8 @@ WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 VERSION = "v24.0"
 
+print(WHATSAPP_TOKEN)
+
 
 @admin_bp.route("/whatsapp/")
 @admin_required
@@ -3268,7 +3270,7 @@ def wa_send_message(phone_no):
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": phone_no,
+            "to": f"+{phone_no}",
             "type": "text",
             "text": {
                 "preview_url": False,
@@ -3281,6 +3283,7 @@ def wa_send_message(phone_no):
 
         data = response.json()
         print(data)
+        print(response)
         # Optionally save to your DB
         if hasattr(current_app, "db"):
             try:
@@ -3291,8 +3294,8 @@ def wa_send_message(phone_no):
                 print(f"[WARN] Could not log message to DB: {e}")
 
         # Handle HTMX vs JSON
-        if request.headers.get("HX-Request"):
-            return f"<p class='text-green-600'>Message sent to {phone_no}</p>", 200
+        # if request.headers.get("HX-Request"):
+        #     return f"<p class='text-green-600'>Message sent to {phone_no}</p>", 200
 
         return jsonify({
             "status": "success",
