@@ -6,8 +6,7 @@ from pydub import AudioSegment
 from datetime import datetime, timedelta
 
 from services.admin_service import AdminService
-from services.chat_service import ChatService
-from services.facebook_service import FacebookService
+# from services.chat_service import ChatService
 from . import fb_bp
 
 FACEBOOK_PAGE_ACCESS_TOKEN = os.getenv('FACEBOOK_PAGE_ACCESS_TOKEN')
