@@ -203,7 +203,7 @@ def webhook():
                                 # print(f"Received text message from {from_number}: {user_message}")
                                 wa_service.add_message(user_message, from_number, from_number, type="text")
                                 
-                                msg, usage = current_app.bot.respond(user_message, from_number)
+                                msg, usage = current_app.bot.respond(f"Message from whatsapp: {user_message}", from_number)
                                 # print(f"Bot response: {msg}")
                                 wa_service.add_message(msg, from_number, "bot", type="text")
                                 send_whatsapp_message(from_number, msg)
@@ -237,7 +237,7 @@ def webhook():
                                     # print(f"Saved audio to: {save_path}")
                                     
                                     # Get bot response
-                                    msg, usage = current_app.bot.respond(transcribed_text, from_number)
+                                    msg, usage = current_app.bot.respond(f"Message from whatsapp: {transcribed_text}", from_number)
                                     # print(f"Bot response: {msg}")
                                     
                                     # Generate audio response (raw format from Google API)
