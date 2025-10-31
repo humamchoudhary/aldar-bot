@@ -1,0 +1,92 @@
+<div
+  class="message flex w-full items-center w-full relative border border-[var(--border-color)] rounded-[5px] p-[16px] {% if message.sender != chat.sender_id and message.sender.lower() != 'bot' and message.sender.lower() != 'system' and message.sender.lower() != 'admin' %}bg-[var(--sec-bg-color)]{% endif %}"
+>
+  <!-- Sender badge -->
+  <div
+    class="absolute -top-3 left-[30px] px-[15px] py-[4px] rounded-full {% if message.sender == chat.sender_id %}bg-[var(--white)] text-[var(--bg-color)]{% elif message.sender.lower() == 'bot' or message.sender.lower() == 'system' %}bg-[var(--sec-bg-color)]{% elif message.sender.lower() == 'admin' %}bg-[#0095FF]{% else %}bg-[#0095FF]{% endif %}"
+  >
+    <p class="text-[11px] uppercase">
+      {% if message.sender == chat.sender_id %} {% if chat.user_info and
+      chat.user_info.first_name %} {{ chat.user_info.first_name }} {% else %}
+      User {% endif %} {% elif message.sender.lower() == 'admin' %} Admin {%
+      else %} {{ message.sender }} {% endif %}
+    </p>
+  </div>
+
+  <!-- Message content -->
+  <div
+    class="md-content"
+    style="
+      padding: 10px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 400;
+      font-family: var(--goglobe-heading-font-family);
+      background-color: {% if message.sender == chat.sender_id %}{% else %}var(--goglobe-some-r-bg-color){% endif %};
+      color: var(--goglobe-heading-color);
+      border: 0.5px solid var(--goglobe-border-color);
+      width: 85%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      text-wrap: auto;
+    "
+  >
+    {% if message.type == 'audio' %}
+    <!-- Audio message -->
+    <audio controls style="width: 100%">
+      <source
+        src="{{ url_for('admin.fb_audio_file', sender_id=chat.sender_id, message_id=message.id) }}"
+        type="audio/mpeg"
+      />
+      Your browser does not support the audio element.
+    </audio>
+
+    {% if message.message %}
+    <!-- Transcription/caption -->
+    <div
+      style="
+        font-size: 12px;
+        color: var(--goglobe-heading-color);
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--goglobe-border-color);
+        font-style: italic;
+      "
+    >
+      <strong>Transcription:</strong><br />
+      {{ message.message|markdown|safe }}
+    </div>
+    {% endif %} {% else %}
+    <!-- Text message -->
+    {{ message.message|markdown|safe }} {% endif %}
+  </div>
+
+  <!-- Message timestamp -->
+  <div
+    class="absolute -bottom-3 right-[30px] px-[10px] py-[2px] rounded-full bg-[var(--border-color)] text-[var(--sec-text)]"
+    style="font-size: 9px"
+  >
+    <span class="message-time" data-utc="{{ message.time.isoformat() }}">
+      {{ message.time.strftime("%H:%M") }}
+    </span>
+  </div>
+</div>
+
+<script>
+  // Format timestamps on page load
+  document.addEventListener("DOMContentLoaded", function () {
+    const timeElements = document.querySelectorAll(".message-time");
+    timeElements.forEach((element) => {
+      const utcTime = element.getAttribute("data-utc");
+      if (utcTime) {
+        const date = new Date(utcTime);
+        const localTime = date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        element.textContent = localTime;
+      }
+    });
+  });
+</script>

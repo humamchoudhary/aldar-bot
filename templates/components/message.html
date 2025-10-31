@@ -17,7 +17,7 @@
       font-size: 12px;
       font-weight: 400;
       font-family: var(--goglobe-heading-font-family);
-      background-color: {% if message.sender == username %}#cfcbe0{% else %}var(--goglobe-some-r-bg-color){% endif %};
+      background-color: {% if message.sender == username %}{% else %}var(--goglobe-some-r-bg-color){% endif %};
       color: var(--goglobe-heading-color);
       border: 0.5px solid var(--goglobe-border-color);
       width: 85%;

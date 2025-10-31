@@ -1,0 +1,92 @@
+<div id="chat-{{ chat.sender_id }}"
+    class="chat-row flex flex-row justify-between py-[12px] px-[24px] {% if request.path.split('/')[-1] == chat.sender_id or (cur_chat and cur_chat.sender_id == chat.sender_id ) %}bg-[var(--sec-bg-color)]{% endif %} border-y border-y-[var(--border-color)] hover:cursor-pointer duration-300 transition-all">
+    
+    <!-- Hidden HTMX triggers for loading chat content -->
+    <div class="hidden" 
+         hx-get="/admin/facebook/{{ chat.sender_id }}" 
+         hx-target="#chatarea" 
+         hx-swap="innerHTML"
+         hx-trigger="click from:#chat-{{ chat.sender_id }}" 
+         hx-push-url="true"></div>
+    
+    <div class="hidden" 
+         hx-get="/admin/facebook/{{ chat.sender_id }}/details" 
+         hx-target="#userInfo" 
+         hx-swap="innerHTML"
+         hx-trigger="click from:#chat-{{ chat.sender_id }}"></div>
+    
+    <!-- Chat info section -->
+    <div class="flex flex-col {% if chat.viewed %}opacity-60{% endif %}">
+        <div class="flex flex-row gap-[15px] items-center">
+            <!-- Display user name if available, otherwise sender_id -->
+            <p class="text-[16px] font-bold">
+                {% if chat.user_info and chat.user_info.first_name %}
+                    {{ chat.user_info.first_name }}
+                    {% if chat.user_info.last_name %}
+                        {{ chat.user_info.last_name }}
+                    {% endif %}
+                {% else %}
+                    {{ chat.sender_id[:12] }}
+                    {% if chat.sender_id|length > 12 %}...{% endif %}
+                {% endif %}
+            </p>
+            
+            {% if chat.admin_required %}
+            <div class="px-[9px] py-[3px] bg-[#56ABFF]/20 rounded-full">
+                <p class="text-xs md:text-sm text-[#56ABFF]">
+                    <span class="md:hidden 2xl:inline">Admin Required</span>
+                    <span class="hidden md:inline 2xl:hidden">Admin...</span>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Last message preview -->
+        <p class="text-[16px] text-[var(--sec-text)] block">
+            {% if chat.messages and chat.messages|length > 0 %}
+                {{ chat.messages[-1].sender[:6] }}
+                {% if chat.messages[-1].sender|length > 6 %}...{% endif %}
+                : {{ chat.messages[-1].message[:15] }}
+                {% if chat.messages[-1].message|length > 15 %}...{% endif %}
+            {% else %}
+                No messages yet
+            {% endif %}
+        </p>
+    </div>
+    
+    <!-- Timestamp and actions section -->
+    <div class="flex flex-col justify-between items-end">
+        <span class="message-time {% if chat.viewed %}opacity-60{% endif %}"
+            data-utc="{{ chat.updated_at.isoformat() }}" 
+            title="{{ chat.updated_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}">
+            {{ chat.updated_at.strftime("%d %B %Y - %H:%M") }}
+        </span>
+        
+        <!-- Action buttons -->
+        <div class="flex flex-row gap-2">
+            <!-- Delete button -->
+            <div hx-post="/admin/facebook/{{ chat.sender_id }}/delete" 
+                 hx-target="#chat-{{ chat.sender_id }}" 
+                 hx-swap="none"
+                 hx-trigger="click" 
+                 hx-on::click="event.stopPropagation();" 
+                 onclick="event.stopPropagation()"
+                 hx-confirm="Are you sure you want to delete this Facebook chat?"
+                 hx-on::after-request="handleDeleteResponse(event, '{{ chat.sender_id }}'); console.log('delete success')"
+                 class="flex items-center gap-3 px-2 py-2 hover:opacity-80 hover:cursor-pointer hover:bg-[var(--border-color)] duration-300 transition-all rounded-md">
+                <i data-lucide="trash-2" class="text-red-500 size-[18px]"></i>
+                <p class="text-sm font-bold text-red-500 hidden 2xl:inline">Delete</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle delete response
+function handleDeleteResponse(event, senderId) {
+    const chatElement = document.getElementById(`chat-${senderId}`);
+    if (chatElement && event.detail.successful) {
+        chatElement.remove();
+    }
+}
+</script>

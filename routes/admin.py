@@ -3193,10 +3193,8 @@ print(WHATSAPP_TOKEN)
 @admin_bp.route("/whatsapp/")
 @admin_required
 def dashboard():
-     
     wa_service = WhatsappService(current_app.db)
     chats = wa_service.get_all_chats()
-    # print(chats)
     return render_template("admin/whatsapp.html",chats=chats)
 
 @admin_bp.route("/whatsapp/<phone_no>")
@@ -3400,6 +3398,319 @@ def wa_send_audio(phone_no):
         if request.headers.get('HX-Request'):
             return f"<p class='text-red-600'>Failed to send audio: {str(e)}</p>", 500
         return jsonify({"error": str(e)}), 500
+
+
+import os
+import requests
+from io import BytesIO
+from flask import current_app, render_template, request, jsonify, send_from_directory, abort
+from services.facebook_service import FacebookService
+
+FACEBOOK_PAGE_ACCESS_TOKEN = os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN")
+VERSION = "v24.0"
+
+print(FACEBOOK_PAGE_ACCESS_TOKEN)
+
+
+@admin_bp.route("/facebook/")
+@admin_required
+def facebook_dashboard():
+    fb_service = FacebookService(current_app.db)
+    chats = fb_service.get_all_chats()
+    return render_template("admin/facebook.html", chats=chats)
+
+
+@admin_bp.route("/facebook/<sender_id>")
+@admin_required
+def get_fb_chat(sender_id):
+    fb_service = FacebookService(current_app.db)
+    chat = fb_service.get_by_sender_id(sender_id)
+    
+    if request.headers.get("HX-Request"):
+        return render_template("components/facebook-chat-area.html", chat=chat)
+    
+    chats = fb_service.get_all_chats()
+    return render_template("admin/facebook.html", chat=chat, chats=chats)
+
+
+@admin_bp.route("/facebook/get-all-chats")
+@admin_required
+def facebook_chats():
+    fb_service = FacebookService(current_app.db)
+    chats = fb_service.get_all_chats()
+    return jsonify(chats), 200
+
+
+@admin_bp.route("/facebook/<sender_id>/toggle_admin_enable")
+@admin_required
+def toggle_fb_admin(sender_id):
+    fb_service = FacebookService(current_app.db)
+    if fb_service.toggle_enabled_admin(sender_id):
+        return "", 200
+    return "", 500
+
+
+@admin_bp.route("/facebook/<sender_id>/audio_file/<message_id>/")
+@admin_required
+def fb_audio_file(sender_id, message_id):
+    base_dir = os.path.join('files', 'facebook', sender_id)
+    file_path = os.path.join(base_dir, f"{message_id}.mp3")
+    print(file_path)
+    
+    if not os.path.exists(file_path):
+        abort(404, description="Audio file not found")
+    
+    return send_from_directory(base_dir, f"{message_id}.mp3", mimetype="audio/mpeg")
+
+
+@admin_bp.route("/facebook/<sender_id>/intervene", methods=["POST"])
+@admin_required
+def fb_intervene(sender_id):
+    fb_service = FacebookService(current_app.db)
+    print("FACEBOOK INTERVENE")
+    if fb_service.toggle_enabled_admin(sender_id):
+        return "", 200
+    return "", 500
+
+
+@admin_bp.route("/facebook/<sender_id>/send_message", methods=["POST"])
+@admin_required
+def fb_send_message(sender_id):
+    """
+    Send a Facebook Messenger text message manually from the admin dashboard.
+    """
+    try:
+        # Get message text
+        message = request.form.get("message")
+        if not message:
+            if request.headers.get("HX-Request"):
+                return "Message cannot be empty", 400
+            return jsonify({"error": "Message cannot be empty"}), 400
+        
+        # Facebook Messenger API endpoint
+        url = f"https://graph.facebook.com/{VERSION}/me/messages"
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "recipient": {
+                "id": sender_id
+            },
+            "message": {
+                "text": message
+            },
+            "access_token": FACEBOOK_PAGE_ACCESS_TOKEN
+        }
+        
+        print(f"Sending message payload: {payload}")
+        
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        print(f"Facebook API response: {data}")
+        
+        # Save to DB using Facebook service
+        try:
+            fb_service = FacebookService(current_app.db)
+            fb_service.add_message(message, sender_id, "admin", type="text")
+            print(f"Message logged to DB for {sender_id}")
+        except Exception as e:
+            print(f"[WARN] Could not log message to DB: {e}")
+        
+        # Handle HTMX vs JSON
+        if request.headers.get("HX-Request"):
+            return f"<p class='text-green-600'>Message sent to {sender_id}</p>", 200
+        
+        return jsonify({
+            "status": "success",
+            "to": sender_id,
+            "message": message,
+            "facebook_response": data
+        }), 200
+        
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Facebook API failed: {e}")
+        if hasattr(e.response, 'text'):
+            print(f"[ERROR] Response body: {e.response.text}")
+        if request.headers.get("HX-Request"):
+            return f"<p class='text-red-600'>Failed to send message: {str(e)}</p>", 500
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/facebook/<sender_id>/send_audio", methods=["POST"])
+@admin_required
+def fb_send_audio(sender_id):
+    """
+    Send an audio file via Facebook Messenger from admin dashboard.
+    """
+    if 'audio' not in request.files:
+        if request.headers.get('HX-Request'):
+            return "No audio file provided", 400
+        return jsonify({'error': 'No audio file provided'}), 400
+    
+    audio_file = request.files['audio']
+    audio_bytes = audio_file.read()
+    
+    try:
+        # Send audio directly via Messenger API
+        url = f"https://graph.facebook.com/{VERSION}/me/messages"
+        
+        # Create multipart form data
+        files = {
+            'filedata': ('audio.mp3', BytesIO(audio_bytes), 'audio/mpeg')
+        }
+        
+        data = {
+            'recipient': f'{{"id":"{sender_id}"}}',
+            'message': '{"attachment":{"type":"audio", "payload":{"is_reusable":true}}}',
+            'access_token': FACEBOOK_PAGE_ACCESS_TOKEN
+        }
+        
+        print(f"Uploading and sending audio to {sender_id} ({len(audio_bytes)} bytes)...")
+        response = requests.post(url, files=files, data=data)
+        response.raise_for_status()
+        response_data = response.json()
+        print(f"Audio sent successfully to {sender_id}: {response_data}")
+        
+        # Save to DB using Facebook service
+        try:
+            fb_service = FacebookService(current_app.db)
+            
+            # Save audio message with reference
+            msg_id = fb_service.add_message("[Audio Message]", sender_id, "admin", type="audio")
+            
+            # Save the audio file
+            save_path = os.path.join('files', 'facebook', f"{sender_id}", f"{msg_id}.mp3")
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            with open(save_path, 'wb') as f:
+                f.write(audio_bytes)
+            print(f"Audio logged to DB and saved to: {save_path}")
+            
+        except Exception as e:
+            print(f"[WARN] Could not log audio to DB: {e}")
+        
+        # Handle HTMX vs JSON
+        if request.headers.get('HX-Request'):
+            return f"<p class='text-green-600'>Audio sent to {sender_id}</p>", 200
+        
+        return jsonify({
+            "status": "success", 
+            "to": sender_id,
+            "facebook_response": response_data
+        }), 200
+        
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Failed to send audio: {e}")
+        if hasattr(e.response, 'text'):
+            print(f"[ERROR] Response body: {e.response.text}")
+        if request.headers.get('HX-Request'):
+            return f"<p class='text-red-600'>Failed to send audio: {str(e)}</p>", 500
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/facebook/<sender_id>/user_info")
+@admin_required
+def get_fb_user_info(sender_id):
+    """
+    Fetch user profile information from Facebook Graph API
+    """
+    try:
+        url = f"https://graph.facebook.com/{VERSION}/{sender_id}"
+        params = {
+            'fields': 'first_name,last_name,profile_pic',
+            'access_token': FACEBOOK_PAGE_ACCESS_TOKEN
+        }
+        
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        user_info = response.json()
+        
+        # Update user info in database
+        fb_service = FacebookService(current_app.db)
+        fb_service.update_user_info(sender_id, user_info)
+        
+        return jsonify({
+            "status": "success",
+            "user_info": user_info
+        }), 200
+        
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Failed to fetch user info: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/facebook/<sender_id>/statistics")
+@admin_required
+def get_fb_chat_statistics(sender_id):
+    """
+    Get statistics for a specific Facebook chat
+    """
+    fb_service = FacebookService(current_app.db)
+    chat = fb_service.get_by_sender_id(sender_id)
+    
+    if not chat:
+        return jsonify({"error": "Chat not found"}), 404
+    
+    messages = chat.get('messages', [])
+    
+    stats = {
+        "total_messages": len(messages),
+        "user_messages": len([m for m in messages if m['sender'] == sender_id]),
+        "bot_messages": len([m for m in messages if m['sender'] == 'bot']),
+        "admin_messages": len([m for m in messages if m['sender'] == 'admin']),
+        "text_messages": len([m for m in messages if m['type'] == 'text']),
+        "audio_messages": len([m for m in messages if m['type'] == 'audio']),
+        "first_message": messages[0]['time'] if messages else None,
+        "last_message": messages[-1]['time'] if messages else None,
+        "created_at": chat.get('created_at'),
+        "updated_at": chat.get('updated_at')
+    }
+    
+    return jsonify(stats), 200
+
+
+@admin_bp.route("/facebook/<sender_id>/delete", methods=["DELETE", "POST"])
+@admin_required
+def delete_fb_chat(sender_id):
+    """
+    Delete a Facebook chat and all its messages
+    """
+    try:
+        fb_service = FacebookService(current_app.db)
+        
+        if fb_service.delete_chat(sender_id):
+            if request.headers.get('HX-Request'):
+                return "<p class='text-green-600'>Chat deleted successfully</p>", 200
+            return jsonify({"status": "success", "message": "Chat deleted"}), 200
+        else:
+            if request.headers.get('HX-Request'):
+                return "<p class='text-red-600'>Chat not found</p>", 404
+            return jsonify({"error": "Chat not found"}), 404
+            
+    except Exception as e:
+        print(f"[ERROR] Failed to delete chat: {e}")
+        if request.headers.get('HX-Request'):
+            return f"<p class='text-red-600'>Error: {str(e)}</p>", 500
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/facebook/statistics")
+@admin_required
+def get_all_fb_statistics():
+    """
+    Get overall statistics for all Facebook chats
+    """
+    fb_service = FacebookService(current_app.db)
+    stats = fb_service.get_chat_statistics()
+    
+    return jsonify({
+        "status": "success",
+        "statistics": stats
+    }), 200
+
+
+
 
 def register_admin_socketio_events(socketio):
     @socketio.on("admin_join")
