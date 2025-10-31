@@ -175,7 +175,7 @@ def webhook():
                             
                             # fb_service.add_message(user_message, sender_id, sender_id, type="text")
                             
-                            msg, usage = current_app.bot.respond(user_message, sender_id)
+                            msg, usage = current_app.bot.respond(f"Message from facebook: {user_message}", sender_id)
                             print(f"Bot response: {msg}")
                             
                             # fb_service.add_message(msg, sender_id, "bot", type="text")
@@ -202,7 +202,7 @@ def webhook():
                                         
                                         # Save user audio message
                                         msg_id = fb_service.add_message(
-                                            transcribed_text, sender_id, sender_id, type="audio"
+                                                f"Message from facebook: {transcribed_text}", sender_id, sender_id, type="audio"
                                         )
                                         
                                         # Save audio file
