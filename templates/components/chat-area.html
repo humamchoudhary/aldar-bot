@@ -12,9 +12,11 @@
     0% {
       opacity: 1;
     }
+
     50% {
       opacity: 0.5;
     }
+
     100% {
       opacity: 1;
     }
@@ -318,6 +320,7 @@
 
   // Start audio recording with visualization
   function startAudioRecording() {
+    reloadLock = true;
     audioChunks = [];
 
     navigator.mediaDevices
@@ -412,6 +415,7 @@
 
   // Stop audio recording
   function stopAudioRecording() {
+    reloadLock = false;
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
       isRecording = false;
@@ -420,6 +424,7 @@
 
   // Send audio to server
   function sendAudioToServer() {
+    reloadLock = true;
     if (audioChunks.length === 0) {
       console.error("No audio data to send");
       return;
@@ -439,10 +444,14 @@
           throw new Error("Network response was not ok");
         }
         scrollToBottom();
+
+        reloadLock = false;
       })
       .catch((error) => {
         console.error("Error sending audio:", error);
         alert("Failed to send audio message. Please try again.");
+
+        reloadLock = false;
       });
   }
 

@@ -69,7 +69,7 @@
       hx-trigger="submit"
       hx-swap="none"
       onsubmit="return !!this.message.value.trim()"
-      hx-on:htmx:afterRequest="this.reset(); checkInputValue()"
+      hx-on::after-request="this.reset(); checkInputValue(); location.reload()"
       id="messageForm"
     >
       <input
@@ -234,6 +234,7 @@
 
   // Start audio recording with visualization
   function startAudioRecording() {
+    reloadLock = true;
     audioChunks = [];
 
     navigator.mediaDevices
@@ -328,6 +329,7 @@
 
   // Stop audio recording
   function stopAudioRecording() {
+    reloadLock = false;
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
       isRecording = false;
@@ -354,6 +356,8 @@
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
+
+        location.reload();
         scrollToBottom();
       })
       .catch((error) => {

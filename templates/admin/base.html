@@ -766,5 +766,28 @@ document.body.addEventListener('htmx:confirm', function(evt) {
         }
     }
 });
+
+
+
+let reloadLock = false;
+
+// Function to control reload
+function tryReload() {
+    console.log("hello")
+  if (!reloadLock) {
+      console.log("reload")
+    location.reload();
+  } else {
+    console.log("Reload skipped — mutex lock is active.");
+  }
+}
+
+// Try to reload every 5 seconds
+
+setInterval(tryReload, 5000);
+
+
+
+
 </script>
  {% endblock %}

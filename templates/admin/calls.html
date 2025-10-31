@@ -514,8 +514,18 @@ function updateConnectionQuality(quality) {
     }
 }
 
+
+window.addEventListener("beforeunload", function (event) {
+        reloadLock = false;
+});
+
+
 // Enhanced Twilio Device initialization
 async function initOperatorDevice() {
+
+
+
+        reloadLock = true;
     updateOperatorStatus("Initializing...", "connecting");
     try {
         const res = await fetch("/call/token?identity=operator");
@@ -595,8 +605,17 @@ function endCall() {
 
 }
 
+
+
+
+
 // Initialize when page loads
 document.addEventListener("DOMContentLoaded", initOperatorDevice);
+
+
+
+
+
 </script>
 
 
