@@ -102,7 +102,7 @@ class GeminiTwilioBridge:
                                     },
                                     "local_amount": {
                                         "type": "number",
-                                        "description": "Amount in local currency (QAR). Use 0 if specifying foreign amount."
+                                        "description": "Amount in local currency (will always  QAR or qatari riyal). Use 0 if specifying foreign amount."
                                     },
                                     "foreign_amount": {
                                         "type": "number",
