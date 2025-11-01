@@ -328,7 +328,7 @@ class GeminiTwilioBridge:
                         print("🤖 Bot chunk:", chunk)
                         bot_buffer += " " + chunk.strip()
 
-                    if response.server_content.model_turn:
+                    if  response.server_content and  response.server_content.model_turn:
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                             print("🤖 Bot complete:", bot_buffer.strip())
