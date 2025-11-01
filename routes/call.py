@@ -109,7 +109,7 @@ def get_voice():
     stream_gemini.parameter(name='From', value=f'{request.values.get('From', None)}')
     stream_gemini.parameter(name='Caller', value=f'{request.values.get('Caller', None)}')
 
-    stream_gemini.parameter(name='name', value=f'{request.values.get('name', "phone caller")}')
+    stream_gemini.parameter(name='name', value=f'{request.values.get('name', None)}')
     stream_gemini.parameter(name='qid', value=f'{request.values.get('qid', None)}')
  
     response.append(connect_gemini)
