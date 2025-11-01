@@ -284,6 +284,7 @@ class GeminiTwilioBridge:
                                 session.close();
 
                             resp = self._call_aldar_api(function_name=fc.name,parameters=fc.args)
+                            print(resp)
                             function_response = types.FunctionResponse(
                                 id=fc.id,
                                 name=fc.name,
