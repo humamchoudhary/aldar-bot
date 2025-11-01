@@ -281,7 +281,7 @@ class GeminiTwilioBridge:
                         for fc in response.tool_call.function_calls:
                             if fc.name == "transfer_to_human_operator":
                                 print("Tranfer to human")
-                                session.close();
+                                await session.close();
 
                             resp = self._call_aldar_api(function_name=fc.name,parameters=fc.args)
                             print(resp)
