@@ -326,7 +326,7 @@ class GeminiTwilioBridge:
                             print("🎧 Sent Gemini audio chunk to Twilio")
 
                     # Handle transcriptions
-                    elif response.server_content.input_transcription:
+                    if response.server_response and  response.server_content.input_transcription:
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
                         self.transcriptions.append({"name": "user", "transcription": user_text})
@@ -338,12 +338,12 @@ class GeminiTwilioBridge:
                         if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                             await self.send_log_chunk()
 
-                    if response.server_content.output_transcription:
+                    if response.server_response and  response.server_content.output_transcription:
                         chunk = response.server_content.output_transcription.text
                         print("🤖 Bot chunk:", chunk)
                         bot_buffer += " " + chunk.strip()
 
-                    if response.server_content.model_turn:
+                    if  response.server_response and response.server_content.model_turn:
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                             print("🤖 Bot complete:", bot_buffer.strip())
