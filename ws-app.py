@@ -323,7 +323,7 @@ class GeminiTwilioBridge:
                                 "streamSid": self.stream_sid,
                                 "media": {"payload": b64_audio}
                             }))
-                            print("🎧 Sent Gemini audio chunk to Twilio")
+                            # print("🎧 Sent Gemini audio chunk to Twilio")
 
                     # Handle transcriptions
                     if response.server_content.input_transcription:
