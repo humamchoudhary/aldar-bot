@@ -78,20 +78,6 @@ class GeminiTwilioBridge:
 
             "tools":[{"function_declarations":[
                         {
-                            "name": "get_exchange_rate",
-                            "description": "Get the current exchange rate for a specific rate type. Use type=1 for standard rates.",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "rate_type": {
-                                        "type": "integer",
-                                        "description": "The rate type code (e.g., 1 for standard rate)"
-                                    }
-                                },
-                                "required": ["rate_type"]
-                            }
-                        },
-                        {
                             "name": "get_branch_details",
                             "description": "Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
                             "parameters": {
