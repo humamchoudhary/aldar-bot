@@ -280,8 +280,8 @@ class GeminiTwilioBridge:
         print(f"✅ Starting Gemini session for {self.call_uuid}")
 
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
-            bot_buffer = ""
-            try:
+                bot_buffer = ""
+            # try:
                 async for response in session.start_stream(
                     stream=self.twilio_audio_stream(),
                     mime_type="audio/pcm;rate=16000"
@@ -350,16 +350,16 @@ class GeminiTwilioBridge:
                             bot_buffer = ""
                             if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                                 await self.send_log_chunk()
-            except Exception as e:
-                print(f"❌ Error in gemini_session: {e}")
-
-            finally:
-                if bot_buffer.strip():
-                    self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
-                self.merged_wav.close()
-                await self.send_log_chunk(is_final=True)
-                await websocket.close(code=200)
-                print(f"🏁 Call session {self.call_uuid} ended cleanly.")
+            # except Exception as e:
+            #     print(f"❌ Error in gemini_session: {e}")
+            #
+            # finally:
+            #     if bot_buffer.strip():
+            #         self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
+            #     self.merged_wav.close()
+            #     await self.send_log_chunk(is_final=True)
+            #     await websocket.close(code=200)
+            #     print(f"🏁 Call session {self.call_uuid} ended cleanly.")
 
 
 @app.websocket('/')
