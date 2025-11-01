@@ -310,7 +310,6 @@ class GeminiTwilioBridge:
 
 
 
-
                     # Handle Gemini -> Twilio audio
                     if response.data:
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
@@ -326,7 +325,7 @@ class GeminiTwilioBridge:
                             # print("🎧 Sent Gemini audio chunk to Twilio")
 
                     # Handle transcriptions
-                    if response.server_content.input_transcription:
+                    if  response.server_content and response.server_content.input_transcription:
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
                         self.transcriptions.append({"name": "user", "transcription": user_text})
@@ -338,7 +337,7 @@ class GeminiTwilioBridge:
                         if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                             await self.send_log_chunk()
 
-                    if response.server_content.output_transcription:
+                    if  response.server_content and response.server_content.output_transcription:
                         chunk = response.server_content.output_transcription.text
                         print("🤖 Bot chunk:", chunk)
                         bot_buffer += " " + chunk.strip()
