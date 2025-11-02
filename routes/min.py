@@ -156,11 +156,12 @@ def auth_user():
         data = request.form.to_dict() or {}
     # print(data)
     name = data.get('name')
-    email = data.get('email')
+    email = data.get('email',"")
     phone = data.get('phone'," ")
     subject = data.get('subject')
     desg = data.get('desg'," ")
     is_anon = data.get('anonymous')
+    __import__('pprint').pprint(data)
     user_ip = request.headers.get(
         # Automatically fetch IP
         "X_Real-IP", request.remote_addr).split(",")[0]
