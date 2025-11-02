@@ -20,6 +20,8 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_API_KEY = os.getenv("TWILIO_API_KEY")
 TWILIO_API_SECRET = os.getenv("TWILIO_API_SECRET")
 TWILIO_TWIML_APP_SID = os.getenv("TWILIO_TWIML_APP_SID")
+
+CALL_WEBRTC_URL=os.getenv("CALL_WEBRTC_URL")
 from pprint import pprint
 
 @call_bp.route('/')
@@ -104,7 +106,7 @@ def get_voice():
 
     # Connect to your WebSocket stream
     connect_gemini = Connect()
-    stream_gemini = connect_gemini.stream(url="wss://al-dar-call.go-globe.dev/")
+    stream_gemini = connect_gemini.stream(url=f"wss://{CALL_WEBRTC_URL}/")
 
     stream_gemini.parameter(name='From', value=f'{request.values.get('From', None)}')
     stream_gemini.parameter(name='Caller', value=f'{request.values.get('Caller', None)}')

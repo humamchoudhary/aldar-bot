@@ -379,4 +379,5 @@ async def media_stream():
 
 
 if __name__ == "__main__":
+    port = os.getenv('CALL_WEBRTC_URL')
     app.run(host="0.0.0.0", port=3059)
