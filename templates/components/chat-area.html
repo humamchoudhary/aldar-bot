@@ -184,18 +184,18 @@
       <p class="text-[14px]">{{ user.ip }}</p>
     </div>
     <div class="flex flex-row gap-4">
-      {% if not chat.exported %}
-      <div
-        onclick="event.stopPropagation(); exportChat('{{ chat.room_id }}')"
-        class="flex flex-row gap-4 hover:opacity-80 hover:cursor-pointer duration-300 transition-all"
-      >
-        <i
-          data-lucide="square-arrow-out-up-right"
-          class="text-[var(--main-color)] size-[18px]"
-        ></i>
-        <p class="text-sm font-bold text-[var(--main-color)]">Export Chat</p>
-      </div>
-      {% endif %}
+      <!-- {% if not chat.exported %} -->
+      <!-- <div -->
+      <!--   onclick="event.stopPropagation(); exportChat('{{ chat.room_id }}')" -->
+      <!--   class="flex flex-row gap-4 hover:opacity-80 hover:cursor-pointer duration-300 transition-all" -->
+      <!-- > -->
+      <!--   <i -->
+      <!--     data-lucide="square-arrow-out-up-right" -->
+      <!--     class="text-[var(--main-color)] size-[18px]" -->
+      <!--   ></i> -->
+      <!--   <p class="text-sm font-bold text-[var(--main-color)]">Export Chat</p> -->
+      <!-- </div> -->
+      <!-- {% endif %} -->
       <div
         hx-post="/admin/chat/{{ chat.room_id }}/delete"
         hx-trigger="click"
