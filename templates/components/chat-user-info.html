@@ -7,33 +7,31 @@
     <p class="text-[var(--sec-text)] text-[14px]">Name</p>
     <p class="text-[14px]">{{ user.name }}</p>
   </div>
+  <!-- <div class="flex flex-col gap-1"> -->
+  <!--   <p class="text-[var(--sec-text)] text-[14px]">Contact</p> -->
+  <!--   <a -->
+  <!--     class="text-[var(--main-color)] font-bold text-[14px]" -->
+  <!--     target="_blank" -->
+  <!--     href="https://wa.me/{{ user.phone }}" -->
+  <!--     >{{ user.phone }}</a -->
+  <!--   > -->
+  <!-- </div> -->
   <div class="flex flex-col gap-1">
-    <p class="text-[var(--sec-text)] text-[14px]">Contact</p>
-    <a
-      class="text-[var(--main-color)] font-bold text-[14px]"
-      target="_blank"
-      href="https://wa.me/{{ user.phone }}"
-      >{{ user.phone }}</a
+    <p class="text-[var(--sec-text)] text-[14px]">QID</p>
+    <p
+      class="text-[14px]"
+      >{{ user.email }}</p
     >
   </div>
-  <div class="flex flex-col gap-1">
-    <p class="text-[var(--sec-text)] text-[14px]">Contact</p>
-    <a
-      class="text-[var(--main-color)] font-bold text-[14px]"
-      target="_blank"
-      href="mailto:{{ user.email }}"
-      >{{ user.email }}</a
-    >
-  </div>
-  <div class="flex flex-col gap-1">
-    <p class="text-[var(--sec-text)] text-[14px]">Designation</p>
-    <p class="text-[14px]">{{ user.desg }}</p>
-  </div>
-
-  <div class="flex flex-col gap-1">
-    <p class="text-[var(--sec-text)] text-[14px]">Company</p>
-    <p class="text-[14px]">{{ user.company }}</p>
-  </div>
+  <!-- <div class="flex flex-col gap-1"> -->
+  <!--   <p class="text-[var(--sec-text)] text-[14px]">Designation</p> -->
+  <!--   <p class="text-[14px]">{{ user.desg }}</p> -->
+  <!-- </div> -->
+  <!---->
+  <!-- <div class="flex flex-col gap-1"> -->
+  <!--   <p class="text-[var(--sec-text)] text-[14px]">Company</p> -->
+  <!--   <p class="text-[14px]">{{ user.company }}</p> -->
+  <!-- </div> -->
   <div class="flex flex-col gap-1">
     <p class="text-[var(--sec-text)] text-[14px]">Country</p>
     <p class="text-[14px]">{{ user.country }}</p>
