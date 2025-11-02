@@ -104,35 +104,35 @@ class User:
                         "$set": {"city": city, "country": country}}
                 )
                 # print(x)
-        if not self.company:
-
-            blocked_domains = {
-                # Gmail variations
-                'gmail.com', 'gmial.com', 'gmai.com', 'gmall.com', 'gmaill.com',
-                'gmail.co', 'gmeil.com', 'gmal.com', 'gmaiil.com', 'gmil.com',
-
-                # Yahoo variations
-                'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in', 'yaho.com', 'yahooo.com',
-                'yahoo.ca', 'yahoo.fr', 'yahoo.de', 'yahho.com', 'ymail.com',
-
-                # Outlook/Hotmail variations
-                'outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'outlook.co.uk',
-                'hotmail.co.uk', 'hotmial.com', 'outlok.com', 'hotmall.com',
-
-                # Other common providers
-                'aol.com', 'icloud.com', 'me.com', 'mac.com', 'protonmail.com',
-                'mail.com', 'zoho.com', 'tutanota.com', 'fastmail.com',
-                'rediffmail.com', 'qq.com', '163.com', '126.com',
-
-                # Regional providers
-                'mail.ru', 'yandex.ru', 'yandex.com', 'rambler.ru',
-                'web.de', 'gmx.de', 'gmx.com', 't-online.de',
-                'naver.com', 'daum.net', 'hanmail.net',
-            }
-            if self.email.split("@")[-1] not in blocked_domains:
-                self.company = self.email.split('@')[-1]
-            else:
-                self.company = self.name
+        # if not self.company:
+        #
+        #     blocked_domains = {
+        #         # Gmail variations
+        #         'gmail.com', 'gmial.com', 'gmai.com', 'gmall.com', 'gmaill.com',
+        #         'gmail.co', 'gmeil.com', 'gmal.com', 'gmaiil.com', 'gmil.com',
+        #
+        #         # Yahoo variations
+        #         'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in', 'yaho.com', 'yahooo.com',
+        #         'yahoo.ca', 'yahoo.fr', 'yahoo.de', 'yahho.com', 'ymail.com',
+        #
+        #         # Outlook/Hotmail variations
+        #         'outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'outlook.co.uk',
+        #         'hotmail.co.uk', 'hotmial.com', 'outlok.com', 'hotmall.com',
+        #
+        #         # Other common providers
+        #         'aol.com', 'icloud.com', 'me.com', 'mac.com', 'protonmail.com',
+        #         'mail.com', 'zoho.com', 'tutanota.com', 'fastmail.com',
+        #         'rediffmail.com', 'qq.com', '163.com', '126.com',
+        #
+        #         # Regional providers
+        #         'mail.ru', 'yandex.ru', 'yandex.com', 'rambler.ru',
+        #         'web.de', 'gmx.de', 'gmx.com', 't-online.de',
+        #         'naver.com', 'daum.net', 'hanmail.net',
+        #     }
+        #     if self.email.split("@")[-1] not in blocked_domains:
+        #         self.company = self.email.split('@')[-1]
+        #     else:
+        self.company = self.name
 
     def to_dict(self):
         if self.loc and not (self.city and self.country):
