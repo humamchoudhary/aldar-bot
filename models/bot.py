@@ -79,6 +79,20 @@ class Bot:
                             },
                             "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
                         }
+                    ),
+                    types.FunctionDeclaration(
+                        name="get_transaction_status",
+                        description="Get the status of a transaction using its reference number. Returns transaction status, message, and additional details if available.",
+                        parameters={
+                            "type": "object",
+                            "properties": {
+                                "transaction_ref_no": {
+                                    "type": "string",
+                                    "description": "The transaction reference number (e.g., 63897333251760, 1882910250001460)"
+                                }
+                            },
+                            "required": ["transaction_ref_no"]
+                        }
                     )
                 ]
             )
@@ -113,6 +127,14 @@ class Bot:
                 response.raise_for_status()
                 return response.json()
             
+
+            elif function_name == "get_transaction_status":
+                tran_ref_no = parameters.get("transaction_ref_no")
+                url = f"{self.aldar_base_url}/api/User/GetTransactionDetails"
+                response = requests.get(url, params={"tranRefNo": tran_ref_no})
+                response.raise_for_status()
+                return response.json()
+
         except requests.exceptions.RequestException as e:
             return {"error": f"API call failed: {str(e)}"}
 
