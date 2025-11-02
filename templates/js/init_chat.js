@@ -193,6 +193,8 @@
         width: 350px;
         min-width: 350px;
         max-width: 80vw;
+        height: 500px;
+        min-height: 300px;
         background-color: #f0f4f8;
         border-radius: 10px;
         box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
@@ -201,9 +203,7 @@
         flex-direction: column;
         overflow: hidden;
         display: none;
-        resize: both;
-        max-height: 500px;
-        transition: height 0.3s ease, max-height 0.3s ease;
+        transition: height 0.3s ease;
         padding-bottom: 10px;
       }
 
@@ -562,7 +562,8 @@
             if (e.target.closest('#return-chat') || 
                 e.target.closest('#close-chat') || 
                 e.target.closest('.resize-handle') ||
-                e.target.closest('.resize-indicator')) {
+                e.target.closest('.resize-indicator') ||
+                isResizing) {  // Don't drag if already resizing
                 return;
             }
 
@@ -633,9 +634,10 @@
             actionButtonsContainer.classList.remove("show");
             isActionMenuOpen = false;
 
-            // Reset container height to default (remove call interface sizing)
-            chatContainer.style.height = '';
-            chatContainer.style.maxHeight = '500px';
+            // Reset container to default dimensions
+            chatContainer.style.width = '350px';
+            chatContainer.style.height = '500px';
+            chatContainer.style.maxHeight = 'none';
 
             // Get chatbox element
             const chatbox = document.getElementById('chatbox');
@@ -741,7 +743,13 @@
 
         const initResize = (e, direction) => {
             e.preventDefault();
-            e.stopPropagation();
+            e.stopPropagation(); // Stop event from bubbling to drag handlers
+            
+            // Prevent dragging while resizing
+            if (isDragging) {
+                stopDrag();
+            }
+            
             isResizing = true;
             currentResizer = direction;
             
@@ -769,6 +777,8 @@
                 chatContainer.style.right = 'auto';
             }
 
+            // Remove max-height constraint during resize
+            chatContainer.style.maxHeight = 'none';
             chatContainer.classList.add('resized');
 
             document.addEventListener("mousemove", handleResize);
@@ -855,10 +865,22 @@
         };
 
         // Event listeners for resize handles
-        document.getElementById("resize-nw").addEventListener("mousedown", (e) => initResize(e, "nw"));
-        document.getElementById("resize-n").addEventListener("mousedown", (e) => initResize(e, "n"));
-        document.getElementById("resize-w").addEventListener("mousedown", (e) => initResize(e, "w"));
-        document.querySelector(".resize-indicator").addEventListener("mousedown", (e) => initResize(e, "nw"));
+        document.getElementById("resize-nw").addEventListener("mousedown", (e) => {
+            e.stopPropagation(); // Prevent drag from starting
+            initResize(e, "nw");
+        });
+        document.getElementById("resize-n").addEventListener("mousedown", (e) => {
+            e.stopPropagation(); // Prevent drag from starting
+            initResize(e, "n");
+        });
+        document.getElementById("resize-w").addEventListener("mousedown", (e) => {
+            e.stopPropagation(); // Prevent drag from starting
+            initResize(e, "w");
+        });
+        document.querySelector(".resize-indicator").addEventListener("mousedown", (e) => {
+            e.stopPropagation(); // Prevent drag from starting
+            initResize(e, "nw");
+        });
 
         // Chat button click - Show action menu
         chatBtn.onclick = () => {
@@ -884,9 +906,10 @@
             chatBtn.classList.add("chat-button-hidden");
 
             setTimeout(() => {
-                // Set container height for call interface
+                // Set container dimensions for call interface
+                chatContainer.style.width = '350px';
                 chatContainer.style.height = '650px';
-                chatContainer.style.maxHeight = '80vh';
+                chatContainer.style.maxHeight = 'none';
 
                 // Load call interface into chatbox
                 const chatbox = document.getElementById('chatbox');
