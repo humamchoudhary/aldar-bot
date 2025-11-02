@@ -77,58 +77,70 @@ class GeminiTwilioBridge:
             "systemInstruction":self.system_instruction,
 
             "tools":[{"function_declarations":[
-                        {
-                            "name": "get_branch_details",
-                            "description": "Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {}
+                {
+                    "name": "get_branch_details",
+                    "description": "Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {}
+                    }
+                },
+                {
+                    "name": "calculate_exchange",
+                    "description": "Calculate currency conversion between QAR and foreign currency. Specify either local currency amount (QAR) or foreign currency amount, not both.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "transaction_type": {
+                                "type": "string",
+                                "description": "Transaction type: 'tt' for transfer, 'BUY' for buying currency, 'SELL' for selling currency",
+                                "enum": ["tt", "BUY", "SELL"]
+                            },
+                            "currency_code": {
+                                "type": "string",
+                                "description": "3-letter ISO currency code (e.g., USD, EUR, GBP)"
+                            },
+                            "local_amount": {
+                                "type": "number",
+                                "description": "Amount in local currency (will always QAR or qatari riyal). Use 0 if specifying foreign amount."
+                            },
+                            "foreign_amount": {
+                                "type": "number",
+                                "description": "Amount in foreign currency. Use 0 if specifying local amount."
                             }
                         },
-                        {
-                            "name": "calculate_exchange",
-                            "description": "Calculate currency conversion between QAR and foreign currency. Specify either local currency amount (QAR) or foreign currency amount, not both.",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "transaction_type": {
-                                        "type": "string",
-                                        "description": "Transaction type: 'tt' for transfer, 'BUY' for buying currency, 'SELL' for selling currency",
-                                        "enum": ["tt", "BUY", "SELL"]
-                                    },
-                                    "currency_code": {
-                                        "type": "string",
-                                        "description": "3-letter ISO currency code (e.g., USD, EUR, GBP)"
-                                    },
-                                    "local_amount": {
-                                        "type": "number",
-                                        "description": "Amount in local currency (will always  QAR or qatari riyal). Use 0 if specifying foreign amount."
-                                    },
-                                    "foreign_amount": {
-                                        "type": "number",
-                                        "description": "Amount in foreign currency. Use 0 if specifying local amount."
-                                    }
-                                },
-                                "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
+                        "required": ["transaction_type", "currency_code", "local_amount", "foreign_amount"]
+                    }
+                },
+                {
+                    "name": "get_transaction_status",
+                    "description": "Get the status of a transaction using its reference number. Returns transaction status, message, and additional details if available.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "transaction_ref_no": {
+                                "type": "string",
+                                "description": "The transaction reference number (e.g., 63897333251760, 1882910250001460)"
                             }
                         },
-
-   {
-                            "name": "transfer_to_human_operator",
-                            "description": "Transfer the call to a human operator when the user requests to speak with a person, representative, or human agent. Use this when user explicitly asks to talk to someone or cannot be helped by the AI.",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "reason": {
-                                        "type": "string",
-                                        "description": "Brief reason for the transfer (e.g., 'customer requested human agent', 'complex query requiring human assistance')"
-                                    }
-                                },
-                                "required": ["reason"]
-                            }}
-
-
-                    ]}]
+                        "required": ["transaction_ref_no"]
+                    }
+                },
+                {
+                    "name": "transfer_to_human_operator",
+                    "description": "Transfer the call to a human operator when the user requests to speak with a person, representative, or human agent. Use this when user explicitly asks to talk to someone or cannot be helped by the AI.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "reason": {
+                                "type": "string",
+                                "description": "Brief reason for the transfer (e.g., 'customer requested human agent', 'complex query requiring human assistance')"
+                            }
+                        },
+                        "required": ["reason"]
+                    }
+                }
+            ]}]
         }
 
     def _call_aldar_api(self, function_name, parameters):
@@ -160,6 +172,16 @@ class GeminiTwilioBridge:
                 response = requests.get(url, params=params)
                 response.raise_for_status()
                 return response.json()
+
+
+            elif function_name == "get_transaction_status":
+                tran_ref_no = parameters.get("transaction_ref_no")
+                url = f"{self.aldar_base_url}/api/User/GetTransactionDetails"
+                response = requests.get(url, params={"tranRefNo": tran_ref_no})
+                response.raise_for_status()
+                return response.json()
+
+
             
         except requests.exceptions.RequestException as e:
             return {"error": f"API call failed: {str(e)}"}
