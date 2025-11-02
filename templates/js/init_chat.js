@@ -918,7 +918,7 @@
                         <iframe 
                             src="${baseURL}/call" 
                             style="width: 100%; height: 100%; border: none; border-radius: 8px;"
-                            allow="microphone"
+ allow="autoplay; microphone; camera"
                         ></iframe>
                     </div>
                 `;
