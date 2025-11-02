@@ -142,9 +142,6 @@ def generate_random_username():
 
 @min_bp.route('/auth', methods=['POST', 'GET'])
 def auth_user():
-    # if request.method == "GET":
-    #     sess_user = session.get('user_id')
-    #     return ('', 204) if sess_user else jsonify(False)
 
     # Check if request is coming from HTMX or regular JSON
     is_htmx = request.headers.get('HX-Request') == 'true'
@@ -160,9 +157,9 @@ def auth_user():
     # print(data)
     name = data.get('name')
     email = data.get('email')
-    phone = data.get('phone')
+    phone = data.get('phone'," ")
     subject = data.get('subject')
-    desg = data.get('desg')
+    desg = data.get('desg'," ")
     is_anon = data.get('anonymous')
     user_ip = request.headers.get(
         # Automatically fetch IP
@@ -186,15 +183,6 @@ def auth_user():
 
     session['user_id'] = user.user_id
     session['role'] = "user"
-    try:
-        r = request.post("https://example.com", json={"name": name,
-                                                      "email": email,
-                                                      "phone": phone,
-                                                      "subject": subject})
-
-        # print("Request send")
-    except Exception as e:
-        print(e)
     # if is_htmx:
         # For HTMX requests, first get the newchat URL
         # newchat_url = url_for('min.new_chat', subject=subject)
