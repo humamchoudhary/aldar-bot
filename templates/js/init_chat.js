@@ -919,6 +919,8 @@
                             src="${baseURL}/call" 
                             style="width: 100%; height: 100%; border: none; border-radius: 8px;"
  allow="autoplay; microphone; camera"
+
+sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
                         ></iframe>
                     </div>
                 `;
