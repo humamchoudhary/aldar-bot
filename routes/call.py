@@ -38,7 +38,7 @@ def generate_token():
     # Create access token
     token = AccessToken(
         TWILIO_ACCOUNT_SID,
-        TWILIO_API_KEY,
+        # TWILIO_API_KEY,
         TWILIO_API_SECRET,
         identity=identity
     )

@@ -61,7 +61,7 @@ class GeminiTwilioBridge:
         # ---- System instruction ----
         self.system_instruction = """
         You are a professional AI assistant trained in customer service and sales communication.
-        Respond concisely (1–3 lines) based only on the uploaded company profile.
+        Respond concisely (1–3 lines) based only on the uploaded company profile. always respond with the language the user is speaking in
         """
         self.get_system_instruction()
 
@@ -196,6 +196,7 @@ class GeminiTwilioBridge:
                 print("✅ Loaded system instruction successfully.")
             else:
                 raise Exception("Could not fetch system instruction")
+            print(self.system_instruction)
         except Exception as e:
             print(f"⚠️ Failed to load system instruction: {e}")
 
