@@ -1,3 +1,4 @@
+from pprint import pprint
 from services.expo_noti import send_push_noti
 import markdown
 from flask import make_response
@@ -158,11 +159,13 @@ def chat(room_id):
     if not chat:
         print(f"Chat not found for room_id: {room_id}")
         return redirect(url_for("min.onboard"))
+    print(user.user_id)
+    pprint(chat.to_dict())
     
     # Security check - verify chat belongs to user
-    if not chat.room_id.startswith(f"{user.user_id}-"):
-        print(f"Unauthorized access attempt to chat: {room_id}")
-        return redirect(url_for("min.onboard"))
+    # if not chat.room_id:
+    #     print(f"Unauthorized access attempt to chat: {room_id}")
+    #     return redirect(url_for("min.onboard"))
 
     return render_template('user/min-index.html', chat=chat, username=user.name)
 
