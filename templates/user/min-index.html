@@ -709,12 +709,32 @@ function fixAllLinks(element) {
     });
 }
 {% endif %}
+
+
+
 </script>
 
 {% if chat %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
+
+function showReturnChatButton() {
+console.log("return ")
+    let returnButton = document.getElementById('return-chat');
+    if (returnButton) {
+        returnButton.style.display = 'block';
+        
+        // Make sure HTMX processes the button
+        if (typeof htmx !== 'undefined') {
+            htmx.process(returnButton);
+        }
+    }
+}
+
+showReturnChatButton()
+
+
     initChat();
     scrollToBottom();
 </script>
