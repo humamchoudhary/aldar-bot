@@ -735,11 +735,14 @@ console.log("send message: {{settings['backend_url']}}/min/chat/{{chat.room_id}}
        socket.emit('join_min', {room: roomId});
      });
 
-     socket.on('new_message', function(data) {
-         console.log("new_message")
-
-       appendMessage(data);
-     });
+socket.on('new_message', function(data) {
+  console.log("new_message received:", data);
+  
+  // Only append if it's NOT from the current user
+  if (data.sender !== '{{username}}') {
+    appendMessage(data);
+  }
+});
    }
 
 function appendMessage(message) {
