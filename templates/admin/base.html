@@ -771,11 +771,16 @@ document.body.addEventListener('htmx:confirm', function(evt) {
 
 
 
-let reloadLock = false;
+let reloadLock = true;
+
+
+
 
 // Function to control reload
 function tryReload() {
-    console.log("hello")
+
+      console.log(reloadLock)
+ //   console.log("hello")
   if (!reloadLock) {
       console.log("reload")
     location.reload();
@@ -786,7 +791,7 @@ function tryReload() {
 
 // Try to reload every 5 seconds
 
-setInterval(tryReload, 5000);
+// setInterval(tryReload, 5000);
 
 
 

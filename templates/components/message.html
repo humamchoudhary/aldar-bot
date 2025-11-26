@@ -10,7 +10,7 @@
     </p>
   </div>
   <div
-    class="md-content"
+  class="md-content"
     style="
       padding: 10px 10px;
       border-radius: 5px;
@@ -50,7 +50,14 @@
     {% endif %}
 
     {% else %}
+    {% if message.sender =="bot" %}
+
     {{ message.content|markdown|safe }}
+    {% else %}
+
+    {{ message.content }}
+
+    {% endif %}
     {% endif %}
   </div>
 

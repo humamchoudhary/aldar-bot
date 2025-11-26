@@ -37,7 +37,7 @@
               <p class="text-[11px] uppercase">{{ message.speaker }}</p>
             </div>
             <div
-              class="md-content"
+  class=" {%if message.sender =="bot" %}md-content  {% endif %}"
               style="
           padding: 10px 10px;
           border-radius: 5px;

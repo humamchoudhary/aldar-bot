@@ -410,7 +410,7 @@
 
   // Stop audio recording
   function stopAudioRecording() {
-    reloadLock = false;
+    // reloadLock = false;
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
       isRecording = false;
@@ -440,13 +440,13 @@
         }
         scrollToBottom();
 
-        reloadLock = false;
+        // reloadLock = false;
       })
       .catch((error) => {
         console.error("Error sending audio:", error);
         alert("Failed to send audio message. Please try again.");
 
-        reloadLock = false;
+        // reloadLock = false;
       });
   }
 

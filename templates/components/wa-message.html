@@ -10,7 +10,7 @@
     </p>
   </div>
   <div
-    class="md-content"
+  class=" {%if message.sender =="bot" %}md-content  {% endif %}"
     style="
       padding: 10px 10px;
       border-radius: 5px;
@@ -47,6 +47,17 @@
     >
       {{ message.message|markdown|safe }}
     </div>
-    {% endif %} {% else %} {{ message.message|markdown|safe }} {% endif %}
+    {% endif %} {% else %} 
+
+    {% if message.sender =="bot" %}
+
+    {{ message.content|markdown|safe }}
+    {% else %}
+
+    {{ message.content }}
+
+    {% endif %}
+
+    {% endif %}
   </div>
 </div>

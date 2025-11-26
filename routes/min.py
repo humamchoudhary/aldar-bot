@@ -513,10 +513,10 @@ def audio_file(chat_id, message_id):
 
 
 
-@min_bp.route('/chat/<chat_id>/send_message', methods=['POST', 'GET'])
+@min_bp.route('/chat/<room_id>/send_message', methods=['POST', 'GET'])
 @login_required
 def send_message(chat_id):
-
+    """ Here Chat id == Room id """
     if request.method == "GET":
         return redirect(f'/chat/{chat_id}')
     message = request.form.get('message')
@@ -530,7 +530,7 @@ def send_message(chat_id):
     admin = AdminService(current_app.db).get_admin_by_id(
         session.get('admin_id'))
 
-    chat = chat_service.get_chat_by_room_id(f'{user.user_id}-{chat_id[:8]}')
+    chat = chat_service.get_chat_by_room_id(chat_id)
     print(chat)
     if not chat:
         if request.headers.get('HX-Request'):

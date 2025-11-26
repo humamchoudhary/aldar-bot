@@ -237,11 +237,7 @@ window.addEventListener("DOMContentLoaded", function () {
     const textarea = document.getElementById("message");
     if (textarea) textarea.value = "";
 
-    document.querySelectorAll('.md-content').forEach(el => {
-        const content = marked.parse(marked.parse(el.dataset.content));
-        el.innerHTML = content;
-        fixAllLinks(el);
-    });
+parseMd();
 
     const socket = io();
 
@@ -311,11 +307,8 @@ document.body.addEventListener('htmx:afterSwap', (event) => {
         });
     }
 
-    document.querySelectorAll('.md-content').forEach(el => {
-        const content = marked.parse(marked.parse(el.dataset.content));
-        el.innerHTML = content;
-        fixAllLinks(el);
-    });
+
+parseMd();
 });
 
   document.body.addEventListener("htmx:afterSwap", function (evt) {
@@ -334,6 +327,20 @@ document.body.addEventListener('htmx:afterSwap', (event) => {
       }
     }
   });
+
+function parseMd(){
+
+
+    document.querySelectorAll('.md-content').forEach(el => {
+
+        console.log(`MD: `, el)
+ //       const content = marked.parse(marked.parse(el.dataset.content));
+   //     el.innerHTML = content;
+
+     //   fixAllLinks(el);
+    });
+}
+
 
 
 // Chat menu functionality

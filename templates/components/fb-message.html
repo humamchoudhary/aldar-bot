@@ -15,7 +15,7 @@
 
   <!-- Message content -->
   <div
-    class="md-content"
+  class=" {%if message.sender =="bot" %}md-content  {% endif %}"
     style="
       padding: 10px 10px;
       border-radius: 5px;
@@ -58,7 +58,16 @@
     </div>
     {% endif %} {% else %}
     <!-- Text message -->
-    {{ message.message|markdown|safe }} {% endif %}
+    {% if message.sender =="bot" %}
+
+    {{ message.content|markdown|safe }}
+    {% else %}
+
+    {{ message.content }}
+
+    {% endif %}
+
+    {% endif %}
   </div>
 
   <!-- Message timestamp -->

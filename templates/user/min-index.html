@@ -654,7 +654,7 @@ messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });
        textarea.value = '';
      if (!message) return;
 
-     fetch('{{settings['backend_url']}}/min/chat/{{chat.chat_id}}/send_message', {
+     fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message', {
        method: 'POST',
        headers: {
          'Content-Type': 'application/x-www-form-urlencoded',
