@@ -100,7 +100,8 @@ def onboard():
     session.clear()
     session["admin_id"]= admin_id
     session["last_visit"] ="/min/onboarding"
-    # pprint(session.items())
+    pprint(session.items())
+    print("clearing session")
     return render_template('user/min-onboard.html')
 
 
