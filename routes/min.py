@@ -304,21 +304,21 @@ def ping_admin(chat_id):
     chat_service = ChatService(current_app.db)
     user_service = UserService(current_app.db)
     user = user_service.get_user_by_id(session['user_id'])
-    room_id = f"{user.user_id}-{chat_id[:8]}"
-    chat = chat_service.get_chat_by_room_id(room_id)
+    # room_id = f"{user.user_id}-{chat_id[:8]}"
+    chat = chat_service.get_chat_by_room_id(chat_id)
 
     if not chat:
         if request.headers.get('HX-Request'):
             return "Chat not found", 404
         return jsonify({"error": "Chat not found"}), 404
 
-    if chat.admin_required:
-        return "", 304
+    # if chat.admin_required:
+    #     return "", 304
 
     chat_service.set_admin_required(chat.room_id, True)
 
     current_app.socketio.emit('admin_required', {
-        'room_id': room_id,
+        'room_id': chat.room_id,
         'chat_id': chat.chat_id,
         'subject': chat.subject
     }, room='admin')
@@ -361,10 +361,10 @@ def ping_admin(chat_id):
         'sender': 'SYSTEM',
         'content': new_message.content,
 
-        "html": render_template("/user/fragments/chat_message.html", message=new_message, username=user.name),
+        # "html": render_template("/user/fragments/chat_message.html", message=new_message, username=user.name),
         'timestamp': new_message.timestamp.isoformat(),
-        'room_id': room_id
-    }, room=room_id)
+        'room_id': chat.room_id
+    }, room=chat.room_id)
 
     # print("ANNA PINGED")
     msg = f"""Hi Ana,
@@ -536,6 +536,7 @@ def send_message(chat_id):
         if request.headers.get('HX-Request'):
             return "Chat not found", 404
         return jsonify({"error": "Chat not found"}), 404
+    print(chat.to_dict())
 
     new_message = chat_service.add_message(
         chat.room_id, user.name, message)

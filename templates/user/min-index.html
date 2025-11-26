@@ -680,7 +680,7 @@ messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });
    // Ping admin function
    function pingAdmin() {
        console.log('ping')
-     fetch('{{settings['backend_url']}}/min/chat/{{chat.chat_id}}/ping_admin', {
+     fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/ping_admin', {
        method: 'POST',
        credentials: 'include'
      })
