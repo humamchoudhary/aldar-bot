@@ -386,20 +386,20 @@ def send_message(room_id):
         'content': message,
         'timestamp': new_message.timestamp.isoformat(),
         'room_id': chat.room_id,
-        "html": render_template("/user/fragments/chat_message.html", 
-                               message=new_message, username=user.name)
+        # "html": render_template("/user/fragments/chat_message.html", 
+        #                        message=new_message, username=user.name)
     }, room=chat.room_id)
 
     # Send push notification
-    noti_res = send_push_noti(
-        admin_service.get_expo_tokens(session.get("admin_id")), 
-        "New Message", 
-        f'{user.name}: {message}', 
-        chat.room_id
-    )
+    # noti_res = send_push_noti(
+    #     admin_service.get_expo_tokens(session.get("admin_id")), 
+    #     "New Message", 
+    #     f'{user.name}: {message}', 
+    #     chat.room_id
+    # )
     
-    if noti_res.status_code != 200:
-        print(f"Notification Error: {noti_res.__dict__}")
+    # if noti_res.status_code != 200:
+    #     print(f"Notification Error: {noti_res.__dict__}")
 
     # Handle bot response or admin notification
     if not chat.admin_required:
@@ -409,11 +409,11 @@ def send_message(room_id):
             
             admin_service.update_tokens(admin.admin_id, usage['cost'])
 
-            usage_service = UsageService(current_app.db)
-            usage_service.add_cost(
-                session.get("admin_id"),
-                usage['input'], usage['output'], usage['cost']
-            )
+            # usage_service = UsageService(current_app.db)
+            # usage_service.add_cost(
+            #     session.get("admin_id"),
+            #     usage['input'], usage['output'], usage['cost']
+            # )
             
             bot_message = chat_service.add_message(chat.room_id, chat.bot_name, msg)
 
