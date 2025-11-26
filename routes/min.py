@@ -583,7 +583,7 @@ def send_message(chat_id):
 
         current_app.socketio.emit('new_message', {
 
-            "html": render_template("/user/fragments/chat_message.html", message=bot_message, username=user.name),
+            # "html": render_template("/user/fragments/chat_message.html", message=bot_message, username=user.name),
             'room_id': chat.room_id,
             'sender': chat.bot_name,
             'content': msg,
