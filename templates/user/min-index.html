@@ -711,6 +711,20 @@ function fixAllLinks(element) {
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
 
+function showReturnChatButton() {
+    let returnButton = document.getElementById('return-chat');
+    if (returnButton) {
+        returnButton.style.display = 'block';
+        
+        // Make sure HTMX processes the button
+        if (typeof htmx !== 'undefined') {
+            htmx.process(returnButton);
+        }
+    }
+}
+
+
+    showReturnChatButton();
 
 
 
