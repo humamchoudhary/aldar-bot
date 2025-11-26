@@ -725,13 +725,10 @@ console.log("return ")
     if (returnButton) {
         returnButton.style.display = 'block';
         
-        // Make sure HTMX processes the button
-        if (typeof htmx !== 'undefined') {
-            htmx.process(returnButton);
-        }
     }
 }
 
+showReturnChatButton()
 
 
     initChat();
