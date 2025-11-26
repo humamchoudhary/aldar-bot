@@ -546,18 +546,33 @@ function checkInputValue() {
 
 function handleKeyPress(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        if (document.getElementById('fn__chat_textarea').value.trim() !== '') {
+        event.preventDefault(); // Prevent default behavior first
+        event.stopPropagation(); // Stop event from bubbling
+        
+        const textarea = document.getElementById('fn__chat_textarea');
+        if (textarea.value.trim() !== '') {
             sendMessage();
         }
+        return false; // Additional prevention
     }
 }
 
+let isSending = false; // Debounce flag
+
 function sendMessage() {
+    // Prevent double sends
+    if (isSending) {
+        console.log('Already sending, ignoring duplicate call');
+        return;
+    }
+    
     const textarea = document.getElementById('fn__chat_textarea');
     const message = textarea.value.trim();
 
     if (!message) return;
+
+    // Set debounce flag
+    isSending = true;
 
     // Clear immediately for better UX
     textarea.value = '';
@@ -583,6 +598,12 @@ function sendMessage() {
         // Restore message on error
         textarea.value = message;
         console.error('Error sending message:', error);
+    })
+    .finally(() => {
+        // Reset debounce flag after a short delay
+        setTimeout(() => {
+            isSending = false;
+        }, 300);
     });
 }
 
@@ -718,6 +739,19 @@ function fixAllLinks(element) {
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
+
+function showReturnChatButton() {
+console.log("return ")
+    let returnButton = document.getElementById('return-chat');
+    if (returnButton) {
+        returnButton.style.display = 'block';
+        
+    }
+}
+
+showReturnChatButton()
+
+
     initChat();
     scrollToBottom();
 </script>
