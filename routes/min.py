@@ -121,6 +121,9 @@ def auth_user():
     if not (name or email or phone):
         name = generate_random_username()
 
+    pprint(user.to_dict())
+
+
     session['user_id'] = user.user_id
     session['role'] = "user"
     session.modified = True
