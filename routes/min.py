@@ -24,15 +24,26 @@ import pytz
 
 @min_bp.before_request
 def before_req():
-    path = str(request.path)
-    print(session.items())
-    print(f"Path: {path}")
-    print(f"LastVisit: {session.get('last_visit')}")
-    if path.startswith("/min") and (path.split("/")[-1] not in ['auth', 'send_message', 'ping_admin',"send_audio"] and path not in ['/min/', '/min/get-headers'] and "audio_file" not in path):
-        session["last_visit"] = path
-    elif path.startswith("/min") and (path.split("/")[-1] in ['send_message', 'ping_admin',"send_audio"] ):
-        path="/".join(path.split("/")[:-1])
-        print(f"updateing path from sec: {path}")
+    path = request.path
+
+    excluded_exact = {"/min/", "/min/get-headers"}
+    excluded_suffix = {"auth", "send_message", "ping_admin", "send_audio"}
+
+    # 1. Exclude certain whole endpoints
+    if path in excluded_exact:
+        return
+
+    # 2. Identify operations under /chat/<room_id>
+    last_segment = path.rstrip("/").split("/")[-1]
+
+    # 3. If chat action (send_message, ping_admin, send_audio)
+    if last_segment in excluded_suffix:
+        cleaned = "/".join(path.split("/")[:-1])
+        session["last_visit"] = cleaned
+        return
+
+    # 4. Otherwise, any other /min page should be recorded
+    if path.startswith("/min") and "audio_file" not in path:
         session["last_visit"] = path
 
 def login_required(f):
