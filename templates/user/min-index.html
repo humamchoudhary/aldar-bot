@@ -124,7 +124,6 @@ opacity:0.7;
 <!-- AI Chat Bot Page -->
 <div style="display: flex; position: relative; margin-bottom:10px">
   <div style="min-height: 100%; padding-left: 0.5rem; padding-right: 0.5rem; width: 100%; display: flex; flex-direction: column; position: relative; z-index: 3;">
-    <!-- Chat Messages -->
     {% if chat %}
         <div id="messageArea" style="display: flex; position: relative;min-height:300px ; height:100%; flex-direction:column; gap:25px; overflow-y: auto; ">
           {% for message in chat.messages %} 
@@ -137,104 +136,19 @@ opacity:0.7;
     <div style="margin-top: auto; position: sticky; bottom: -10px; padding: 10px 0px 0px 0px; background-color: var(--goglobe-site-bg-color);">
       <div style="display: flex; flex-direction: row; width: 100%; gap: 10px">
         <div style="width: 100%; height: fit-content; position: relative">
-<textarea
-  rows="1"
-  name="message"
-  placeholder="Send a message..."
-  id="fn__chat_textarea"
-  style="
-    min-height: 0px;
-    margin-bottom: 0px;
-    border-radius: 6px;
-    box-sizing: border-box;
-    background-color: transparent;
-    outline: none;
-    display: block;
-    width: 100%;
-    padding: 8px 10px 8px;
-    padding-right: 72px;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 22px;
-    max-height: 170px;
-    font-family: var(--goglobe-heading-font-family);
-    resize: none;
-    overflow-y: hidden;
-    color: var(--goglobe-heading-color);
-
- transition: border-color 0.2s ease;  "
-  onkeyup="handleKeyPress(event); checkInputValue();"
-></textarea>
-
-<style>
-#fn__chat_textarea{
-
-
-    border: 2px solid var(--goglobe-border-color);
-}
-  #fn__chat_textarea:focus {
-    border-color: var(--goglobe-main-color); /* 👈 highlight border on focus */
-  }
-</style>
-
-
+          <textarea rows="1" name="message" placeholder="Send a message..." id="fn__chat_textarea" style="min-height: 0px; margin-bottom: 0px; border-radius: 6px; box-sizing: border-box; background-color: transparent; outline: none; display: block; width: 100%; padding: 8px 10px 8px; padding-right: 72px; font-size: 12px; font-weight: 400; line-height: 22px; max-height: 170px; font-family: var(--goglobe-heading-font-family); resize: none; overflow-y: hidden; color: var(--goglobe-heading-color); transition: border-color 0.2s ease; border: 2px solid var(--goglobe-border-color);" onkeyup="handleKeyPress(event); checkInputValue();"></textarea>
+          
           <button id="send-btn" style="position: absolute; width: 40px; height: 30px; bottom: 6px; right: 8px; padding: 0; margin: 0; border-radius: 5px; outline: none; cursor: pointer; border: none; background-color: var(--goglobe-main-color); display: flex; align-items: center; justify-content: center; color: #0e1024; transition: all 0.3s ease;" onclick="sendMessage()">
-            <img
-              src="{{ settings['backend_url'] }}{{ url_for('static', filename='svg/enter.svg') }}"
-              alt=""
-              style="color: #0e1024; width: 12px; height: 12px; filter: invert(1);"
-            />
+            <img src="{{ settings['backend_url'] }}{{ url_for('static', filename='svg/enter.svg') }}" alt="" style="color: #0e1024; width: 12px; height: 12px; filter: invert(1);"/>
           </button>
         </div>
 
-
-        <div
-          id="enable-mic"
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.25rem;
-            border-radius: 9999px;
-            border: 0.5px solid var(--goglobe-border-color);
-            transition: all 200ms;
-            position: relative;
-            width: 40px;
-            height:30px;
-            cursor: pointer;
-          "
-          title="Request Assistance"
-          onclick="enableMic()"
-          onmouseover="this.style.backgroundColor='var(--goglobe-main-color)'; this.style.borderColor='var(--goglobe-hover-color)';"
-          onmouseout="this.style.backgroundColor=''; this.style.borderColor='var(--goglobe-border-color)';"
-        >
-<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic-icon lucide-mic"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+        <div id="enable-mic" style="display: flex; align-items: center; justify-content: center; padding: 0.25rem; border-radius: 9999px; border: 0.5px solid var(--goglobe-border-color); transition: all 200ms; position: relative; width: 40px; height:30px; cursor: pointer;" title="Voice Message" onclick="enableMic()" onmouseover="this.style.backgroundColor='var(--goglobe-main-color)'; this.style.borderColor='var(--goglobe-hover-color)';" onmouseout="this.style.backgroundColor=''; this.style.borderColor='var(--goglobe-border-color)';">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
         </div>
 
-        <div
-          id="ping-admin-btn"
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.25rem;
-            border-radius: 9999px;
-            border: 0.5px solid var(--goglobe-border-color);
-            transition: all 200ms;
-            position: relative;
-            width: 30px;
-            height:30px;
-            cursor: pointer;
-          "
-          title="Request Assistance"
-          onclick="pingAdmin()"
-          onmouseover="this.style.backgroundColor='var(--goglobe-main-color)'; this.style.borderColor='var(--goglobe-hover-color)';"
-          onmouseout="this.style.backgroundColor=''; this.style.borderColor='var(--goglobe-border-color)';"
-        >
-          <img
-            style="border-radius: 9999px; min-width: 35px; "
-            src="{{ settings['backend_url'] }}{{ url_for('static', filename='img/cs.jpg') }}"
-          />
+        <div id="ping-admin-btn" style="display: flex; align-items: center; justify-content: center; padding: 0.25rem; border-radius: 9999px; border: 0.5px solid var(--goglobe-border-color); transition: all 200ms; position: relative; width: 30px; height:30px; cursor: pointer;" title="Request Assistance" onclick="pingAdmin()" onmouseover="this.style.backgroundColor='var(--goglobe-main-color)'; this.style.borderColor='var(--goglobe-hover-color)';" onmouseout="this.style.backgroundColor=''; this.style.borderColor='var(--goglobe-border-color)';">
+          <img style="border-radius: 9999px; min-width: 35px;" src="{{ settings['backend_url'] }}{{ url_for('static', filename='img/cs.jpg') }}"/>
         </div>
       </div>
     </div>
@@ -610,297 +524,197 @@ function resetUI() {
     
     isRecording = false;
 }
-   function scrollToBottom(){
 
+
+
+function scrollToBottom(){
     const messageArea = document.getElementById('messageArea');
-       console.log(messageArea)
-    if (messageArea) {
-
-        console.log('scroll')
-
-messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });    
+    if (messageArea && messageArea.lastElementChild) {
+        messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });    
     }
+}
 
-   }
-   // Handle textarea input to enable/disable send button
+function checkInputValue() {
+    const textarea = document.getElementById('fn__chat_textarea');
+    const sendBtn = document.getElementById('send-btn');
+    if (textarea.value.trim() !== '') {
+        sendBtn.style.cursor = 'pointer';
+    } else {
+        sendBtn.style.cursor = 'not-allowed';
+    }
+}
 
-   function checkInputValue() {
-     const textarea = document.getElementById('fn__chat_textarea');
-     const sendBtn = document.getElementById('send-btn');
-     if (textarea.value.trim() !== '') {
-       // Add active styling
-       sendBtn.style.cursor = 'pointer';
-     } else {
-       // Revert to default
-       sendBtn.style.cursor = 'not-allowed';
-     }
-   }
+function handleKeyPress(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (document.getElementById('fn__chat_textarea').value.trim() !== '') {
+            sendMessage();
+        }
+    }
+}
 
-  // document.getElementById('fn__chat_textarea').addEventListener('input', function() {
-    // document.getElementById('fn__chat_button').disabled = this.value.trim() === '';
-   //});
-   // Handle Enter key press
-   function handleKeyPress(event) {
-     if (event.key === 'Enter' && document.getElementById('fn__chat_textarea').value.trim() !== '') {
-       sendMessage();
-     }
-   }
+function sendMessage() {
+    const textarea = document.getElementById('fn__chat_textarea');
+    const message = textarea.value.trim();
 
-   // Send message function
-   function sendMessage() {
-     const textarea = document.getElementById('fn__chat_textarea');
-     const message = textarea.value.trim();
-console.log("send message: {{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message")
+    if (!message) return;
 
+    // Clear immediately for better UX
+    textarea.value = '';
 
-       textarea.value = '';
-     if (!message) return;
+    fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ message: message }),
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Message sent successfully');
+    })
+    .catch(error => {
+        // Restore message on error
+        textarea.value = message;
+        console.error('Error sending message:', error);
+    });
+}
 
-     fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message', {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/x-www-form-urlencoded',
-       },
-       body: new URLSearchParams({
-         message: message
-       }),
-       credentials: 'include'
-     })
-     .then(response => {
-       if (!response.ok) {
-         throw new Error('Network response was not ok');
-       }
-       scrollToBottom();
-     })
-     .catch(error => {
+function pingAdmin() {
+    fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/ping_admin', {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to ping admin');
+        }
+        console.log('Admin notified');
+    })
+    .catch(error => {
+        console.error('Error pinging admin:', error);
+    });
+}
 
-       textarea.value = message;
-       console.error('Error sending message:', error);
-     });
-   }
+{% if chat %}
+function initChat() {
+    const roomId = "{{chat.room_id}}";
+    const username = "{{username}}";
+    const socket = io('{{settings["backend_url"]}}', {withCredentials: true});
 
-   // Ping admin function
-   function pingAdmin() {
-       console.log('ping')
-     fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/ping_admin', {
-       method: 'POST',
-       credentials: 'include'
-     })
-     .then(response => {
-       if (!response.ok) {
-         throw new Error('Failed to ping admin');
-       }
-     })
-     .catch(error => {
-       console.error('Error pinging admin:', error);
-     });
-   }
+    socket.on('connect', function() {
+        console.log('Socket connected');
+        socket.emit('join_min', {room: roomId});
+    });
 
-   {% if chat %}
-   function initChat() {
-     // Function to fix all links in HTML content
-     function fixAllLinks(element) {
-       const links = element.querySelectorAll('a');
+    // CRITICAL FIX: Only append messages from OTHER users
+    socket.on('new_message', function(data) {
+        console.log("new_message received:", data);
+        
+        // Ignore your own messages - they're already displayed
+            appendMessage(data);
+    });
 
-       links.forEach(link => {
-         // Add target="_blank" to open in new tab
-         link.setAttribute('target', '_blank');
-         link.setAttribute('rel', 'noopener noreferrer');
-
-         // Fix URLs without http/https
-         let href = link.getAttribute('href');
-         if (href && !/^https?:\/\//i.test(href)) {
-           link.setAttribute('href', 'https://' + href);
-         }
-       });
-
-
-     }
-
-     // Apply to existing .md-content elements
-     <!-- document.querySelectorAll('.md-content').forEach(el => { -->
-     <!--   // Parse markdown -->
-     <!--   el.innerHTML = marked.parse(el.textContent); -->
-     <!---->
-     <!--   // Fix links -->
-     <!--   fixAllLinks(el); -->
-     <!-- }); -->
-
-     // Socket.io connection
-     const roomId = "{{chat.room_id}}";
-
-     const socket = io('{{settings["backend_url"]}}', {withCredentials: true});
-
-     socket.on('connect', function() {
-       socket.emit('join_min', {room: roomId});
-     });
-
-socket.on('new_message', function(data) {
-  console.log("new_message received:", data);
-  
-  // Only append if it's NOT from the current user
-  if (data.sender !== '{{username}}') {
-    appendMessage(data);
-  }
-});
-   }
+    socket.on('disconnect', function() {
+        console.log('Socket disconnected');
+    });
+}
 
 function appendMessage(message) {
-  const messagesContainer = document.getElementById('messageArea');
+    const messagesContainer = document.getElementById('messageArea');
+    const username = '{{username}}';
 
-  // Create a temporary div for processing
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = marked.parse(message.content);
-  console.log(message)
+    // Create a temporary div for processing markdown
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = marked.parse(message.content);
 
-  // Fix links in the rendered content
-  fixAllLinks(tempDiv);
-  console.log(tempDiv)
-  
-  if(message.sender !== '{{username}}'){
-    const audio = new Audio("{{settings["backend_url"]}}/static/sounds/message.wav");
-    audio.play();
-  }
-  
-  const username = '{{username}}'
+    // Fix links in the rendered content
+    fixAllLinks(tempDiv);
+    
+    // Play notification sound for messages from others
+    if (message.sender !== username) {
+        try {
+            const audio = new Audio("{{settings['backend_url']}}/static/sounds/message.wav");
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        } catch (e) {
+            console.log('Audio error:', e);
+        }
+    }
 
-  const messageHTML = `
-    <div 
-      style="
-        position: relative;
-        width: fit-content;
-        max-width: 85%;
-        align-self:${message.sender === '{{username}}' ? 'flex-end' : 'flex-start'};
-        display: flex;
-        flex-direction: row;
-        gap: 10px;
-        align-items: flex-start;
-      "
-    >
+    const messageHTML = `
+    <div style="position: relative; width: fit-content; max-width: 85%; align-self:${message.sender === username ? 'flex-end' : 'flex-start'}; display: flex; flex-direction: row; gap: 10px; align-items: flex-start;">
       ${message.sender === "bot" ? `
         <div style="width: 40px; height: 40px; flex-shrink: 0;">
           <!-- Bot Avatar SVG -->
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M36.8532 22.8708C38.5603 13.7173 32.3861 4.88706 23.0631 3.14835C13.7402 1.40964 4.79815 7.42077 3.09105 16.5742C1.38396 25.7276 7.55813 34.5579 16.8811 36.2966L33.3017 39.359L31.0172 32.7057C34.0749 30.2049 36.1394 26.7257 36.8532 22.8708Z" fill="white"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> </svg>
         </div>
       ` : ""}
 
-      <div 
-        class="md-content"
-        style="
-          padding: 10px;
-          border-radius: 5px;
-          font-size: 12px;
-          font-weight: 400;
-          font-family: var(--goglobe-heading-font-family);
-          background-color: ${message.sender === username ? '#cfcbe0' : 'var(--goglobe-some-r-bg-color)'};
-          color: var(--goglobe-heading-color);
-          border: 0.5px solid var(--goglobe-border-color);
-          width: 85%;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        "
-      >
-        ${message.type === 'audio'
-          ? `
+      <div class="md-content" style="padding: 10px; border-radius: 5px; font-size: 12px; font-weight: 400; font-family: var(--goglobe-heading-font-family); background-color: ${message.sender === username ? '#cfcbe0' : 'var(--goglobe-some-r-bg-color)'}; color: var(--goglobe-heading-color); border: 0.5px solid var(--goglobe-border-color); width: 85%; word-wrap: break-word; overflow-wrap: break-word;">
+        ${message.type === 'audio' ? `
             <audio controls style="width: 100%;" ${message.sender !== username ? 'class="auto-play-audio"' : ''}>
-              <source 
-                src="{{settings["backend_url"]}}/min/chat/{{chat.room_id}}/audio_file/${message.id}" 
-                type="audio/wav"
-              />
+              <source src="{{settings['backend_url']}}/min/chat/{{chat.room_id}}/audio_file/${message.id}" type="audio/wav"/>
               Your browser does not support the audio element.
             </audio>
-            ${message.content 
-              ? `<div 
-                  style="
-                    font-size: 12px;
-                    color: var(--goglobe-heading-color);
-                    margin-top: 4px;
-                    font-style: italic;
-                  ">
-                  ${message.content}
-                </div>`
-              : ''}
-          `
-          : `${tempDiv.innerHTML}`
+            ${message.content ? `<div style="font-size: 12px; color: var(--goglobe-heading-color); margin-top: 4px; font-style: italic;">${message.content}</div>` : ''}
+          ` : `${tempDiv.innerHTML}`
         }
       </div>
     </div>
-  `;
+    `;
 
-  messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
-  
-  // Auto-play the last audio message if it's from someone else
-  if (message.type === 'audio' && message.sender !== username) {
-    // Wait for the DOM to be updated, then find and play the last audio element
-    setTimeout(() => {
-      const audioElements = messagesContainer.querySelectorAll('audio.auto-play-audio');
-      if (audioElements.length > 0) {
-        const lastAudio = audioElements[audioElements.length - 1];
-        
-        // Stop any currently playing audio
-        audioElements.forEach(audio => {
-          if (audio !== lastAudio && !audio.paused) {
-            audio.pause();
-            audio.currentTime = 0;
-          }
-        });
-        
-        // Play the last audio
-        lastAudio.play().catch(error => {
-          console.log('Autoplay prevented or audio error:', error);
-        });
-      }
-    }, 100);
-  }
-  
-  scrollToBottom();
+    messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
+    
+    // Auto-play audio from others
+    if (message.type === 'audio' && message.sender !== username) {
+        setTimeout(() => {
+            const audioElements = messagesContainer.querySelectorAll('audio.auto-play-audio');
+            if (audioElements.length > 0) {
+                const lastAudio = audioElements[audioElements.length - 1];
+                
+                // Stop other audio
+                audioElements.forEach(audio => {
+                    if (audio !== lastAudio && !audio.paused) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }
+                });
+                
+                lastAudio.play().catch(error => {
+                    console.log('Autoplay prevented:', error);
+                });
+            }
+        }, 100);
+    }
+    
+    scrollToBottom();
 }
 
-   // Function to fix all links in HTML content
-   function fixAllLinks(element) {
-     const links = element.querySelectorAll('a');
-
-     links.forEach(link => {
-       // Add target="_blank" to open in new tab
-       link.setAttribute('target', '_blank');
-       link.setAttribute('rel', 'noopener noreferrer');
-
-       // Fix URLs without http/https
-       let href = link.getAttribute('href');
-       if (href && !/^https?:\/\//i.test(href)) {
-         link.setAttribute('href', 'https://' + href);
-       }
-     });
-   }
-   {% endif %}
+function fixAllLinks(element) {
+    const links = element.querySelectorAll('a');
+    links.forEach(link => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+        let href = link.getAttribute('href');
+        if (href && !/^https?:\/\//i.test(href)) {
+            link.setAttribute('href', 'https://' + href);
+        }
+    });
+}
+{% endif %}
 </script>
 
 {% if chat %}
-
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
- 
-function showReturnChatButton() {
-console.log("return ")
-    let returnButton = document.getElementById('return-chat');
-    if (returnButton) {
-        returnButton.style.display = 'block';
-        
-        // Make sure HTMX processes the button
-        if (typeof htmx !== 'undefined') {
-            htmx.process(returnButton);
-        }
-    }
-}
-
-showReturnChatButton()
-
-    // Initialize chat when the page loads
-  initChat();
-
-scrollToBottom();
-
+    initChat();
+    scrollToBottom();
 </script>
 {% endif %}
 {% endblock %}
