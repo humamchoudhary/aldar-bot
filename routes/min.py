@@ -96,7 +96,11 @@ def login(subject):
 
 @min_bp.route('onboarding', methods=['GET'])
 def onboard():
-    pprint(session.items())
+    admin_id = session.get("admin_id")
+    session.clear()
+    session["admin_id"]= admin_id
+    session["last_visit"] ="/min/onboarding"
+    # pprint(session.items())
     return render_template('user/min-onboard.html')
 
 
