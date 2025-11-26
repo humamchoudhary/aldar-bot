@@ -371,9 +371,11 @@ def send_message(room_id):
     admin = admin_service.get_admin_by_id(session.get('admin_id'))
 
     chat = chat_service.get_chat_by_room_id(room_id)
+    pprint(user.to_dict())
     
     if not chat:
         return jsonify({"error": "Chat not found"}), 404
+    pprint(chat.to_dict())
 
     new_message = chat_service.add_message(chat.room_id, user.name, message)
     new_message.content = markdown.markdown(new_message.content)
