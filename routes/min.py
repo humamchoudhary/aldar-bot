@@ -24,25 +24,15 @@ import pytz
 @min_bp.before_request
 def before_req():
     path = str(request.path)
+    print(session.items())
     print(f"Path: {path}")
-    print(f"LastVisit Before: {session.get('last_visit')}")
-    
-    # More robust exclusion logic
-    excluded_paths = ['/min/', '/min/get-headers', '/min/auth', '/min/login']
-    excluded_keywords = ['send_message', 'ping_admin', 'send_audio', 'audio_file']
-    
-    # Check if path should be saved
-    should_save = (
-        path.startswith("/min") and 
-        path not in excluded_paths and
-        not any(keyword in path for keyword in excluded_keywords)
-    )
-    
-    if should_save and path.startswith('/min/chat/'):
+    print(f"LastVisit: {session.get('last_visit')}")
+    if path.startswith("/min") and (path.split("/")[-1] not in ['auth', 'send_message', 'ping_admin',"send_audio"] and path not in ['/min/', '/min/get-headers'] and "audio_file" not in path):
         session["last_visit"] = path
-        session.modified = True  # Force session update
-        print(f"LastVisit Updated: {path}")
-
+    elif path.startswith("/min") and (path.split("/")[-1] in ['send_message', 'ping_admin',"send_audio"] ):
+        path="/".join(path.split("/")[:-1])
+        print(f"updateing path from sec: {path}")
+        session["last_visit"] = path
 
 def login_required(f):
     @wraps(f)
