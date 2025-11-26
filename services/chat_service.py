@@ -80,10 +80,10 @@ class ChatService:
         return self.chats_collection.count_documents(filter_query)
 
     @lru_cache(maxsize=128)
-    def get_chat_by_id(self, chat_id: str) -> Optional[Chat]:
+    def get_chat_by_id(self, chat_id: str,user_id:str) -> Optional[Chat]:
         """Get chat by ID with caching."""
         chat_data = self.chats_collection.find_one(
-            {"chat_id": chat_id},
+                {"chat_id": chat_id,"user_id":user_id},
             {"_id": 0}  # Exclude MongoDB's _id field
         )
         return Chat.from_dict(chat_data) if chat_data else None

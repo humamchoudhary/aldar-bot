@@ -249,7 +249,7 @@ def chat(chat_id):
     user = user_service.get_user_by_id(session['user_id'])
 
     chat_service = ChatService(current_app.db)
-    chat = chat_service.get_chat_by_room_id(f'{user.user_id}-{chat_id[:8]}')
+    chat = chat_service.get_chat_by_id(chat_id,user.user_id)
     # print(chat)
     if not chat:
         if request.headers.get('HX-Request') == 'true':
