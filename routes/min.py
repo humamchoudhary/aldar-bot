@@ -513,7 +513,7 @@ def audio_file(chat_id, message_id):
 
 
 
-@min_bp.route('/chat/<room_id>/send_message', methods=['POST', 'GET'])
+@min_bp.route('/chat/<chat_id>/send_message', methods=['POST', 'GET'])
 @login_required
 def send_message(chat_id):
     """ Here Chat id == Room id """
