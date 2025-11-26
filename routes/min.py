@@ -96,7 +96,7 @@ def login(subject):
 
 @min_bp.route('onboarding', methods=['GET'])
 def onboard():
-    session.clear()
+    pprint(session.items())
     return render_template('user/min-onboard.html')
 
 
