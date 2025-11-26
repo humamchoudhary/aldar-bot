@@ -29,6 +29,7 @@ def before_req():
     print(f"Path: {path}")
     print(f"LastVisit: {session.get('last_visit')}")
     if path.startswith("/min") and (path.split("/")[-1] not in ['auth', 'send_message', 'ping_admin',"send_audio"] and path not in ['/min/', '/min/get-headers'] and "audio_file" not in path):
+        print(f"LastVisit set: {path}")
         session["last_visit"] = path
 
 #
@@ -565,7 +566,7 @@ def send_message(chat_id):
     admin_service = AdminService(current_app.db)
     noti_res = send_push_noti(admin_service.get_expo_tokens(
         session.get("admin_id")), "New Message", f'{user.name}: {message}', chat.room_id)
-    print(f"Noti done: {noti_res}")
+    # print(f"Noti done: {noti_res}")
     if noti_res.status_code != 200:
         print(f"Notificaiton Error: {noti_res.__dict__}")
 
@@ -583,7 +584,6 @@ def send_message(chat_id):
 
         current_app.socketio.emit('new_message', {
 
-            # "html": render_template("/user/fragments/chat_message.html", message=bot_message, username=user.name),
             'room_id': chat.room_id,
             'sender': chat.bot_name,
             'content': msg,
@@ -593,7 +593,6 @@ def send_message(chat_id):
 
         current_app.socketio.emit('new_message_admin', {
 
-            "html": render_template("/user/fragments/chat_message.html", message=new_message, username=user.name),
             'room_id': chat.room_id,
             'sender': user.name,
             'content': message,
