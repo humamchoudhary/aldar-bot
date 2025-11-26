@@ -213,26 +213,13 @@ function initForm() {
     });
 }
 
-function showReturnChatButton() {
-    let returnButton = document.getElementById('return-chat');
-    if (returnButton) {
-        returnButton.style.display = 'block';
-        
-        // Make sure HTMX processes the button
-        if (typeof htmx !== 'undefined') {
-            htmx.process(returnButton);
-        }
-    }
-}
 
 // Initialize the form when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-    showReturnChatButton();
     initForm();
 });
 
 // Also call it immediately in case the script loads after DOM is ready
-showReturnChatButton();
 initForm();
 </script>
 {% endblock %}
