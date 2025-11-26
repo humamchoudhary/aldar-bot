@@ -650,6 +650,8 @@ messageArea.lastElementChild.scrollIntoView({ behavior: "smooth" });
    function sendMessage() {
      const textarea = document.getElementById('fn__chat_textarea');
      const message = textarea.value.trim();
+console.log("send message: {{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message")
+
 
        textarea.value = '';
      if (!message) return;
