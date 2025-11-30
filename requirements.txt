@@ -1,5 +1,4 @@
 acme==5.1.0
-apparmor==4.1.2
 attrs==25.4.0
 autocommand==2.2.2
 boolean.py==5.0
