@@ -565,7 +565,7 @@ function sendMessage() {
 
     // Clear immediately for better UX
     textarea.value = '';
-
+console.log('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message')
     fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message', {
         method: 'POST',
         headers: {
