@@ -128,11 +128,12 @@ opacity:0.7;
 <div id="messageArea" 
      data-backend-url="{{settings['backend_url']}}" 
      data-room-id="{{chat.room_id}}"
+     data-username="{{username}}"
      style="display: flex; position: relative;min-height:300px ; height:100%; flex-direction:column; gap:25px; overflow-y: auto; ">
-          {% for message in chat.messages %} 
-          {% include 'user/fragments/chat_message.html' %}
-          {% endfor %}
-        </div>
+  {% for message in chat.messages %} 
+  {% include 'user/fragments/chat_message.html' %}
+  {% endfor %}
+</div>
     {% endif %} 
     
     {% if chat %}
@@ -604,12 +605,16 @@ function pingAdmin() {
 
 {% if chat %}
 function initChat() {
-    const roomId = "{{chat.room_id}}";
-    const username = "{{username}}";
-    const socket = io('{{settings["backend_url"]}}', {withCredentials: true});
+    const messageArea = document.getElementById('messageArea');
+    const roomId = messageArea.dataset.roomId;
+    const backendUrl = messageArea.dataset.backendUrl;
+    const username = messageArea.dataset.username; // You'll need to add this too
+    
+    // Use the backendUrl from data attribute
+    const socket = io(backendUrl, {withCredentials: true});
 
     socket.on('connect', function() {
-        console.log('Socket connected');
+        console.log('Socket connected to room:', roomId);
         socket.emit('join_min', {room: roomId});
     });
 
@@ -617,18 +622,25 @@ function initChat() {
     socket.on('new_message', function(data) {
         console.log("new_message received:", data);
         
-        // Ignore your own messages - they're already displayed
+        // Check if this message is from the current user
+        if (data.sender !== username) {
             appendMessage(data);
+        }
     });
 
     socket.on('disconnect', function() {
         console.log('Socket disconnected');
     });
+
+    socket.on('error', function(error) {
+        console.error('Socket error:', error);
+    });
 }
 
 function appendMessage(message) {
     const messagesContainer = document.getElementById('messageArea');
-    const username = '{{username}}';
+    const username = messagesContainer.dataset.username;
+    const backendUrl = messagesContainer.dataset.backendUrl;
 
     // Create a temporary div for processing markdown
     const tempDiv = document.createElement('div');
@@ -640,7 +652,7 @@ function appendMessage(message) {
     // Play notification sound for messages from others
     if (message.sender !== username) {
         try {
-            const audio = new Audio("{{settings['backend_url']}}/static/sounds/message.wav");
+            const audio = new Audio(`${backendUrl}/static/sounds/message.wav`);
             audio.play().catch(e => console.log('Audio play failed:', e));
         } catch (e) {
             console.log('Audio error:', e);
@@ -652,7 +664,6 @@ function appendMessage(message) {
       ${message.sender === "bot" ? `
         <div style="width: 40px; height: 40px; flex-shrink: 0;">
           <!-- Bot Avatar SVG -->
-
 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M36.8532 22.8708C38.5603 13.7173 32.3861 4.88706 23.0631 3.14835C13.7402 1.40964 4.79815 7.42077 3.09105 16.5742C1.38396 25.7276 7.55813 34.5579 16.8811 36.2966L33.3017 39.359L31.0172 32.7057C34.0749 30.2049 36.1394 26.7257 36.8532 22.8708Z" fill="white"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> <path d="M10.5771 19.1575V28.7471H29.4963L29.4088 19.1575L28.5054 14.5017L12.1753 15.4051L10.5771 19.1575Z" fill="#F7D5B1"/> <path d="M6.54663 11.4439L10.577 19.1572L12.1753 15.4048L28.5053 14.5014L29.4087 19.1572L31.4239 12.2083L27.0461 11.3049L28.4359 9.08122L26.0385 9.39392L28.4706 6.05842L23.4674 8.35158L25.8995 3.4873L18.5336 8.14311L17.8387 6.1974L6.54663 11.4439Z" fill="#52504D"/> <path d="M10.5947 28.6041V32.6335H29.2158V28.5854L10.5947 28.6041Z" fill="white"/> <path d="M12.5228 28.6772L20.0277 36.1821L27.4631 28.6772H12.5228Z" fill="#E8EAEB"/> <path d="M13.0092 28.6772L15.7193 31.8738L19.9581 28.7467L24.2665 31.8738L26.9766 28.6772H13.0092Z" fill="white"/> <path d="M19.9582 28.7468L18.4989 29.7892V30.1366H21.5564V29.7892L19.9582 28.7468Z" fill="#C95C1C"/> <path d="M19.9052 35.872H22.334L21.5564 30.1367H18.4989L17.8812 35.872H19.9052Z" fill="#FF5E00"/> <path d="M20.1363 25.5851C21.5526 25.5851 22.8934 24.1464 22.7509 23.5381C22.6085 22.9299 21.5526 23.5381 20.1363 23.5381C18.7201 23.5381 17.6935 22.8278 17.6223 23.5381C17.5511 24.2485 18.6908 25.4829 20.1363 25.5851Z" fill="#3B3731"/> <path d="M14.631 19.9912C15.0916 19.9912 15.4649 19.6179 15.4649 19.1574C15.4649 18.6968 15.0916 18.3235 14.631 18.3235C14.1705 18.3235 13.7971 18.6968 13.7971 19.1574C13.7971 19.6179 14.1705 19.9912 14.631 19.9912Z" fill="#3B3731"/> <path d="M25.2631 19.9912C25.7236 19.9912 26.097 19.6179 26.097 19.1574C26.097 18.6968 25.7236 18.3235 25.2631 18.3235C24.8026 18.3235 24.4292 18.6968 24.4292 19.1574C24.4292 19.6179 24.8026 19.9912 25.2631 19.9912Z" fill="#3B3731"/> </svg>
         </div>
       ` : ""}
@@ -660,7 +671,7 @@ function appendMessage(message) {
       <div class="md-content" style="padding: 10px; border-radius: 5px; font-size: 12px; font-weight: 400; font-family: var(--goglobe-heading-font-family); background-color: ${message.sender === username ? '#cfcbe0' : 'var(--goglobe-some-r-bg-color)'}; color: var(--goglobe-heading-color); border: 0.5px solid var(--goglobe-border-color); width: 85%; word-wrap: break-word; overflow-wrap: break-word;">
         ${message.type === 'audio' ? `
             <audio controls style="width: 100%;" ${message.sender !== username ? 'class="auto-play-audio"' : ''}>
-              <source src="{{settings['backend_url']}}/min/chat/{{chat.room_id}}/audio_file/${message.id}" type="audio/wav"/>
+              <source src="${backendUrl}/min/chat/${messagesContainer.dataset.roomId}/audio_file/${message.id}" type="audio/wav"/>
               Your browser does not support the audio element.
             </audio>
             ${message.content ? `<div style="font-size: 12px; color: var(--goglobe-heading-color); margin-top: 4px; font-style: italic;">${message.content}</div>` : ''}
@@ -696,6 +707,8 @@ function appendMessage(message) {
     
     scrollToBottom();
 }
+
+
 
 function fixAllLinks(element) {
     const links = element.querySelectorAll('a');
