@@ -163,15 +163,27 @@ def chat(room_id):
     
     if not chat:
         print(f"Chat not found for room_id: {room_id}")
+        # Clear invalid last_visit
+        session.pop('last_visit', None)
         if request.headers.get('HX-Request') == 'true':
             return redirect(url_for("min.onboard"))
         return redirect(url_for("min.onboard"))
 
-    # Return just the chat HTML for HTMX requests
-    if request.headers.get('HX-Request') == 'true':
-        return render_template('user/min-index.html', chat=chat, username=user.name)
+    # Security check - verify chat belongs to user
+    if not chat.room_id.startswith(user.user_id):
+        print(f"Unauthorized access attempt to chat: {room_id}")
+        session.pop('last_visit', None)
+        return redirect(url_for("min.onboard"))
 
-    return render_template('user/min-index.html', chat=chat, username=user.name)
+    # Render template
+    response = make_response(render_template('user/min-index.html', chat=chat, username=user.name))
+    
+    # Prevent caching to avoid old room_id issues
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
 
 
 @min_bp.route('/chat/<room_id>/ping_admin', methods=['POST', 'GET'])
@@ -408,10 +420,15 @@ def send_message(room_id):
 
     chat = chat_service.get_chat_by_room_id(room_id)
     print(chat)
+    
     if not chat:
-        if request.headers.get('HX-Request'):
-            return "Chat not found", 404
+        print(f"Chat not found for room_id: {room_id}")
         return jsonify({"error": "Chat not found"}), 404
+    
+    # Security check - verify this chat belongs to the current user
+    if not chat.room_id.startswith(user.user_id):
+        print(f"Unauthorized: User {user.user_id} tried to send to chat {room_id}")
+        return jsonify({"error": "Unauthorized"}), 403
 
     new_message = chat_service.add_message(
         chat.room_id, user.name, message)
