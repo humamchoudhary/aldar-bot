@@ -125,7 +125,10 @@ opacity:0.7;
 <div style="display: flex; position: relative; margin-bottom:10px">
   <div style="min-height: 100%; padding-left: 0.5rem; padding-right: 0.5rem; width: 100%; display: flex; flex-direction: column; position: relative; z-index: 3;">
     {% if chat %}
-        <div id="messageArea" style="display: flex; position: relative;min-height:300px ; height:100%; flex-direction:column; gap:25px; overflow-y: auto; ">
+<div id="messageArea" 
+     data-backend-url="{{settings['backend_url']}}" 
+     data-room-id="{{chat.room_id}}"
+     style="display: flex; position: relative;min-height:300px ; height:100%; flex-direction:column; gap:25px; overflow-y: auto; ">
           {% for message in chat.messages %} 
           {% include 'user/fragments/chat_message.html' %}
           {% endfor %}
@@ -548,13 +551,18 @@ function checkInputValue() {
 function sendMessage() {
     const textarea = document.getElementById('fn__chat_textarea');
     const message = textarea.value.trim();
-
+    const messageArea = document.getElementById('messageArea');
+    
     if (!message) return;
+
+    // Get values from data attributes
+    const backendUrl = messageArea.dataset.backendUrl;
+    const roomId = messageArea.dataset.roomId;
 
     // Clear immediately for better UX
     textarea.value = '';
 
-    fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/send_message', {
+    fetch(`${backendUrl}/min/chat/${roomId}/send_message`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -728,17 +736,7 @@ function showReturnChatButton() {
     showReturnChatButton();
 
 
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-    // Disconnect old socket if exists
-    if (window.currentSocket) {
-        window.currentSocket.disconnect();
-    }
-    
-    // Reinitialize chat with new room_id
-    if (document.getElementById('messageArea')) {
-        initChat();
-    }
-});
+
     initChat();
     scrollToBottom();
 </script>
