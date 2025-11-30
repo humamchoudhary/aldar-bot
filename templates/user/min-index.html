@@ -728,7 +728,17 @@ function showReturnChatButton() {
     showReturnChatButton();
 
 
-
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    // Disconnect old socket if exists
+    if (window.currentSocket) {
+        window.currentSocket.disconnect();
+    }
+    
+    // Reinitialize chat with new room_id
+    if (document.getElementById('messageArea')) {
+        initChat();
+    }
+});
     initChat();
     scrollToBottom();
 </script>
