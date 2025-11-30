@@ -622,10 +622,7 @@ function initChat() {
     socket.on('new_message', function(data) {
         console.log("new_message received:", data);
         
-        // Check if this message is from the current user
-        if (data.sender !== username) {
             appendMessage(data);
-        }
     });
 
     socket.on('disconnect', function() {
