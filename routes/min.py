@@ -80,6 +80,8 @@ def login(subject):
 
 @min_bp.route('onboarding', methods=['GET'])
 def onboard():
+    # Clear last_visit when returning to onboarding
+    session.pop('last_visit', None)
     return render_template('user/min-onboard.html')
 
 
@@ -143,6 +145,9 @@ def new_chat(subject):
     admin = AdminService(current_app.db).get_admin_by_id(session.get('admin_id'))
     current_app.bot.create_chat(chat.room_id, admin)
 
+    # Clear last_visit to prevent returning to old chat
+    session.pop('last_visit', None)
+    
     # Redirect to chat using room_id (consistent!)
     return redirect(url_for('min.chat', room_id=chat.room_id))
 
