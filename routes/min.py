@@ -32,6 +32,16 @@ def before_req():
         session["last_visit"] = path
 
 
+@min_bp.after_request
+def after_request(response):
+    """Prevent caching of all min blueprint pages"""
+    if request.endpoint and request.endpoint.startswith('min.'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+
 # Add a login_required decorator
 def login_required(f):
     @wraps(f)
@@ -58,7 +68,12 @@ def index():
     if 'last_visit' in session and session['last_visit'] not in ['/min/', '/min/get-headers']:
         return redirect(session['last_visit'])
     
-    return redirect('/min/onboarding')
+    # Clear any stale session data
+    response = make_response(redirect('/min/onboarding'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @min_bp.route('login', defaults={'subject': None}, methods=['GET'])
@@ -82,7 +97,14 @@ def login(subject):
 def onboard():
     # Clear last_visit when returning to onboarding
     session.pop('last_visit', None)
-    return render_template('user/min-onboard.html')
+    
+    response = make_response(render_template('user/min-onboard.html'))
+    # Prevent caching
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
 
 
 def generate_random_username():
@@ -165,8 +187,6 @@ def chat(room_id):
         print(f"Chat not found for room_id: {room_id}")
         # Clear invalid last_visit
         session.pop('last_visit', None)
-        if request.headers.get('HX-Request') == 'true':
-            return redirect(url_for("min.onboard"))
         return redirect(url_for("min.onboard"))
 
     # Security check - verify chat belongs to user
@@ -175,15 +195,7 @@ def chat(room_id):
         session.pop('last_visit', None)
         return redirect(url_for("min.onboard"))
 
-    # Render template
-    response = make_response(render_template('user/min-index.html', chat=chat, username=user.name))
-    
-    # Prevent caching to avoid old room_id issues
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    
-    return response
+    return render_template('user/min-index.html', chat=chat, username=user.name)
 
 
 @min_bp.route('/chat/<room_id>/ping_admin', methods=['POST', 'GET'])
