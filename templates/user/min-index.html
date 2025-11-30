@@ -471,12 +471,16 @@ function sendAudioToServer() {
         console.error('No audio data to send');
         return;
     }
-    
+
+    const messageArea = document.getElementById('messageArea');
+    const backendUrl = messageArea.dataset.backendUrl;
+    const roomId = messageArea.dataset.roomId;
+
     const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
-    
-    fetch('{{settings["backend_url"]}}/min/chat/{{chat.room_id}}/send_audio', {
+
+    fetch(`${backendUrl}/min/chat/${roomId}/send_audio`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
@@ -588,7 +592,11 @@ function sendMessage() {
 }
 
 function pingAdmin() {
-    fetch('{{settings['backend_url']}}/min/chat/{{chat.room_id}}/ping_admin', {
+    const messageArea = document.getElementById('messageArea');
+    const backendUrl = messageArea.dataset.backendUrl;
+    const roomId = messageArea.dataset.roomId;
+
+    fetch(`${backendUrl}/min/chat/${roomId}/ping_admin`, {
         method: 'POST',
         credentials: 'include'
     })
@@ -634,10 +642,15 @@ function initChat() {
     });
 }
 
+
+
+
+
 function appendMessage(message) {
     const messagesContainer = document.getElementById('messageArea');
     const username = messagesContainer.dataset.username;
     const backendUrl = messagesContainer.dataset.backendUrl;
+    const roomId = messagesContainer.dataset.roomId;
 
     // Create a temporary div for processing markdown
     const tempDiv = document.createElement('div');
@@ -668,7 +681,7 @@ function appendMessage(message) {
       <div class="md-content" style="padding: 10px; border-radius: 5px; font-size: 12px; font-weight: 400; font-family: var(--goglobe-heading-font-family); background-color: ${message.sender === username ? '#cfcbe0' : 'var(--goglobe-some-r-bg-color)'}; color: var(--goglobe-heading-color); border: 0.5px solid var(--goglobe-border-color); width: 85%; word-wrap: break-word; overflow-wrap: break-word;">
         ${message.type === 'audio' ? `
             <audio controls style="width: 100%;" ${message.sender !== username ? 'class="auto-play-audio"' : ''}>
-              <source src="${backendUrl}/min/chat/${messagesContainer.dataset.roomId}/audio_file/${message.id}" type="audio/wav"/>
+              <source src="${backendUrl}/min/chat/${roomId}/audio_file/${message.id}" type="audio/wav"/>
               Your browser does not support the audio element.
             </audio>
             ${message.content ? `<div style="font-size: 12px; color: var(--goglobe-heading-color); margin-top: 4px; font-style: italic;">${message.content}</div>` : ''}
@@ -706,7 +719,6 @@ function appendMessage(message) {
 }
 
 
-
 function fixAllLinks(element) {
     const links = element.querySelectorAll('a');
     links.forEach(link => {
@@ -728,27 +740,35 @@ function fixAllLinks(element) {
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-
-function showReturnChatButton() {
-    let returnButton = document.getElementById('return-chat');
-    console.log("return show")
-    if (returnButton) {
-        returnButton.style.display = 'block';
-        
-        // Make sure HTMX processes the button
-        if (typeof htmx !== 'undefined') {
-            htmx.process(returnButton);
+    function showReturnChatButton() {
+        let returnButton = document.getElementById('return-chat');
+        console.log("return show")
+        if (returnButton) {
+            returnButton.style.display = 'block';
+            
+            // Make sure HTMX processes the button
+            if (typeof htmx !== 'undefined') {
+                htmx.process(returnButton);
+            }
         }
     }
-}
 
-
-    showReturnChatButton();
-
-
-
-    initChat();
-    scrollToBottom();
+    // Initialize everything when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        showReturnChatButton();
+        initChat();
+        scrollToBottom();
+        
+        // Debug: log the configuration
+        const messageArea = document.getElementById('messageArea');
+        if (messageArea) {
+            console.log('Chat configuration:', {
+                backendUrl: messageArea.dataset.backendUrl,
+                roomId: messageArea.dataset.roomId,
+                username: messageArea.dataset.username
+            });
+        }
+    });
 </script>
 {% endif %}
 {% endblock %}
