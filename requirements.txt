@@ -30,4 +30,4 @@ dill
 pdf2image
 google_auth_oauthlib
 gevent
-
+pymysql
