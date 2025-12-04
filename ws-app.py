@@ -298,7 +298,7 @@ class GeminiTwilioBridge:
 
                     if response.server_content and response.server_content.interrupted:
                         print("INTERUPTED")
-                        break
+                        continue
 
                     if response.tool_call:
                         print("------ Function Called --------")
