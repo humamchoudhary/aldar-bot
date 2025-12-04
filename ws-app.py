@@ -65,6 +65,12 @@ class GeminiTwilioBridge:
         """
         self.get_system_instruction()
 
+        # ---- Interruption control flags ----
+        self.interruption_detected = False
+        self.bot_is_speaking = False
+        self.last_interruption_time = 0
+        self.pending_audio_buffer = bytearray()
+
         # ---- Model config ----
         self.config = {
             "response_modalities": ["AUDIO"],
@@ -301,55 +307,55 @@ class GeminiTwilioBridge:
 
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
             bot_buffer = ""
-            is_interrupted = False
-            print("START")
             
             try:
                 async for response in session.start_stream(
                     stream=self.twilio_audio_stream(),
                     mime_type="audio/pcm;rate=16000"
                 ):
-                    print(f"INTRUPTION STATE : {is_interrupted}")
-                    # ---- CRITICAL: Handle interruption FIRST ----
-                    # When user interrupts, Gemini sets this flag but keeps sending content
-                    # We must stop processing audio immediately
-
-
-
-
+                    # ---- Handle interruption signals ----
                     if response.server_content and response.server_content.interrupted:
-                        print("⚠️ INTERRUPTION DETECTED - Stopping bot audio immediately")
-
-
-                        is_interrupted = True  # Set flag to suppress content
-                        print(f"[{self.stream_sid}][INTERRUPTION]: User interrupted - suppressing content")
+                        print("⚠️ INTERRUPTION DETECTED - Stopping bot audio")
+                        self.interruption_detected = True
+                        self.last_interruption_time = asyncio.get_event_loop().time()
                         
-                        # Immediate flush to stop current audio
+                        # Send immediate flush to stop current audio
                         flush_msg = {
                             "event": "media",
                             "streamSid": self.stream_sid,
                             "media": {"payload": ""}
                         }
                         await websocket.send(json.dumps(flush_msg))
-
+                        
+                        # Clear any pending audio buffer
+                        self.pending_audio_buffer.clear()
+                        
+                        # Mark the interruption
                         mark_message = {
                             "event": "mark",
                             "streamSid": self.stream_sid,
                             "mark": {"name": "agent_interrupted"}
                         }
                         await websocket.send(json.dumps(mark_message))
-                        print(f"[{self.stream_sid}][AGENT -> TWILIO]: Sent interruption mark.")
-                        continue  # Skip to next event immediately
-
-                    if response.server_content.turn_complete:
-                        is_interrupted = False  # Reset flag to allow new content
-                        print(f"[{self.stream_sid}][TURN_COMPLETE]: Resetting interruption state")
-
-                    if is_interrupted:
-                        print(f"[{self.stream_sid}][SUPPRESSED]: Content event discarded due to interruption")
-                        continue 
-
+                        print(f"[{self.stream_sid}]: Sent interruption mark")
                         
+                        # Skip to next response immediately
+                        continue
+
+                    # Reset interruption flag when turn is complete
+                    if response.server_content and response.server_content.turn_complete:
+                        self.interruption_detected = False
+                        self.bot_is_speaking = False
+                        print(f"[{self.stream_sid}]: Turn complete, resetting interruption state")
+
+                    # Skip all processing if we're in interrupted state
+                    if self.interruption_detected:
+                        # Check if enough time has passed to resume (300ms cooldown)
+                        current_time = asyncio.get_event_loop().time()
+                        if current_time - self.last_interruption_time > 0.3:
+                            self.interruption_detected = False
+                        else:
+                            continue  # Skip this response during interruption
 
                     # ---- Handle tool calls ----
                     if response.tool_call:
@@ -375,18 +381,16 @@ class GeminiTwilioBridge:
                         await session.send_tool_response(function_responses=func_resps)
 
                     # ---- Handle Gemini audio output ----
-                    if response.data:
-                        if is_interrupted:
-                            print("STOP THE AUDIO")
-                            continue
-                        # Mark that bot is speaking when audio starts
+                    if response.data and not self.interruption_detected:
+                        # Mark that bot is speaking
+                        self.bot_is_speaking = True
                         
                         # Always write to WAV for recording
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
                         self.merged_wav.writeframes(pcm_16k)
 
-                        # Send to Twilio
-                        if self.stream_sid:
+                        # Send to Twilio only if not interrupted
+                        if self.stream_sid and not self.interruption_detected:
                             b64_audio = self.convert_audio_to_twilio_format(response.data)
                             await websocket.send(json.dumps({
                                 "event": "media",
@@ -399,7 +403,11 @@ class GeminiTwilioBridge:
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
                         
-                        # If bot was speaking and user started talking, this could trigger interruption
+                        # If user is talking while bot was speaking, it's an implicit interruption
+                        if self.bot_is_speaking and user_text and not self.interruption_detected:
+                            print("⚠️ User spoke while bot was speaking - treating as interruption")
+                            self.interruption_detected = True
+                            self.last_interruption_time = asyncio.get_event_loop().time()
                         
                         self.transcriptions.append({"name": "user", "transcription": user_text})
 
@@ -420,7 +428,7 @@ class GeminiTwilioBridge:
 
                     # ---- Handle model turn completion ----
                     if response.server_content and response.server_content.model_turn:
-                        # print("✅ Bot finished speaking (model turn complete)")
+                        print("✅ Bot finished speaking (model turn complete)")
                         
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
