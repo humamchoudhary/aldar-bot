@@ -374,6 +374,9 @@ class GeminiTwilioBridge:
 
                     # ---- Handle Gemini audio output ----
                     if response.data:
+                        if is_interrupted:
+                            print("STOP THE AUDIO")
+                            continue
                         # Mark that bot is speaking when audio starts
                         
                         # Always write to WAV for recording
