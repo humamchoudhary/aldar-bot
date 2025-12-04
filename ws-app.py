@@ -220,8 +220,15 @@ class GeminiTwilioBridge:
         except Exception as e:
             print(f"❌ Error initializing call: {e}")
 
+
+    def detect_audio_activity(self, pcm_data: bytes) -> bool:
+        """Detect if there's significant audio activity (user speaking)."""
+        # Calculate RMS (Root Mean Square) energy of audio
+        rms = audioop.rms(pcm_data, 2)
+        # Threshold for detecting speech (adjust based on testing)
+        return rms > 500  
     async def twilio_audio_stream(self):
-        """Handle incoming Twilio WebSocket audio stream."""
+        """Handle incoming Twilio WebSocket audio stream with interruption detection."""
         while True:
             try:
                 message = await websocket.receive()
@@ -231,9 +238,7 @@ class GeminiTwilioBridge:
                 if event == "start":
                     self.stream_sid = data["start"]["streamSid"]
                     self.custom_params = data["start"]["customParameters"]
-                    print(data)
-                    print(f"📡 Twilio stream started: {self.stream_sid} -> {self.custom_params}")
-
+                    print(f"📡 Twilio stream started: {self.stream_sid}")
                     await self.initialize_call()
 
                 elif event == "media":
@@ -241,6 +246,22 @@ class GeminiTwilioBridge:
                     mulaw_bytes = base64.b64decode(audio_b64)
                     pcm_bytes = audioop.ulaw2lin(mulaw_bytes, 2)
                     pcm_16k, _ = audioop.ratecv(pcm_bytes, 2, 1, 8000, 16000, None)
+                    
+                    # Detect if user is speaking
+                    has_audio = self.detect_audio_activity(pcm_16k)
+                    if has_audio:
+                        
+                        # If bot is speaking, interrupt it
+                        if self.bot_is_speaking:
+                            print("⚠️ INTERRUPTION DETECTED (audio level)")
+                            self.bot_is_speaking = False
+                            # Signal to stop bot audio playback
+                            if self.stream_sid:
+                                await websocket.send(json.dumps({
+                                    "event": "clear",
+                                    "streamSid": self.stream_sid
+                                }))
+                    
                     self.merged_wav.writeframes(pcm_16k)
                     yield pcm_16k
 
