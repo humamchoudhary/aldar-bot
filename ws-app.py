@@ -299,7 +299,7 @@ class GeminiTwilioBridge:
 
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
             bot_buffer = ""
-            is_bot_speaking = False
+            is_interrupted = False
             
             try:
                 async for response in session.start_stream(
@@ -336,6 +336,15 @@ class GeminiTwilioBridge:
                         await websocket.send_text(json.dumps(mark_message))
                         print(f"[{session.stream_sid}][AGENT -> TWILIO]: Sent interruption mark.")
                         continue  # Skip to next event immediately
+
+                    if response.server_content.turn_complete:
+                        is_interrupted = False  # Reset flag to allow new content
+                        print(f"[{session.stream_sid}][TURN_COMPLETE]: Resetting interruption state")
+
+                    if is_interrupted:
+                        print(f"[{session.stream_sid}][SUPPRESSED]: Content event discarded due to interruption")
+                        continue 
+
                         
 
                     # ---- Handle tool calls ----
