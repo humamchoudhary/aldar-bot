@@ -300,6 +300,8 @@ class GeminiTwilioBridge:
                     # ---------------------------------------------------------------
                     # ⚡ NEW: Handle Interruption (Barge-In)
                     # ---------------------------------------------------------------
+                    if response.server_content:
+                        print(response.server_content)
                     if response.server_content and response.server_content.interrupted:
                         print(f"⚡ Interruption detected for {self.call_uuid}.")
                         self.is_interrupted = True  # Start draining audio
