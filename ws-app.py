@@ -362,7 +362,7 @@ class GeminiTwilioBridge:
                         # Mark that bot is speaking when audio starts
                         if not is_bot_speaking:
                             is_bot_speaking = True
-                            print("🤖 Bot started speaking")
+                            # print("🤖 Bot started speaking")
                         
                         # Always write to WAV for recording
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
@@ -406,7 +406,7 @@ class GeminiTwilioBridge:
                     # ---- Handle model turn completion ----
                     if response.server_content and response.server_content.model_turn:
                         is_bot_speaking = False
-                        print("✅ Bot finished speaking (model turn complete)")
+                        # print("✅ Bot finished speaking (model turn complete)")
                         
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
