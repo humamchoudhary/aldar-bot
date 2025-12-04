@@ -44,6 +44,7 @@ class GeminiTwilioBridge:
         self.unsent_transcriptions = []
         self.stream_sid = None
         self.custom_params = {}
+        self.is_interrupted = False
 
         # ---- Create per-call WAV file ----
         os.makedirs("recordings", exist_ok=True)
@@ -300,47 +301,45 @@ class GeminiTwilioBridge:
                     # ⚡ NEW: Handle Interruption (Barge-In)
                     # ---------------------------------------------------------------
                     if response.server_content and response.server_content.interrupted:
-                        print(f"⚡ Interruption detected for {self.call_uuid}. Clearing Twilio buffer.")
+                        print(f"⚡ Interruption detected for {self.call_uuid}.")
+                        self.is_interrupted = True  # Start draining audio
                         
-                        # 1. Send 'clear' event to Twilio to stop audio immediately
+                        # Send 'clear' to Twilio immediately
                         if self.stream_sid:
                             await websocket.send(json.dumps({
                                 "event": "clear",
                                 "streamSid": self.stream_sid
                             }))
                         
-                        # 2. Clear the accumulated text buffer so we don't log half-sentences
-                        # (Optional: keep this if you want to log what WAS going to be said)
+                        # Clear local buffer
                         if bot_buffer:
                             self.transcriptions.append({"name": "bot (interrupted)", "transcription": bot_buffer.strip()})
                             bot_buffer = ""
-                            
-                        continue  # Skip processing the rest of this frame
+                        continue
                     # ---------------------------------------------------------------
 
+# ---------------------------------------------------------------
+                    # 2. Handle Turn Complete (Reset Flag)
+                    # ---------------------------------------------------------------
+                    # This signals that the server has finished the previous (interrupted) turn.
+                    if response.server_content and response.server_content.turn_complete:
+                        print("✅ Turn Complete. Resetting interruption state.")
+                        self.is_interrupted = False
+                        continue
+                    
+                    # Safety Reset: If we see a new user transcription, we are definitely in a new turn.
+                    if response.server_content and response.server_content.input_transcription:
+                        self.is_interrupted = False
 
-                    if response.tool_call:
-                        print("------ Function Called --------")
-                        func_resps = []
-                        print(response.tool_call)
-                        for fc in response.tool_call.function_calls:
-                            if fc.name == "transfer_to_human_operator":
-                                print("Tranfer to human")
-                                await session.close() # Close session cleanly
 
-                            resp = self._call_aldar_api(function_name=fc.name, parameters=fc.args)
-                            print(resp)
-                            function_response = types.FunctionResponse(
-                                id=fc.id,
-                                name=fc.name,
-                                response=resp
-                            )
-                            func_resps.append(function_response)
 
-                        await session.send_tool_response(function_responses=func_resps)
-
-                    # Handle Gemini -> Twilio audio
                     if response.data:
+                        # If we are in an interrupted state, DROP this audio (it's the tail of the old sentence)
+                        if self.is_interrupted:
+                            # print("🗑️ Draining stale audio packet...")
+                            continue
+
+                        # Otherwise, process and send to Twilio
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
                         self.merged_wav.writeframes(pcm_16k)
 
@@ -352,22 +351,33 @@ class GeminiTwilioBridge:
                                 "media": {"payload": b64_audio}
                             }))
 
+                    # ---------------------------------------------------------------
+                    # 4. Handle Tools & Text (Standard Logic)
+                    # ---------------------------------------------------------------
+                    if response.tool_call:
+                        # ... (Keep your existing tool logic here) ...
+                        print("------ Function Called --------")
+                        func_resps = []
+                        for fc in response.tool_call.function_calls:
+                            if fc.name == "transfer_to_human_operator":
+                                await session.close()
+                            resp = self._call_aldar_api(function_name=fc.name, parameters=fc.args)
+                            func_resps.append(types.FunctionResponse(id=fc.id, name=fc.name, response=resp))
+                        await session.send_tool_response(function_responses=func_resps)
+
                     # Handle transcriptions
                     if response.server_content and response.server_content.input_transcription:
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
                         self.transcriptions.append({"name": "user", "transcription": user_text})
-
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                             bot_buffer = ""
-
                         if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                             await self.send_log_chunk()
 
                     if response.server_content and response.server_content.output_transcription:
                         chunk = response.server_content.output_transcription.text
-                        # print("🤖 Bot chunk:", chunk) # Optional: comment out to reduce noise
                         bot_buffer += " " + chunk.strip()
 
                     if response.server_content and response.server_content.model_turn:
