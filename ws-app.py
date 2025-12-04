@@ -285,57 +285,48 @@ class GeminiTwilioBridge:
             print(f"❌ Error sending log chunk: {e}")
 
     async def gemini_session(self):
-        """Bridges Twilio audio and Gemini responses with proper interruption handling."""
+        """Bridges Twilio audio and Gemini responses."""
         print(f"✅ Starting Gemini session for {self.call_uuid}")
 
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
             bot_buffer = ""
-            is_bot_speaking = False
-            
             try:
                 async for response in session.start_stream(
                     stream=self.twilio_audio_stream(),
                     mime_type="audio/pcm;rate=16000"
                 ):
-                    # ---- CRITICAL: Handle interruption FIRST ----
-                    # When user interrupts, Gemini sets this flag but keeps sending content
-                    # We must stop processing audio immediately
+
+                    # ---------------------------------------------------------------
+                    # ⚡ NEW: Handle Interruption (Barge-In)
+                    # ---------------------------------------------------------------
                     if response.server_content and response.server_content.interrupted:
-                        print("⚠️ INTERRUPTION DETECTED - Stopping bot audio immediately")
+                        print(f"⚡ Interruption detected for {self.call_uuid}. Clearing Twilio buffer.")
                         
-                        # Clear Twilio's audio buffer to stop playback
+                        # 1. Send 'clear' event to Twilio to stop audio immediately
                         if self.stream_sid:
                             await websocket.send(json.dumps({
                                 "event": "clear",
                                 "streamSid": self.stream_sid
                             }))
                         
-                        # Mark that bot was interrupted
-                        is_bot_speaking = False
-                        
-                        # Save partial transcription if any
-                        if bot_buffer.strip():
-                            self.transcriptions.append({
-                                "name": "bot", 
-                                "transcription": bot_buffer.strip() + " [interrupted]"
-                            })
+                        # 2. Clear the accumulated text buffer so we don't log half-sentences
+                        # (Optional: keep this if you want to log what WAS going to be said)
+                        if bot_buffer:
+                            self.transcriptions.append({"name": "bot (interrupted)", "transcription": bot_buffer.strip()})
                             bot_buffer = ""
-                        
-                        # SKIP processing any further content from this response
-                        # Continue to next iteration - this is the key fix!
-                        continue
+                            
+                        continue  # Skip processing the rest of this frame
+                    # ---------------------------------------------------------------
 
-                    # ---- Handle tool calls ----
+
                     if response.tool_call:
                         print("------ Function Called --------")
                         func_resps = []
                         print(response.tool_call)
-                        
                         for fc in response.tool_call.function_calls:
                             if fc.name == "transfer_to_human_operator":
-                                print("Transfer to human operator")
-                                await session.close()
-                                return
+                                print("Tranfer to human")
+                                await session.close() # Close session cleanly
 
                             resp = self._call_aldar_api(function_name=fc.name, parameters=fc.args)
                             print(resp)
@@ -348,18 +339,11 @@ class GeminiTwilioBridge:
 
                         await session.send_tool_response(function_responses=func_resps)
 
-                    # ---- Handle Gemini audio output ----
+                    # Handle Gemini -> Twilio audio
                     if response.data:
-                        # Mark that bot is speaking when audio starts
-                        if not is_bot_speaking:
-                            is_bot_speaking = True
-                            # print("🤖 Bot started speaking")
-                        
-                        # Always write to WAV for recording
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
                         self.merged_wav.writeframes(pcm_16k)
 
-                        # Send to Twilio
                         if self.stream_sid:
                             b64_audio = self.convert_audio_to_twilio_format(response.data)
                             await websocket.send(json.dumps({
@@ -368,56 +352,37 @@ class GeminiTwilioBridge:
                                 "media": {"payload": b64_audio}
                             }))
 
-                    # ---- Handle user transcriptions (input) ----
+                    # Handle transcriptions
                     if response.server_content and response.server_content.input_transcription:
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
-                        
-                        # If bot was speaking and user started talking, this could trigger interruption
-                        if is_bot_speaking:
-                            print("⚠️ User started speaking while bot was talking")
-                        
                         self.transcriptions.append({"name": "user", "transcription": user_text})
 
-                        # Save any pending bot transcription
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                             bot_buffer = ""
 
-                        # Send log chunk if threshold reached
                         if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                             await self.send_log_chunk()
 
-                    # ---- Handle bot transcriptions (output) ----
                     if response.server_content and response.server_content.output_transcription:
                         chunk = response.server_content.output_transcription.text
-                        print("🤖 Bot chunk:", chunk)
+                        # print("🤖 Bot chunk:", chunk) # Optional: comment out to reduce noise
                         bot_buffer += " " + chunk.strip()
 
-                    # ---- Handle model turn completion ----
                     if response.server_content and response.server_content.model_turn:
-                        is_bot_speaking = False
-                        # print("✅ Bot finished speaking (model turn complete)")
-                        
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                             print("🤖 Bot complete:", bot_buffer.strip())
                             bot_buffer = ""
-                            
                             if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                                 await self.send_log_chunk()
-                                
             except Exception as e:
                 print(f"❌ Error in gemini_session: {e}")
-                import traceback
-                traceback.print_exc()
 
             finally:
-                # Save any remaining transcription
                 if bot_buffer.strip():
                     self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
-                
-                # Close WAV file and send final logs
                 self.merged_wav.close()
                 await self.send_log_chunk(is_final=True)
                 await websocket.close(code=200)
