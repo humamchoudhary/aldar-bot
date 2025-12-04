@@ -34,7 +34,7 @@ app = Quart(__name__)
 
 class GeminiTwilioBridge:
     def __init__(self):
-        self.client = genai.Client(api_key=os.getenv("GEMINI_KEY"))
+        self.client = genai.Client(api_key=os.getenv("GEMINI_KEY"),http_options={"api_version": "v1alpha"})
         self.model_id = "gemini-2.5-flash-native-audio-latest"
 
         # ---- Unique per-call identifiers ----
@@ -68,7 +68,9 @@ class GeminiTwilioBridge:
         # ---- Model config ----
         self.config = {
             "response_modalities": ["AUDIO"],
-            "thinking_config": {"thinking_budget": 0},
+            "thinking_config": {"thinking_budget": 1},
+            "enable_affective_dialog":False,     
+
             "output_audio_transcription": {},
             "input_audio_transcription": {},
             "realtime_input_config": {
