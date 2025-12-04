@@ -296,7 +296,10 @@ class GeminiTwilioBridge:
                     mime_type="audio/pcm;rate=16000"
                 ):
 
-                        
+                    if response.server_content and response.server_content.interrupted:
+                        print("INTERUPTED")
+                        break
+
                     if response.tool_call:
                         print("------ Function Called --------")
                         func_resps = []
@@ -335,8 +338,6 @@ class GeminiTwilioBridge:
                             # print("🎧 Sent Gemini audio chunk to Twilio")
 
                     # Handle transcriptions
-                    if response.server_content and response.server_content.interrupted:
-                        print("INTERUPTED")
                     if  response.server_content and response.server_content.input_transcription:
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
