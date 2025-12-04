@@ -71,15 +71,6 @@ class GeminiTwilioBridge:
             "thinking_config": {"thinking_budget": 0},
             "output_audio_transcription": {},
             "input_audio_transcription": {},
-            "realtime_input_config": {
-        "automatic_activity_detection": {
-            "disabled": False, # default
-            "start_of_speech_sensitivity": types.StartSensitivity.START_SENSITIVITY_LOW,
-            "end_of_speech_sensitivity": types.EndSensitivity.END_SENSITIVITY_LOW,
-            "prefix_padding_ms": 20,
-            "silence_duration_ms": 100,
-        }
-    },
              "speech_config": {
                     "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
                 },
