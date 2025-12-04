@@ -12,6 +12,8 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 import requests
+import queue
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +31,11 @@ SYS_INST_ENDPOINT = os.getenv("SYS_INST_ENDPOINT", "https://al-dar.go-globe.dev/
 # Configure chunk size for incremental logging
 LOG_CHUNK_SIZE = int(os.getenv("LOG_CHUNK_SIZE", "5"))  # Send logs every 5 messages by default
 
+# Barge-in configuration
+BARGE_IN_ENABLED = os.getenv("BARGE_IN_ENABLED", "true").lower() == "true"
+VAD_ENERGY_THRESHOLD = int(os.getenv("VAD_ENERGY_THRESHOLD", "500"))
+VAD_SILENCE_DURATION = float(os.getenv("VAD_SILENCE_DURATION", "0.3"))
+
 app = Quart(__name__)
 
 
@@ -45,10 +52,6 @@ class GeminiTwilioBridge:
         self.stream_sid = None
         self.custom_params = {}
 
-
-        self.bot_is_speaking = False
-        self.last_user_audio_time = None
-        self.audio_silence_threshold = 0.3  
         # ---- Create per-call WAV file ----
         os.makedirs("recordings", exist_ok=True)
         self.filename = os.path.join("recordings", f"call_{self.call_uuid}.wav")
@@ -62,6 +65,23 @@ class GeminiTwilioBridge:
 
         print(f"📁 Created file for this call: {self.filename}")
 
+        # ---- Barge-in/Interruption control ----
+        self.is_gemini_speaking = False
+        self.interrupt_requested = False
+        self.user_is_speaking = False
+        self.consecutive_speech_frames = 0
+        self.consecutive_silence_frames = 0
+        self.last_audio_chunk = b""
+        
+        # Voice Activity Detection (VAD) parameters
+        self.vad_energy_threshold = VAD_ENERGY_THRESHOLD
+        self.vad_silence_frames_threshold = int(VAD_SILENCE_DURATION * 50)  # 50 frames per second
+        self.vad_speech_frames_threshold = 3  # Minimum frames to consider as speech
+        
+        # Audio buffer for real-time processing
+        self.audio_chunks = []
+        self.audio_buffer_size = 20  # Buffer last 20 chunks for interruption handling
+        
         # ---- System instruction ----
         self.system_instruction = """
         You are a professional AI assistant trained in customer service and sales communication.
@@ -75,12 +95,11 @@ class GeminiTwilioBridge:
             "thinking_config": {"thinking_budget": 0},
             "output_audio_transcription": {},
             "input_audio_transcription": {},
-             "speech_config": {
-                    "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
-                },
-            "systemInstruction":self.system_instruction,
-
-            "tools":[{"function_declarations":[
+            "speech_config": {
+                "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
+            },
+            "systemInstruction": self.system_instruction,
+            "tools": [{"function_declarations": [
                 {
                     "name": "get_branch_details",
                     "description": "Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
@@ -177,20 +196,15 @@ class GeminiTwilioBridge:
                 response.raise_for_status()
                 return response.json()
 
-
             elif function_name == "get_transaction_status":
                 tran_ref_no = parameters.get("transaction_ref_no")
                 url = f"{self.aldar_base_url}/api/User/GetTransactionDetails"
                 response = requests.get(url, params={"tranRefNo": tran_ref_no})
                 response.raise_for_status()
                 return response.json()
-
-
             
         except requests.exceptions.RequestException as e:
             return {"error": f"API call failed: {str(e)}"}
-
-
 
     def get_system_instruction(self):
         try:
@@ -204,6 +218,37 @@ class GeminiTwilioBridge:
         except Exception as e:
             print(f"⚠️ Failed to load system instruction: {e}")
 
+    def detect_voice_activity(self, audio_chunk):
+        """Simple voice activity detection based on audio energy"""
+        if len(audio_chunk) < 4:
+            return False
+        
+        # Calculate RMS energy
+        rms_energy = audioop.rms(audio_chunk, 2)
+        
+        # Dynamic threshold adjustment (optional)
+        if rms_energy > self.vad_energy_threshold:
+            self.consecutive_speech_frames += 1
+            self.consecutive_silence_frames = 0
+        else:
+            self.consecutive_silence_frames += 1
+            if self.consecutive_silence_frames > self.vad_speech_frames_threshold * 2:
+                self.consecutive_speech_frames = 0
+        
+        # Update user speaking state
+        was_speaking = self.user_is_speaking
+        self.user_is_speaking = self.consecutive_speech_frames >= self.vad_speech_frames_threshold
+        
+        # Return detection result
+        if not was_speaking and self.user_is_speaking:
+            return "speech_start"
+        elif self.user_is_speaking:
+            return "speech_ongoing"
+        elif was_speaking and not self.user_is_speaking:
+            return "speech_end"
+        
+        return "silence"
+
     async def initialize_call(self):
         """Send initial POST request to create call session at the start."""
         try:
@@ -212,7 +257,7 @@ class GeminiTwilioBridge:
                 "call_uuid": self.call_uuid,
                 "file_name": self.filename,
                 "started_at": datetime.datetime.now().isoformat(),
-                "custom_params":self.custom_params
+                "custom_params": self.custom_params
             }
             print(f"📞 Initializing call session → {init_url}")
             async with aiohttp.ClientSession() as session:
@@ -224,15 +269,8 @@ class GeminiTwilioBridge:
         except Exception as e:
             print(f"❌ Error initializing call: {e}")
 
-
-    def detect_audio_activity(self, pcm_data: bytes) -> bool:
-        """Detect if there's significant audio activity (user speaking)."""
-        # Calculate RMS (Root Mean Square) energy of audio
-        rms = audioop.rms(pcm_data, 2)
-        # Threshold for detecting speech (adjust based on testing)
-        return rms > 500  
     async def twilio_audio_stream(self):
-        """Handle incoming Twilio WebSocket audio stream with interruption detection."""
+        """Handle incoming Twilio WebSocket audio stream."""
         while True:
             try:
                 message = await websocket.receive()
@@ -242,7 +280,9 @@ class GeminiTwilioBridge:
                 if event == "start":
                     self.stream_sid = data["start"]["streamSid"]
                     self.custom_params = data["start"]["customParameters"]
-                    print(f"📡 Twilio stream started: {self.stream_sid}")
+                    print(data)
+                    print(f"📡 Twilio stream started: {self.stream_sid} -> {self.custom_params}")
+
                     await self.initialize_call()
 
                 elif event == "media":
@@ -251,21 +291,23 @@ class GeminiTwilioBridge:
                     pcm_bytes = audioop.ulaw2lin(mulaw_bytes, 2)
                     pcm_16k, _ = audioop.ratecv(pcm_bytes, 2, 1, 8000, 16000, None)
                     
-                    # Detect if user is speaking
-                    has_audio = self.detect_audio_activity(pcm_16k)
-                    if has_audio:
-                        
-                        # If bot is speaking, interrupt it
-                        if self.bot_is_speaking:
-                            print("⚠️ INTERRUPTION DETECTED (audio level)")
-                            self.bot_is_speaking = False
-                            # Signal to stop bot audio playback
-                            if self.stream_sid:
-                                await websocket.send(json.dumps({
-                                    "event": "clear",
-                                    "streamSid": self.stream_sid
-                                }))
+                    # Store for VAD and interruption detection
+                    self.last_audio_chunk = pcm_16k
+                    self.audio_chunks.append(pcm_16k)
+                    if len(self.audio_chunks) > self.audio_buffer_size:
+                        self.audio_chunks.pop(0)
                     
+                    # Voice Activity Detection
+                    if BARGE_IN_ENABLED:
+                        vad_result = self.detect_voice_activity(pcm_16k)
+                        
+                        # Check for user interruption during Gemini speech
+                        if vad_result in ["speech_start", "speech_ongoing"] and self.is_gemini_speaking:
+                            print(f"🎤 User speaking during Gemini response (VAD: {vad_result})")
+                            # Set interruption flag - will be handled in gemini_session
+                            self.interrupt_requested = True
+                    
+                    # Write to WAV file
                     self.merged_wav.writeframes(pcm_16k)
                     yield pcm_16k
 
@@ -310,28 +352,67 @@ class GeminiTwilioBridge:
             print(f"❌ Error sending log chunk: {e}")
 
     async def gemini_session(self):
-        """Bridges Twilio audio and Gemini responses."""
+        """Bridges Twilio audio and Gemini responses with interruption support."""
         print(f"✅ Starting Gemini session for {self.call_uuid}")
 
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
             bot_buffer = ""
+            gemini_response_audio = b""
+            last_interruption_check = asyncio.get_event_loop().time()
+            
             try:
                 async for response in session.start_stream(
                     stream=self.twilio_audio_stream(),
                     mime_type="audio/pcm;rate=16000"
                 ):
+                    # Check for user interruption periodically
+                    current_time = asyncio.get_event_loop().time()
+                    if BARGE_IN_ENABLED and current_time - last_interruption_check > 0.1:  # Check every 100ms
+                        if self.interrupt_requested and self.is_gemini_speaking:
+                            print("🛑 INTERRUPTION DETECTED - Handling user barge-in")
+                            
+                            # Send a mark event to Twilio to indicate interruption boundary
+                            if self.stream_sid:
+                                await websocket.send(json.dumps({
+                                    "event": "mark",
+                                    "streamSid": self.stream_sid,
+                                    "mark": {"name": "interruption"}
+                                }))
+                            
+                            # Clear any buffered bot response
+                            bot_buffer = ""
+                            gemini_response_audio = b""
+                            
+                            # Reset interruption flag
+                            self.interrupt_requested = False
+                            
+                            # Note: We can't directly stop the Gemini stream, but we can
+                            # ignore further audio from this response and wait for next input
+                        
+                        last_interruption_check = current_time
 
-
+                    # Handle tool calls
                     if response.tool_call:
                         print("------ Function Called --------")
                         func_resps = []
                         print(response.tool_call)
                         for fc in response.tool_call.function_calls:
                             if fc.name == "transfer_to_human_operator":
-                                print("Tranfer to human")
-                                await session.close();
-
-                            resp = self._call_aldar_api(function_name=fc.name,parameters=fc.args)
+                                print("Transfer to human")
+                                # Clear any pending audio before transfer
+                                if self.stream_sid and gemini_response_audio:
+                                    b64_audio = self.convert_audio_to_twilio_format(gemini_response_audio)
+                                    await websocket.send(json.dumps({
+                                        "event": "media",
+                                        "streamSid": self.stream_sid,
+                                        "media": {"payload": b64_audio}
+                                    }))
+                                    gemini_response_audio = b""
+                                
+                                await session.close()
+                                return
+                            
+                            resp = self._call_aldar_api(function_name=fc.name, parameters=fc.args)
                             print(resp)
                             function_response = types.FunctionResponse(
                                 id=fc.id,
@@ -342,25 +423,29 @@ class GeminiTwilioBridge:
 
                         await session.send_tool_response(function_responses=func_resps)
 
-
-
-
                     # Handle Gemini -> Twilio audio
                     if response.data:
-                        pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
-                        self.merged_wav.writeframes(pcm_16k)
+                        self.is_gemini_speaking = True
+                        gemini_response_audio += response.data
+                        
+                        # Only send audio if no interruption is requested
+                        if not self.interrupt_requested:
+                            pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
+                            self.merged_wav.writeframes(pcm_16k)
 
-                        if self.stream_sid:
-                            b64_audio = self.convert_audio_to_twilio_format(response.data)
-                            await websocket.send(json.dumps({
-                                "event": "media",
-                                "streamSid": self.stream_sid,
-                                "media": {"payload": b64_audio}
-                            }))
-                            # print("🎧 Sent Gemini audio chunk to Twilio")
+                            if self.stream_sid:
+                                b64_audio = self.convert_audio_to_twilio_format(response.data)
+                                await websocket.send(json.dumps({
+                                    "event": "media",
+                                    "streamSid": self.stream_sid,
+                                    "media": {"payload": b64_audio}
+                                }))
+                        else:
+                            # If interruption was requested, skip sending this audio chunk
+                            print("⏸️ Skipping audio chunk due to interruption")
 
                     # Handle transcriptions
-                    if  response.server_content and response.server_content.input_transcription:
+                    if response.server_content and response.server_content.input_transcription:
                         user_text = response.server_content.input_transcription.text
                         print("👤 User:", user_text)
                         self.transcriptions.append({"name": "user", "transcription": user_text})
@@ -372,27 +457,51 @@ class GeminiTwilioBridge:
                         if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                             await self.send_log_chunk()
 
-                    if  response.server_content and response.server_content.output_transcription:
+                    if response.server_content and response.server_content.output_transcription:
                         chunk = response.server_content.output_transcription.text
                         print("🤖 Bot chunk:", chunk)
                         bot_buffer += " " + chunk.strip()
 
-                    if  response.server_content and  response.server_content.model_turn:
+                    if response.server_content and response.server_content.model_turn:
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
                             print("🤖 Bot complete:", bot_buffer.strip())
                             bot_buffer = ""
                             if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                                 await self.send_log_chunk()
+                        
+                        # End of Gemini's turn
+                        self.is_gemini_speaking = False
+                        gemini_response_audio = b""
+                        
+                        # Reset interruption flag at turn end
+                        self.interrupt_requested = False
+                        
             except Exception as e:
                 print(f"❌ Error in gemini_session: {e}")
 
             finally:
+                # Send any remaining bot transcription
                 if bot_buffer.strip():
                     self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
+                
+                # Send any remaining audio
+                if self.stream_sid and gemini_response_audio:
+                    b64_audio = self.convert_audio_to_twilio_format(gemini_response_audio)
+                    await websocket.send(json.dumps({
+                        "event": "media",
+                        "streamSid": self.stream_sid,
+                        "media": {"payload": b64_audio}
+                    }))
+                
                 self.merged_wav.close()
                 await self.send_log_chunk(is_final=True)
-                await websocket.close(code=200)
+                
+                try:
+                    await websocket.close(code=200)
+                except:
+                    pass
+                
                 print(f"🏁 Call session {self.call_uuid} ended cleanly.")
 
 
@@ -406,4 +515,4 @@ async def media_stream():
 
 if __name__ == "__main__":
     port = os.getenv('CALL_WEBRTC_URL')
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=3059)
