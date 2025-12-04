@@ -300,6 +300,8 @@ class GeminiTwilioBridge:
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
             bot_buffer = ""
             is_bot_speaking = False
+            last_turn_complete = False
+            interruption_count = 0
             
             try:
                 async for response in session.start_stream(
@@ -307,19 +309,22 @@ class GeminiTwilioBridge:
                     mime_type="audio/pcm;rate=16000"
                 ):
                     # ---- CRITICAL: Handle interruption FIRST ----
-                    # When user interrupts, Gemini sets this flag but keeps sending content
-                    # We must stop processing audio immediately
                     if response.server_content and response.server_content.interrupted:
-                        print("⚠️ INTERRUPTION DETECTED - Stopping bot audio immediately")
+                        interruption_count += 1
+                        print(f"⚠️ INTERRUPTION #{interruption_count} DETECTED - Stopping bot audio")
                         
-                        # Clear Twilio's audio buffer to stop playback
+                        # Clear Twilio's audio buffer immediately
                         if self.stream_sid:
-                            await websocket.send(json.dumps({
-                                "event": "clear",
-                                "streamSid": self.stream_sid
-                            }))
+                            try:
+                                await websocket.send(json.dumps({
+                                    "event": "clear",
+                                    "streamSid": self.stream_sid
+                                }))
+                                print("✅ Sent clear event to Twilio")
+                            except Exception as e:
+                                print(f"❌ Error sending clear: {e}")
                         
-                        # Mark that bot was interrupted
+                        # Reset bot speaking state
                         is_bot_speaking = False
                         
                         # Save partial transcription if any
@@ -328,11 +333,15 @@ class GeminiTwilioBridge:
                                 "name": "bot", 
                                 "transcription": bot_buffer.strip() + " [interrupted]"
                             })
+                            print(f"💾 Saved interrupted transcription: {bot_buffer.strip()[:50]}...")
                             bot_buffer = ""
                         
-                        # SKIP processing any further content from this response
-                        # Continue to next iteration - this is the key fix!
-                        continue
+                        # Mark that we need to wait for model turn to complete
+                        last_turn_complete = False
+                        
+                        # Continue listening - DON'T skip other response processing
+                        # The user input that caused the interrupt may be in this response
+                        # continue
 
                     # ---- Handle tool calls ----
                     if response.tool_call:
@@ -358,18 +367,28 @@ class GeminiTwilioBridge:
                         await session.send_tool_response(function_responses=func_resps)
 
                     # ---- Handle Gemini audio output ----
+                    # Only send audio if NOT interrupted and bot should be speaking
                     if response.data:
+                        # Check if this is stale audio after interruption
+                        if response.server_content and response.server_content.interrupted:
+                            print("🚫 Skipping audio chunk - interrupted")
+                            # Still write to WAV for recording
+                            pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
+                            self.merged_wav.writeframes(pcm_16k)
+                            continue
+                        
                         # Mark that bot is speaking when audio starts
                         if not is_bot_speaking:
                             is_bot_speaking = True
-                            # print("🤖 Bot started speaking")
+                            last_turn_complete = False
+                            print("🤖 Bot started speaking")
                         
                         # Always write to WAV for recording
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
                         self.merged_wav.writeframes(pcm_16k)
 
-                        # Send to Twilio
-                        if self.stream_sid:
+                        # Send to Twilio only if bot should be speaking
+                        if self.stream_sid and is_bot_speaking:
                             b64_audio = self.convert_audio_to_twilio_format(response.data)
                             await websocket.send(json.dumps({
                                 "event": "media",
@@ -380,11 +399,11 @@ class GeminiTwilioBridge:
                     # ---- Handle user transcriptions (input) ----
                     if response.server_content and response.server_content.input_transcription:
                         user_text = response.server_content.input_transcription.text
-                        print("👤 User:", user_text)
+                        print(f"👤 User: {user_text}")
                         
-                        # If bot was speaking and user started talking, this could trigger interruption
+                        # If bot was speaking and user started talking, note it
                         if is_bot_speaking:
-                            print("⚠️ User started speaking while bot was talking")
+                            print("⚠️ User spoke while bot was talking - potential interrupt")
                         
                         self.transcriptions.append({"name": "user", "transcription": user_text})
 
@@ -399,22 +418,34 @@ class GeminiTwilioBridge:
 
                     # ---- Handle bot transcriptions (output) ----
                     if response.server_content and response.server_content.output_transcription:
+                        # Skip transcription if interrupted
+                        if response.server_content.interrupted:
+                            print("🚫 Skipping transcription chunk - interrupted")
+                            continue
+                            
                         chunk = response.server_content.output_transcription.text
-                        print("🤖 Bot chunk:", chunk)
+                        print(f"🤖 Bot chunk: {chunk}")
                         bot_buffer += " " + chunk.strip()
 
                     # ---- Handle model turn completion ----
                     if response.server_content and response.server_content.model_turn:
                         is_bot_speaking = False
-                        # print("✅ Bot finished speaking (model turn complete)")
+                        last_turn_complete = True
+                        print(f"✅ Bot finished speaking (turn #{interruption_count + 1} complete)")
                         
                         if bot_buffer.strip():
                             self.transcriptions.append({"name": "bot", "transcription": bot_buffer.strip()})
-                            print("🤖 Bot complete:", bot_buffer.strip())
+                            print(f"🤖 Bot complete: {bot_buffer.strip()[:100]}...")
                             bot_buffer = ""
                             
                             if len(self.transcriptions) - self.last_sent_index >= LOG_CHUNK_SIZE:
                                 await self.send_log_chunk()
+                    
+                    # ---- Handle turn completion after interruption ----
+                    if response.server_content and response.server_content.turn_complete:
+                        print("🔄 Turn complete - ready for next interaction")
+                        is_bot_speaking = False
+                        last_turn_complete = True
                                 
             except Exception as e:
                 print(f"❌ Error in gemini_session: {e}")
@@ -430,7 +461,7 @@ class GeminiTwilioBridge:
                 self.merged_wav.close()
                 await self.send_log_chunk(is_final=True)
                 await websocket.close(code=200)
-                print(f"🏁 Call session {self.call_uuid} ended cleanly.")
+                print(f"🏁 Call session {self.call_uuid} ended. Total interruptions: {interruption_count}")
 
 
 @app.websocket('/')
