@@ -309,6 +309,7 @@ class GeminiTwilioBridge:
                     stream=self.twilio_audio_stream(),
                     mime_type="audio/pcm;rate=16000"
                 ):
+                    print(f"INTRUPTION STATE : {is_interrupted}")
                     # ---- CRITICAL: Handle interruption FIRST ----
                     # When user interrupts, Gemini sets this flag but keeps sending content
                     # We must stop processing audio immediately
