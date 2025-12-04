@@ -318,31 +318,31 @@ class GeminiTwilioBridge:
 
 
                         is_interrupted = True  # Set flag to suppress content
-                        print(f"[{session.stream_sid}][INTERRUPTION]: User interrupted - suppressing content")
+                        print(f"[{self.stream_sid}][INTERRUPTION]: User interrupted - suppressing content")
                         
                         # Immediate flush to stop current audio
                         flush_msg = {
                             "event": "media",
-                            "streamSid": session.stream_sid,
+                            "streamSid": self.stream_sid,
                             "media": {"payload": ""}
                         }
                         await websocket.send(json.dumps(flush_msg))
 
                         mark_message = {
                             "event": "mark",
-                            "streamSid": session.stream_sid,
+                            "streamSid": self.stream_sid,
                             "mark": {"name": "agent_interrupted"}
                         }
-                        await websocket.send_text(json.dumps(mark_message))
-                        print(f"[{session.stream_sid}][AGENT -> TWILIO]: Sent interruption mark.")
+                        await websocket.send(json.dumps(mark_message))
+                        print(f"[{self.stream_sid}][AGENT -> TWILIO]: Sent interruption mark.")
                         continue  # Skip to next event immediately
 
                     if response.server_content.turn_complete:
                         is_interrupted = False  # Reset flag to allow new content
-                        print(f"[{session.stream_sid}][TURN_COMPLETE]: Resetting interruption state")
+                        print(f"[{self.stream_sid}][TURN_COMPLETE]: Resetting interruption state")
 
                     if is_interrupted:
-                        print(f"[{session.stream_sid}][SUPPRESSED]: Content event discarded due to interruption")
+                        print(f"[{self.stream_sid}][SUPPRESSED]: Content event discarded due to interruption")
                         continue 
 
                         
@@ -373,9 +373,6 @@ class GeminiTwilioBridge:
                     # ---- Handle Gemini audio output ----
                     if response.data:
                         # Mark that bot is speaking when audio starts
-                        if not is_bot_speaking:
-                            is_bot_speaking = True
-                            # print("🤖 Bot started speaking")
                         
                         # Always write to WAV for recording
                         pcm_16k, _ = audioop.ratecv(response.data, 2, 1, 24000, 16000, None)
