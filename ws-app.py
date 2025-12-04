@@ -302,6 +302,7 @@ class GeminiTwilioBridge:
         async with self.client.aio.live.connect(model=self.model_id, config=self.config) as session:
             bot_buffer = ""
             is_interrupted = False
+            print("START")
             
             try:
                 async for response in session.start_stream(
