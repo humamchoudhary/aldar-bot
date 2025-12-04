@@ -393,8 +393,6 @@ class GeminiTwilioBridge:
                         print("👤 User:", user_text)
                         
                         # If bot was speaking and user started talking, this could trigger interruption
-                        if is_bot_speaking:
-                            print("⚠️ User started speaking while bot was talking")
                         
                         self.transcriptions.append({"name": "user", "transcription": user_text})
 
@@ -415,7 +413,6 @@ class GeminiTwilioBridge:
 
                     # ---- Handle model turn completion ----
                     if response.server_content and response.server_content.model_turn:
-                        is_bot_speaking = False
                         # print("✅ Bot finished speaking (model turn complete)")
                         
                         if bot_buffer.strip():
