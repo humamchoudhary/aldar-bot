@@ -45,6 +45,10 @@ class GeminiTwilioBridge:
         self.stream_sid = None
         self.custom_params = {}
 
+
+        self.bot_is_speaking = False
+        self.last_user_audio_time = None
+        self.audio_silence_threshold = 0.3  
         # ---- Create per-call WAV file ----
         os.makedirs("recordings", exist_ok=True)
         self.filename = os.path.join("recordings", f"call_{self.call_uuid}.wav")
