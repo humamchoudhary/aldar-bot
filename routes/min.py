@@ -1,4 +1,5 @@
 from pprint import pprint
+import threading
 from services.expo_noti import send_push_noti
 import markdown
 from flask import make_response
@@ -20,6 +21,64 @@ from functools import wraps
 from services.email_service import send_email
 import os
 import pytz
+from flask import copy_current_request_context
+
+
+def handle_bot_response(room_id, message, chat, admin, max_retries=3, retry_delay=1,init_delay=False):
+    """Handle bot response with retry logic - can be called from multiple endpoints"""
+    @copy_current_request_context
+    def _bot_response_worker():
+        chat_service = ChatService(current_app.db)
+        admin_service = AdminService(current_app.db)
+        if init_delay:
+            time.sleep(5)
+
+        
+        for attempt in range(max_retries):
+            try:
+                msg, usage = current_app.bot.respond(
+                    f"Subject of chat: {chat.subject}\n{message}", chat.room_id)
+                
+                admin_service.update_tokens(admin.admin_id, usage['cost'])
+
+                bot_message = chat_service.add_message(chat.room_id, chat.bot_name, msg)
+                print({
+                    'room_id': chat.room_id,
+                    'sender': chat.bot_name,
+                    'content': msg,
+                    'timestamp': bot_message.timestamp.isoformat()
+                })
+
+                current_app.socketio.emit('new_message', {
+                    'room_id': chat.room_id,
+                    'sender': chat.bot_name,
+                    'content': msg,
+                    'timestamp': bot_message.timestamp.isoformat()
+                }, room=chat.room_id)
+
+                return  # Success, exit retry loop
+                
+            except Exception as e:
+                print(f"Bot response error (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                else:
+                    # All retries failed, send error message
+                    error_message = chat_service.add_message(chat.room_id, "SYSTEM", 
+                                                            "We Apologize, there was an unexpected error, please try again after some time")
+                    
+                    current_app.socketio.emit('new_message', {
+                        'room_id': chat.room_id,
+                        'sender': "SYSTEM",
+                        'content': "We Apologize, there was an unexpected error, please try again after some time",
+                        'timestamp': error_message.timestamp.isoformat()
+                    }, room=chat.room_id)
+    
+    # Start the bot response in a separate thread
+    thread = threading.Thread(target=_bot_response_worker)
+    thread.daemon = True
+    thread.start()
+
 
 
 @min_bp.before_request
@@ -409,10 +468,10 @@ def send_message(room_id):
     # Handle bot response or admin notification
     if not chat.admin_required:
         try:
-            msg, usage = current_app.bot.respond(
-                f"Subject of chat: {chat.subject}\n{message}", chat.room_id)
-            
-            admin_service.update_tokens(admin.admin_id, usage['cost'])
+            # msg, usage = current_app.bot.respond(
+            #     f"Subject of chat: {chat.subject}\n{message}", chat.room_id)
+            # 
+            # admin_service.update_tokens(admin.admin_id, usage['cost'])
 
             # usage_service = UsageService(current_app.db)
             # usage_service.add_cost(
@@ -420,14 +479,16 @@ def send_message(room_id):
             #     usage['input'], usage['output'], usage['cost']
             # )
             
-            bot_message = chat_service.add_message(chat.room_id, chat.bot_name, msg)
+            # bot_message = chat_service.add_message(chat.room_id, chat.bot_name, msg)
 
-            current_app.socketio.emit('new_message', {
-                'room_id': chat.room_id,
-                'sender': chat.bot_name,
-                'content': msg,
-                'timestamp': bot_message.timestamp.isoformat()
-            }, room=chat.room_id)
+            # current_app.socketio.emit('new_message', {
+            #     'room_id': chat.room_id,
+            #     'sender': chat.bot_name,
+            #     'content': msg,
+            #     'timestamp': bot_message.timestamp.isoformat()
+            # }, room=chat.room_id)
+
+            handle_bot_response(room_id, message, chat, admin)
         except Exception as e:
             print(f"Bot response error: {e}")
     else:

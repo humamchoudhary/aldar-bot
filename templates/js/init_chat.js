@@ -33,8 +33,8 @@
             document.head.appendChild(bodystyle);
 
             const htmxScript = document.createElement('script');
-            htmxScript.src = 'https://unpkg.com/htmx.org@2.0.4';
-            htmxScript.crossOrigin = 'anonymous';
+            htmxScript.src = '{{settings["backend_url"]}}{{ url_for("static", filename="js/htmx.min.js") }}';
+            // htmxScript.crossOrigin = 'anonymous';
             htmxScript.onload = () => {
                 console.log('HTMX loaded successfully');
 

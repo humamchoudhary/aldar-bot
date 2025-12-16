@@ -14,9 +14,7 @@
       loadFonts(fontFiles, fontFolder);
     </script>
     <script
-      src="https://unpkg.com/htmx.org@2.0.4"
-      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
-      crossorigin="anonymous"
+      src="{{settings["backend_url"]}}{{ url_for("static", filename="js/htmx.min.js") }}"
     ></script>
     <link
       rel="shortcut icon"
