@@ -47,7 +47,7 @@ class Bot:
                     ),
                     types.FunctionDeclaration(
                         name="get_branch_details",
-                        description="Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates.",
+                        description="Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates. when ever user asks for something related to timing/working hours, phone numbers, or location the function must be called, ",
                         parameters={
                             "type": "object",
                             "properties": {}
