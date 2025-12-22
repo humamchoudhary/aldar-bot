@@ -33,7 +33,25 @@ class Bot:
                 function_declarations=[
                     types.FunctionDeclaration(
                         name="get_exchange_rate",
-                        description="Get the current exchange rate for a specific rate type. Use type=1 for standard rates.",
+                        description="""Retrieve the most up-to-date exchange rate for a requested rate category. This function should be used whenever the user asks about:
+
+exchange rate values,
+
+currency rates,
+
+price of a currency,
+
+“how much is 1 ___ in QR?”,
+
+comparisons between currencies,
+
+forex rate info,
+
+standard exchange rate data.
+
+If the user asks anything about what a currency is worth, what the current rate is, or a question containing words like “rate”, “exchange”, “forex”, “value”, or “convert price” without needing a full conversion calculation, call this function.
+
+Use rate_type = 1 for standard exchange rates unless the user clearly specifies another type code.""",
                         parameters={
                             "type": "object",
                             "properties": {
@@ -47,7 +65,39 @@ class Bot:
                     ),
                     types.FunctionDeclaration(
                         name="get_branch_details",
-                        description="Get details of all Aldar Exchange branch locations including addresses, phone numbers, working hours, and coordinates. when ever user asks for something related to timing/working hours, phone numbers, or location the function must be called, ",
+                        description="""
+Return full details about all Aldar Exchange branches. Data includes:
+
+branch names,
+
+addresses,
+
+phone numbers,
+
+geographic coordinates,
+
+working days and working hours,
+
+break times if available,
+
+operational info.
+
+This function must be called whenever the user asks or implies anything related to:
+
+
+branch contact numbers (“phone number?”, “call?”, “whatsapp?”),
+
+office timings (“what time open?”, “closing time?”, “working hours?”, “weekend timing?”, “holiday timing?”),
+
+availability queries (“are they open now?”, “when can I visit?”, “do they open Friday?”),
+
+physical accessibility (“where is branch?”, “address?”, “full location?”),
+
+branch comparisons or lists (“all branches?”, “what branches exist?”).
+
+Even if the user does not explicitly say “branch,” but asks something about timing, hours, opening, closing, or phone number, assume they want branch details and call this function.
+
+                        """,
                         parameters={
                             "type": "object",
                             "properties": {}
@@ -55,7 +105,46 @@ class Bot:
                     ),
                     types.FunctionDeclaration(
                         name="calculate_exchange",
-                        description="Calculate currency conversion between QAR and foreign currency. Specify either local currency amount (QAR) or foreign currency amount, not both.",
+                        description="""Perform currency exchange conversion between QAR and a foreign currency based on either a given QAR value or foreign currency value. The function uses live rates supplied by Aldar Exchange.
+
+Call this function if the user asks:
+
+to convert money amount (“convert 100 USD to QAR”),
+
+“how much will I get?” style questions,
+
+conversion with specific amount,
+
+buying or selling currency values,
+
+transfer vs cash exchange amounts.
+
+Rules:
+
+transaction_type defines method:
+
+'tt' = telegraphic transfer,
+
+'BUY' = customer buying foreign currency,
+
+'SELL' = customer selling foreign currency.
+
+Only one amount field should contain value:
+
+If user provides QAR → put in local_amount and set foreign_amount = 0,
+
+If user provides foreign value → put in foreign_amount and set local_amount = 0.
+
+User may phrase request indirectly, such as:
+
+“How much is 500 AED?”,
+
+“What do I get for 100 QAR in USD?”,
+
+“rate calculator?”,
+
+“exchange amount?”.
+In these cases, call this function.""",
                         parameters={
                             "type": "object",
                             "properties": {
@@ -82,7 +171,33 @@ class Bot:
                     ),
                     types.FunctionDeclaration(
                         name="get_transaction_status",
-                        description="Get the status of a transaction using its reference number. Returns transaction status, message, and additional details if available.",
+                        description="""Retrieve the status and details of a sent transaction using a reference number. The function returns:
+
+transaction stage (success, pending, failed, in progress),
+
+success or error message,
+
+additional info (if available).
+
+Call this function whenever user asks about:
+
+track money transfer,
+
+payment status,
+
+receipt check,
+
+transaction verification,
+
+reference checking,
+
+“Where is my money?”,
+
+“Did my transaction go through?”,
+
+“Is my transfer complete?”.
+
+Even vague requests such as “check my transfer”, “track my remittance”, or “confirm payment” should trigger this function as long as user provides or mentions a reference number.""",
                         parameters={
                             "type": "object",
                             "properties": {
