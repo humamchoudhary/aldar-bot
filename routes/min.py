@@ -207,6 +207,9 @@ def new_chat(subject):
     admin = AdminService(current_app.db).get_admin_by_id(session.get('admin_id'))
     current_app.bot.create_chat(chat.room_id, admin)
 
+
+    current_app.socketio.emit('room:join', chat.room_id)
+
     # Redirect to chat using room_id (consistent!)
     return redirect(url_for('min.chat', room_id=chat.room_id))
 

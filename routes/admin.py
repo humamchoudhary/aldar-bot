@@ -3725,12 +3725,31 @@ def register_admin_socketio_events(socketio):
         if not room:
             return
         join_room(room)
+        print(f"joined room: {room}")
+
         join_room("admin")  # Join the admin room for broadcasts
-        emit("status", {"msg": "Admin has joined the room."}, room=room)
+        # emit("status", {"msg": "Admin has joined the room."}, room=room)
+    @socketio.on("joinAll")
+    def joinAll():
+        chat_service = ChatService(current_app.db)
+        chats = chat_service.get_all_chats(session.get('admin_id'))
+        for chat in chats:
+            print(f"joined {chat.room_id}")
+            join_room(chat.room_id)
+
+    @socketio.on("join")
+    def join(data):
+        print(f"join {data}" )
+        join_room(data)
 
     @socketio.on("admin_required")
     def on_admin_required(data):
         print(f"ADMIN REQUIRED: {data}")
+
+    @socketio.on("new_chat")
+    def on_new_chat(data):
+        print("New Chat")
+        print(data)
 
     @socketio.on("new_message")
     def on_new_message(data):

@@ -337,6 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       socket.on("connect", function () {
           console.log('connect')
+
+
+          socket.emit("joinAll")
         socket.emit("admin_join", { room: 'admin' });
 
       });
@@ -372,6 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+
+    socket.on("room:join",function (data){
+console.log("Room Join")
+        console.log(data)
+        socket.emit("join",data)
+    })
 
 socket.on("new_message", function (data) {
     htmx.ajax('GET', '/admin/chats_list/', '#chat_list_container') 
